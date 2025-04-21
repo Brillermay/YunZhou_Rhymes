@@ -54,6 +54,7 @@ export default {
       chatHistory: [],
       showError: false,
       errorTimeout: null,
+      usedVerses: [], // 新增：记录已使用过的诗句
       versesMap: {
         '花': [
           '花间一壶酒，独酌无相亲。',
@@ -119,21 +120,37 @@ export default {
     async submitVerse() {
       if (!this.userInput.trim()) return;
 
+      // 检查是否已经使用过该诗句
+      if (this.usedVerses.includes(this.userInput)) {
+        this.showError = true;
+        if (this.errorTimeout) clearTimeout(this.errorTimeout);
+        this.errorTimeout = setTimeout(() => {
+          this.showError = false;
+        }, 3000);
+        
+        setTimeout(() => {
+          this.addSystemMessage(`这句诗已经用过了，请换一句包含"${this.currentKeyword}"的诗句`);
+        }, 800);
+        return;
+      }
+
+      // 先记录用户输入的诗句
+      this.usedVerses.push(this.userInput);
       this.addUserMessage(this.userInput);
 
       try {
-        // 需要调用 API 进行诗句校验
         const isValid = await this.validateVerse(this.userInput, this.currentKeyword);
 
         if (isValid) {
           this.showError = false;
-
-          // 需要调用 API 获取包含该关键词的诗句
+          
           const response = await this.fetchRelatedVerse(this.currentKeyword);
           setTimeout(() => {
             this.addSystemMessage(response.verse);
           }, 800);
         } else {
+          // 如果验证失败，从已使用列表中移除
+          this.usedVerses = this.usedVerses.filter(v => v !== this.userInput);
           this.showError = true;
           if (this.errorTimeout) clearTimeout(this.errorTimeout);
           this.errorTimeout = setTimeout(() => {
@@ -141,13 +158,15 @@ export default {
           }, 3000);
 
           setTimeout(() => {
-            this.addSystemMessage(` 请输入正确的完整诗句，当前关键词是"${this.currentKeyword}"`);
+            this.addSystemMessage(`请输入正确的完整诗句，当前关键词是"${this.currentKeyword}"`);
           }, 800);
         }
       } catch (error) {
-        console.error(' 验证诗句失败:', error);
+        // 出错时也从已使用列表中移除
+        this.usedVerses = this.usedVerses.filter(v => v !== this.userInput);
+        console.error('验证诗句失败:', error);
         this.showError = true;
-        this.addSystemMessage(" 系统出错，请稍后再试");
+        this.addSystemMessage("系统出错，请稍后再试");
       } finally {
         this.userInput = '';
       }
@@ -217,7 +236,18 @@ export default {
       return new Promise((resolve) => {
         setTimeout(() => {
           const verses = this.versesMap[keyword] || ['暂未找到相关诗句。'];
-          const randomVerse = verses[Math.floor(Math.random() * verses.length)];
+          // 过滤掉已经使用过的诗句
+          const availableVerses = verses.filter(verse => !this.usedVerses.includes(verse));
+          
+          // 如果没有可用的诗句了，返回提示信息
+          if (availableVerses.length === 0) {
+            resolve({ verse: `所有包含"${keyword}"的诗句已用完` });
+            return;
+          }
+          
+          const randomVerse = availableVerses[Math.floor(Math.random() * availableVerses.length)];
+          // 记录已使用的诗句
+          this.usedVerses.push(randomVerse);
           resolve({ verse: randomVerse });
         }, 100);
       });
