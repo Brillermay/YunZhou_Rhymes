@@ -1,59 +1,58 @@
-/* È«¾ÖÑùÊ½ */
+/* È«ï¿½ï¿½ï¿½ï¿½Ê½ */
 body {
-    margin: 0; /* ÒÆ³ýÄ¬ÈÏ body µÄ margin */
+    margin: 0; /* ï¿½Æ³ï¿½Ä¬ï¿½ï¿½ body ï¿½ï¿½ margin */
     font-family: Arial, sans-serif;
     background-color: #f0f4f8;
   }
   
   #app {
-    display: flex; /* Ê¹ÓÃ flex ²¼¾Ö */
-    width: 100%; /* ¿í¶ÈÕ¼ÂúÕû¸öÊÓ¿Ú */
-    height: 100vh; /* ¸ß¶ÈÕ¼ÂúÕû¸öÊÓ¿Ú */
+    display: flex; /* Ê¹ï¿½ï¿½ flex ï¿½ï¿½ï¿½ï¿½ */
+    width: 100%; /* ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ */
+    height: 100vh; /* ï¿½ß¶ï¿½Õ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¿ï¿½ */
   }
   
-  /* ×ó²àµ¼º½À¸ */
+  /* ï¿½ï¿½àµ¼ï¿½ï¿½ï¿½ï¿½ */
   .navbar {
-    width: 250px; /* Ôö¼Ó¿í¶È */
-    background-color: white; /* ±³¾°¸ÄÎª°×É« */
-    color: #007bff; /* ÎÄ×ÖÑÕÉ«¸ÄÎªÀ¶É« */
-    padding: 20px; /* ÄÚ±ß¾à */
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* ÒõÓ° */
-    display: flex; /* Ê¹ÓÃ flex ²¼¾Ö */
-    flex-direction: column; /* ´¹Ö±ÅÅÁÐ */
-    justify-content: space-around; /* ¾ù·Ö¿Õ¼ä */
+    width: 250px; /* ï¿½ï¿½ï¿½Ó¿ï¿½ï¿½ï¿½ */
+    background-color: white; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½É« */
+    color: #007bff; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½Îªï¿½ï¿½É« */
+    padding: 20px; /* ï¿½Ú±ß¾ï¿½ */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* ï¿½ï¿½Ó° */
+    display: flex; /* Ê¹ï¿½ï¿½ flex ï¿½ï¿½ï¿½ï¿½ */
+    flex-direction: column; /* ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ */
+    justify-content: space-around; /* ï¿½ï¿½ï¿½Ö¿Õ¼ï¿½ */
   }
   
   .navbar ul {
-    list-style: none; /* ÒÆ³ýÄ¬ÈÏÁÐ±íÑùÊ½ */
+    list-style: none; /* ï¿½Æ³ï¿½Ä¬ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½Ê½ */
     padding: 0;
-    margin: 0; /* ÒÆ³ýÄ¬ÈÏÍâ±ß¾à */
-    flex: 1; /* Õ¼¾ÝÊ£Óà¿Õ¼ä */
-    display: flex; /* Ê¹ÓÃ flex ²¼¾Ö */
-    flex-direction: column; /* ´¹Ö±ÅÅÁÐ */
-    justify-content: space-around; /* ¾ù·Ö¿Õ¼ä */
+    margin: 0; /* ï¿½Æ³ï¿½Ä¬ï¿½ï¿½ï¿½ï¿½ß¾ï¿½ */
+    flex: 1; /* Õ¼ï¿½ï¿½Ê£ï¿½ï¿½Õ¼ï¿½ */
+    display: flex; /* Ê¹ï¿½ï¿½ flex ï¿½ï¿½ï¿½ï¿½ */
+    flex-direction: column; /* ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ */
+    justify-content: space-around; /* ï¿½ï¿½ï¿½Ö¿Õ¼ï¿½ */
   }
   
   .navbar ul li {
-    text-align: center; /* ÎÄ×Ö¾ÓÖÐ */
+    text-align: center; /* ï¿½ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ */
   }
   
   .navbar ul li a {
-    color: #007bff; /* Á´½ÓÎÄ×ÖÑÕÉ«¸ÄÎªÀ¶É« */
-    text-decoration: none; /* ÒÆ³ýÏÂ»®Ïß */
-    font-size: 18px; /* µ÷´ó×ÖÌå */
-    font-weight: 500; /* ×ÖÌå¼Ó´Ö */
+    color: #007bff; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É«ï¿½ï¿½Îªï¿½ï¿½É« */
+    text-decoration: none; /* ï¿½Æ³ï¿½ï¿½Â»ï¿½ï¿½ï¿½ */
+    font-size: 18px; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+    font-weight: 500; /* ï¿½ï¿½ï¿½ï¿½Ó´ï¿½ */
   }
   
   .navbar ul li a:hover {
-    text-decoration: underline; /* Êó±êÐüÍ£Ê±ÏÔÊ¾ÏÂ»®Ïß */
+    text-decoration: underline; /* ï¿½ï¿½ï¿½ï¿½ï¿½Í£Ê±ï¿½ï¿½Ê¾ï¿½Â»ï¿½ï¿½ï¿½ */
   }
   
-  /* ÓÒ²àÄÚÈÝÇøÓò */
+  /* ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
   .content {
-    flex: 1; /* Õ¼¾ÝÊ£Óà¿Õ¼ä */
-    width: 100%; /* ¿í¶ÈÕ¼Âú */
-    padding: 20px; /* ÄÚ±ß¾à */
-    background-color: white; /* ±³¾°ÑÕÉ« */
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1); /* ÒõÓ° */
-    overflow-y: auto; /* Èç¹ûÄÚÈÝ³¬³ö¸ß¶È£¬ÏÔÊ¾¹ö¶¯Ìõ */
+    flex: 1; /* Õ¼ï¿½ï¿½Ê£ï¿½ï¿½Õ¼ï¿½ */
+    width: 100%; /* ï¿½ï¿½ï¿½ï¿½Õ¼ï¿½ï¿½ */
+    background-color: white; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É« */
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1); /* ï¿½ï¿½Ó° */
+    overflow-y: auto; /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½ï¿½ß¶È£ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
   }
