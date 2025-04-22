@@ -2,6 +2,7 @@
   <div class="feihua-container">
     <header class="feihua-header">
       <h1>飞花令</h1>
+      <p class="subtitle">"飞花逐月吟诗句，妙语连珠对古今"</p>
     </header>
     
     <div v-if="!gameStarted" class="start-container">
@@ -13,6 +14,9 @@
     <div v-if="gameStarted" class="chat-area">
       <div class="keyword-display">
         当前关键词：<span class="keyword-mark">{{ currentKeyword }}</span>
+        <span class="countdown" :class="{ warning: countdown <= 10 }">
+          剩余时间：{{ countdown }}秒
+        </span>
       </div>
       
       <div ref="chatMessages" class="chat-messages">
@@ -91,7 +95,11 @@ export default {
           '不识庐山真面目，只缘身在此山中。',
           '山重水复疑无路，柳暗花明又一村。'
         ]
-      }
+      },
+      countdown: 30, // 初始倒计时30秒
+      countdownInterval: null,
+      successCount: 0, // 连续成功次数
+      gameEnded: false // 游戏是否结束
     };
   },
   methods: {
@@ -101,25 +109,60 @@ export default {
       return { width: `${width}px` };
     },
 
+    startCountdown() {
+      this.clearCountdown();
+      this.countdown = 30; // 重置倒计时
+      this.countdownInterval = setInterval(() => {
+        this.countdown--;
+        if (this.countdown <= 0) {
+          this.gameFailed();
+        }
+      }, 1000);
+    },
+    
+    clearCountdown() {
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+        this.countdownInterval = null;
+      }
+    },
+    
+    gameFailed() {
+      this.clearCountdown();
+      this.gameEnded = true;
+      this.addSystemMessage(`时间到！挑战失败。`);
+    },
+    
+    gameSuccess() {
+      this.clearCountdown();
+      this.gameEnded = true;
+      this.addSystemMessage(`恭喜！连续三次回答成功，挑战成功！`);
+    },
+    
+    // 修改startGame方法
     async startGame() {
       try {
-        // 需要调用 API 获取随机关键词
         const response = await this.fetchRandomKeyword();
         this.currentKeyword = response.keyword;
         this.gameStarted = true;
+        this.gameEnded = false;
+        this.successCount = 0;
         this.chatHistory = [];
         this.userInput = '';
-
-        this.addSystemMessage(` 飞花令游戏开始！请说出包含"${this.currentKeyword}" 的诗句`);
+        this.usedVerses = [];
+        
+        this.addSystemMessage(`飞花令游戏开始！请说出包含"${this.currentKeyword}"的诗句`);
+        this.startCountdown(); // 开始倒计时
       } catch (error) {
-        console.error(' 获取关键词失败:', error);
-        this.addSystemMessage(" 游戏开始失败，请刷新页面重试");
+        console.error('获取关键词失败:', error);
+        this.addSystemMessage("游戏开始失败，请刷新页面重试");
       }
     },
-
+    
+    // 修改submitVerse方法中的成功部分
     async submitVerse() {
-      if (!this.userInput.trim()) return;
-
+      if (!this.userInput.trim() || this.gameEnded) return;
+      
       // 检查是否已经使用过该诗句
       if (this.usedVerses.includes(this.userInput)) {
         this.showError = true;
@@ -140,9 +183,16 @@ export default {
 
       try {
         const isValid = await this.validateVerse(this.userInput, this.currentKeyword);
-
+      
         if (isValid) {
           this.showError = false;
+          this.successCount++;
+          this.startCountdown(); // 重置倒计时
+          
+          if (this.successCount >= 3) {
+            this.gameSuccess();
+            return;
+          }
           
           const response = await this.fetchRelatedVerse(this.currentKeyword);
           setTimeout(() => {
@@ -258,14 +308,23 @@ export default {
  
 <style scoped>
 .feihua-container {
-  max-width: 800px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 0;
   background: #f5efe6;
   height: 100vh;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   display: flex;
   flex-direction: column;
+}
+
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  min-height: 0;
+  width: 100%;
 }
  
 .feihua-header {
@@ -280,6 +339,13 @@ export default {
   margin: 0;
   font-size: 2rem;
   font-weight: normal;
+}
+ 
+.feihua-header .subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  font-style: italic;
+  opacity: 0.9;
 }
  
 .start-container {
@@ -462,3 +528,19 @@ export default {
   }
 }
 </style>
+
+.countdown {
+  font-size: 0.9rem;
+  color: #5a4634;
+}
+
+.countdown.warning {
+  color: #c0392b;
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
