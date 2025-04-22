@@ -72,11 +72,11 @@ export default {
   data() {
     return {
       navItems: [
-      { text: '诗词推荐',path: '/recommend' },
-        { text: '诗词搜索', path: '/search' },
-        { text: '诗词测验', path: '/game' },
-        { text: '飞花令', path: '/feihua' },
-        { text: '交流论坛', path: '/forum' }
+      { text: '诗词推荐',path: '/recommend' ,icon:"M5 4h14v2H5V4m0 4h14v2H5V8m0 4h9v2H5v-2m0 4h6v2H5v-2z"},
+        { text: '诗词搜索', path: '/search' ,icon:"M9.5 3a6.5 6.5 0 0 1 5.18 10.5l4.66 4.66-1.42 1.42-4.66-4.66A6.5 6.5 0 1 1 9.5 3m0 2a4.5 4.5 0 1 0 0 9a4.5 4.5 0 0 0 0-9z"},
+        { text: '诗词测验', path: '/game' ,icon:"M6 2a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h7l5-5V4a2 2 0 0 0-2-2H6m0 2h10v10h-4v4H6V4M8 6v2h8V6H8m0 3v2h8V9H8z"},
+        { text: '飞花令', path: '/feihua',icon:"M12 2a2 2 0 0 1 2 2c0 .5-.2.96-.5 1.31a4.002 4.002 0 0 1 4.88 4.88c.35-.3.81-.5 1.31-.5a2 2 0 0 1 0 4c-.5 0-.96-.2-1.31-.5a4.002 4.002 0 0 1-4.88 4.88c.3.35.5.81.5 1.31a2 2 0 0 1-4 0c0-.5.2-.96.5-1.31a4.002 4.002 0 0 1-4.88-4.88c-.35.3-.81.5-1.31.5a2 2 0 0 1 0-4c.5 0 .96.2 1.31.5a4.002 4.002 0 0 1 4.88-4.88A1.99 1.99 0 0 1 12 2z" },
+        { text: '交流论坛', path: '/forum',icon:"M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4l-4 4-4-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"}
       ],
       isExpanded: false,
       isDragging: false,
@@ -219,7 +219,7 @@ export default {
   position: fixed;
   width: 50px;
   height: 50px;
-  background: #2c3e50;
+  background: linear-gradient(to right, #8c7853, #6e5773);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -233,7 +233,7 @@ export default {
 }
 
 .floating-ball:hover {
-  background: #3a4a8c;
+  background: linear-gradient(to right, #98825a, #624768);
   transform: scale(1.1);
 }
 
@@ -243,7 +243,7 @@ export default {
 
 .floating-ball.active {
   transform: scale(1.1);
-  background: #3a4a8c;
+  background:linear-gradient(to right, #766545, #9d71a7);
 }
 
 .floating-ball.hidden-left {
@@ -283,7 +283,7 @@ export default {
   position: fixed;
   width: 300px;
   max-height: 80vh;
-  background: rgba(40, 60, 130, 0.95);
+  background:linear-gradient(to right, #4d422d, #37293a);
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
