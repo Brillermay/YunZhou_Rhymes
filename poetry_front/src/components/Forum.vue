@@ -330,13 +330,16 @@ export default {
 </script>
 
 <style scoped>
+
 .forum-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 20px;
   background: #f5efe6;
   min-height: 100vh;
+  box-sizing: border-box; 
+  overflow-x: hidden;     
 }
+
 
 .forum-header {
   text-align: center;
