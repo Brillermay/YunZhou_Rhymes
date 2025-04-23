@@ -24,17 +24,25 @@
         <!-- 发帖表单 -->
         <div v-if="showPostForm" class="post-form">
           <h3>发表新作</h3>
-          <input v-model="newPost.title" placeholder="诗题" class="input-title">
+          <input v-model="newPost.title" placeholder="标题" class="input-title">
           <textarea v-model="newPost.content" placeholder="请在此泼墨..." class="input-content"></textarea>
           <div class="form-row">
-            <select v-model="newPost.category" class="category-select">
+            <!-- <select v-model="newPost.category" class="category-select">
               <option 
                 v-for="cat in categories.filter(c => c !== '全部')" 
                 :value="cat" 
                 :key="cat">
                 {{ cat }}
               </option>
-            </select>
+            </select> -->
+            <select v-model="newPost.category" class="category-select">
+              <option v-for="cat in filteredCategories.filter(c => c !== '全部')" 
+                :value="cat" 
+                :key="cat">
+                {{ cat }}
+              </option>
+            </select><!-- 只有管理员可以发布每日话题 -->
+
             <button @click="submitPost" class="submit-btn">提交</button>
           </div>
         </div>
@@ -44,15 +52,23 @@
           <p>暂无帖子，快来发表你的诗作吧！</p>
         </div>
         <div class="post-list">
-          <div v-for="post in sortedPosts" :key="post.id" class="post-item">
+          <div 
+            v-for="post in sortedPosts" 
+            :key="post.id" 
+            :id="'post-' + post.id"
+            class="post-item">
             <div class="post-header">
               <span class="author">👨 {{ post.author }}</span>
               <span class="time">📅 {{ post.time }}</span>
               <span class="category-tag" :style="{backgroundColor: getCategoryColor(post.category)}">
                 {{ post.category }}
               </span>
+              <!-- 只有管理员和发布者可以删除帖子 -->
+              <!-- 删除按钮 -->
               <button @click="deletePost(post.id)" class="delete-btn">删除</button>
             </div>
+
+            <!-- 帖子内容 -->
             <h3 class="post-title">{{ post.title }}</h3>
             <div 
               class="post-content" 
@@ -134,13 +150,20 @@
         </div>
 
 
-        <!-- 活跃用户 -->
-        <div class="active-users">
-          <h3>活跃诗友</h3>
-          <div v-for="user in recentUsers" :key="user.name" class="author-item">
-            <span class="name">🧑 {{ user.name }}</span>
-            <span class="time">{{ user.time }}</span>
-          </div>
+        <!-- 每日话题 -->
+        <div class="daily-topic-panel">
+          <h3 @click="filterByDailyTopic" class="daily-topic-title">
+            每日话题
+          </h3>
+          <ul class="daily-topic-list">
+            <li 
+              v-for="topic in recentDailyTopics" 
+              :key="topic.id" 
+              class="daily-topic-item"
+              @click="scrollToPost(topic.id)">
+              {{ topic.title }}
+            </li>
+          </ul>
         </div>
 
       </div>
@@ -153,6 +176,7 @@ export default {
   name: 'PoetryForum',
   data() {
     return {
+      isAdmin: true,  // 管理员设置,不是很懂所以多标注一点显得明显1111
       showPostForm: false,
       selectedCategory: '全部',
       sortType: 'time',
@@ -165,20 +189,27 @@ export default {
       },
       posts: [],
       categories: ['全部', '作品分享', '诗词赏析', '写作心得', '创作讨论', '提问求助'],
-      // hotAuthors: [
-      //   {name: '李白', posts: 128},
-      //   {name: '杜甫', posts: 115},
-      //   {name: '苏轼', posts: 98}
-      // ]
     }
   },
   computed: {
+    recentDailyTopics() {
+      return this.posts
+        .filter(p => p.category === '每日话题')
+        .slice(0, 5); // 最多展示5条
+    }, 
     sortedPosts() {
       const postsToSort = this.filteredPosts;
       return this.sortType === 'time'
         ? [...postsToSort].sort((a, b) => new Date(b.time) - new Date(a.time))
         : [...postsToSort].sort((a, b) => b.likes - a.likes);
     },
+    filteredCategories() {//只有管理员可以发布每日话题
+      if (this.isAdmin) {
+        return [...this.categories, '每日话题'];
+      }
+      return this.categories;
+    },
+    
     filteredPosts() {
       if (this.selectedCategory === '全部') return this.posts;
       return this.posts.filter(post => post.category === this.selectedCategory);
@@ -242,6 +273,20 @@ export default {
     }
   },
   methods: {
+    filterByDailyTopic() {
+      this.selectedCategory = '每日话题';
+      this.selectedTag = null;
+    },
+    scrollToPost(postId) {
+      this.$nextTick(() => {
+        const el = document.getElementById(`post-${postId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('highlight-post');
+          setTimeout(() => el.classList.remove('highlight-post'), 2000); // 高亮消退
+        }
+      });
+    },
     submitPost() {
       const title = this.newPost.title.trim();
       const content = this.newPost.content.trim();
@@ -277,7 +322,15 @@ export default {
       this.showPostForm = false;
     },
     deletePost(postId) {
-      this.posts = this.posts.filter(post => post.id !== postId);
+       // 获取要删除的帖子
+      const postToDelete = this.posts.find(post => post.id === postId);
+      
+      // 判断管理员或是发布者自己
+      if (this.isAdmin || postToDelete.author === this.newPost.author) {
+        this.posts = this.posts.filter(post => post.id !== postId);
+      } else {
+        alert("你不能删除其他用户发布的帖子！");
+      }
     },
     likePost(post) {
       if (post.liked) {
@@ -734,4 +787,50 @@ export default {
   background: #f8f8f8;
   border-radius: 4px;
 }
+.daily-topic-panel {
+  margin-top: 2rem;
+}
+
+.daily-topic-title {
+  font-weight: bold;
+  cursor: pointer;
+  color: #8c7853;
+  margin-bottom: 0.5rem;
+}
+
+.daily-topic-title:hover {
+  text-decoration: underline;
+}
+
+.daily-topic-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.daily-topic-item {
+  padding: 0.4rem 0.6rem;
+  background: #f9f6f1;
+  border-radius: 6px;
+  margin: 0.2rem 0;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.daily-topic-item:hover {
+  background: #eee7dc;
+}
+
+/* 高亮跳转目标 */
+.highlight-post {
+  animation: highlightFade 2s ease-in-out;
+  box-shadow: 0 0 0 3px #8c7853aa;
+  border-radius: 8px;
+}
+
+@keyframes highlightFade {
+  0% { background-color: #fff9e7; }
+  100% { background-color: white; }
+}
+
 </style>
