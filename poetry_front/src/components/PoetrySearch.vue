@@ -1,115 +1,98 @@
 <template>
-  <!-- 外层：整屏垂直 flex，内部可滚动 -->
-  <div :class="{ dark: isDarkMode }"
-       class="flex flex-col min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-200
-              dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-100 transition">
-    <!-- 顶部横幅：固定高度 -->
-    <header class="w-full bg-yellow-600 dark:bg-gray-900 text-center py-8 shadow-lg">
-      <h1 class="text-5xl font-extrabold text-white dark:text-yellow-300">
-        📜 诗词搜索
-      </h1>
-      <p class="mt-2 text-md text-yellow-100 dark:text-gray-400">
-        快速检索古典诗词，支持作者、标题或诗句片段
-      </p>
+  <div class="poetry-container">
+    <!-- 顶部横幅 -->
+    <header class="poetry-header">
+      <h1>📜 诗词搜索</h1>
+      <p class="subtitle">案头轻点觅古篇，屏上翰墨入云烟</p>
     </header>
 
-    <!-- 操作区：三列 grid，搜索 / 字号 / 历史+导出 / 切换 -->
-    <section class="w-full max-w-6xl mx-auto px-8 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- 字号调节 -->
-      <div class="flex items-center gap-4">
-        <button @click="adjustFontSize(-2)"
-                class="btn-md">A⁻</button>
-        <button @click="adjustFontSize(2)"
-                class="btn-md">A⁺</button>
-      </div>
-      <!-- 搜索框 + 按钮 -->
-      <div class="relative flex items-center">
-        <span class="absolute left-3 text-2xl text-yellow-500 dark:text-yellow-300">🔍</span>
+    <!-- 搜索框区域 -->
+    <div class="search-panel">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
         <input
           v-model="searchQuery"
           @keyup.enter="searchPoetry"
-          type="text"
-          :style="{ fontSize: fontSize + 'px' }"
-          placeholder="作者 / 标题 / 诗句…"
-          class="w-full pl-12 pr-4 py-3 border-2 border-yellow-500 rounded-lg
-                 focus:ring-4 focus:ring-yellow-300 dark:border-gray-600 dark:focus:ring-gray-500
-                 bg-white dark:bg-gray-800 transition"
+          class="search-input"
+          placeholder="请输入作者、标题或诗句片段…"
         />
-        <button @click="searchPoetry"
-                class="ml-4 btn-primary">搜索</button>
       </div>
-      <!-- 历史 & 导出 & 模式切换 -->
-      <div class="flex flex-wrap items-center gap-4">
-        <template v-for="h in history" :key="h">
-          <button @click="searchFromHistory(h)"
-                  class="btn-sm">{{ h }}</button>
-        </template>
-        <button v-if="favorites.length" @click="exportFavorites"
-                class="btn-sm">📥 收藏导出</button>
-        <button v-if="favorites.length" @click="clearFavorites"
-                class="btn-sm">🗑 清空收藏</button>
-        <button @click="toggleDarkMode"
-                class="btn-icon">{{ isDarkMode ? '☀️' : '🌙' }}</button>
+    </div>
+
+    <!-- 操作按钮区域 -->
+    <div class="actions-panel">
+      <button @click="adjustFontSize(-2)">A⁻</button>
+      <button @click="adjustFontSize(2)">A⁺</button>
+      <button v-if="favorites.length" @click="exportFavorites">📥 导出收藏</button>
+      <button v-if="favorites.length" @click="clearFavorites">🗑 清空收藏</button>
+      <button @click="toggleDarkMode">
+        {{ isDarkMode ? '☀️ 日间模式' : '🌙 夜间模式' }}
+      </button>
+    </div>
+
+    <!-- 搜索历史 -->
+    <div class="history-panel" v-if="history.length">
+      <h3>搜索历史</h3>
+      <div class="history-tags">
+        <button
+          v-for="h in history"
+          :key="h"
+          @click="searchFromHistory(h)"
+        >
+          {{ h }}
+        </button>
       </div>
-    </section>
+    </div>
 
-    <!-- 主内容区：结果 & 无结果提示，自动撑满剩余高度，可滚动 -->
-    <main class="flex-1 overflow-auto w-full max-w-6xl mx-auto px-8 py-6 space-y-6">
-      <div v-if="loading"
-           class="text-center text-2xl text-yellow-500">正在加载，请稍候…</div>
-      <div v-if="searched && !loading && !sortedResults.length"
-           class="text-center text-2xl text-gray-500 dark:text-gray-400">🤔 没有找到相关诗词</div>
+  <!-- 搜索结果 -->
+<div class="results-panel">
+  <!-- 欢迎展示：未搜索时显示精选诗词 -->
+  <div v-if="!searched && !loading" class="welcome-poems">
+    <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
+    <div class="poem-grid">
+      <div v-for="poem in featuredPoems" :key="poem.id" class="poem-card">
+        <h3>{{ poem.title }}</h3>
+        <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
+        <p :style="{ fontSize: fontSize + 'px' }">{{ poem.content }}</p>
+      </div>
+    </div>
+  </div>
 
-      <!-- 结果网格 -->
-      <section v-if="sortedResults.length"
-               class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <transition-group name="fade" tag="div" class="contents">
-          <div v-for="poem in sortedResults" :key="poem.id"
-               class="poem-card group"
-               @click="goToDetail(poem.id)">
-            <div class="relative">
-              <button @click.stop="toggleFavorite(poem.id)"
-                      class="absolute top-2 right-2 text-3xl opacity-0 group-hover:opacity-100 transition">
-                <span :class="isFavorite(poem.id) ? 'text-red-500' : 'text-gray-300 dark:text-gray-400'">
-                  {{ isFavorite(poem.id) ? '❤️' : '🤍' }}
-                </span>
-              </button>
-            </div>
-            <h3 class="text-xl font-bold text-yellow-600 dark:text-yellow-300 mb-1">{{ poem.title }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{{ poem.author }} • {{ poem.dynasty }}</p>
-            <p class="text-base leading-relaxed overflow-hidden"
-               :style="{ fontSize: (fontSize - 2) + 'px', maxHeight: expandedIds.includes(poem.id) ? 'none' : '6em' }">
-              {{ poem.content }}
-            </p>
-            <button v-if="poem.content.length > 80"
-                    @click.stop="toggleExpand(poem.id)"
-                    class="mt-2 text-sm text-yellow-600 dark:text-yellow-300">
-              {{ expandedIds.includes(poem.id) ? '收起 ▲' : '展开 ▼' }}
-            </button>
-          </div>
-        </transition-group>
-      </section>
-    </main>
+  <!-- 加载中 -->
+  <div v-if="loading" class="status-text">正在加载，请稍候…</div>
 
-    <!-- 页脚 -->
-    <footer class="w-full py-4 bg-gray-100 dark:bg-gray-900 text-center text-sm text-gray-600 dark:text-gray-400">
-      © {{ new Date().getFullYear() }} 诗词搜索系统 — 仅供学习交流
-    </footer>
+  <!-- 无搜索结果 -->
+  <div v-if="searched && !loading && !sortedResults.length" class="status-text">
+    🤔 没有找到相关诗词
+  </div>
 
-    <!-- 回到顶部 -->
-    <button v-show="scrolled" @click="scrollToTop"
-            class="fixed bottom-6 right-6 p-3 bg-yellow-500 text-white rounded-full shadow-lg hover:bg-yellow-600 transition">
-      ⬆️
-    </button>
+  <!-- 搜索结果展示 -->
+  <div v-if="sortedResults.length" class="poem-grid">
+    <div
+      v-for="poem in sortedResults"
+      :key="poem.id"
+      class="poem-card"
+      @click="goToDetail(poem.id)"
+    >
+      <button @click.stop="toggleFavorite(poem.id)" class="fav-btn">
+        {{ isFavorite(poem.id) ? '❤️' : '🤍' }}
+      </button>
+      <h3>{{ poem.title }}</h3>
+      <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
+      <p :style="{ fontSize: fontSize + 'px' }">{{ poem.content }}</p>
+    </div>
+  </div>
+</div>
+
   </div>
 </template>
+
 
 <script>
 import Fuse from 'fuse.js';
 
 export default {
   name: 'PoetrySearch',
-  // … your data, comput name: 'PoetrySearch',
   data() {
     return {
       searchQuery: '',
@@ -122,13 +105,20 @@ export default {
       isDarkMode: JSON.parse(localStorage.getItem('darkMode') || 'false'),
       expandedIds: [],
       scrolled: false,
+      sidebarOpen: true,
       fuse: null,
       poetryData: [
         { id: 1, title: '静夜思',    author: '李白', content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。' },
         { id: 2, title: '春晓',      author: '孟浩然', content: '春眠不觉晓，处处闻啼鸟。\n夜来风雨声，花落知多少。' },
         { id: 3, title: '登鹳雀楼',  author: '王之涣', content: '白日依山尽，黄河入海流。\n欲穷千里目，更上一层楼。' },
         { id: 4, title: '望庐山瀑布', author: '李白', content: '日照香炉生紫烟，遥看瀑布挂前川。\n飞流直下三千尺，疑是银河落九天。' }
-      ]
+      ],
+      featuredPoems: [
+  { id: 101, title: '登高', author: '杜甫', dynasty: '唐代', content: '无边落木萧萧下，不尽长江滚滚来。' },
+  { id: 102, title: '江雪', author: '柳宗元', dynasty: '唐代', content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。' },
+  { id: 103, title: '山居秋暝', author: '王维', dynasty: '唐代', content: '空山新雨后，天气晚来秋。明月松间照，清泉石上流。' }
+]
+
     };
   },
   computed: {
@@ -146,23 +136,18 @@ export default {
       threshold: 0.3
     });
   },
-  mounted() {
-    window.addEventListener('scroll', this.onScroll);
-  },
-  beforeUnmount() {
-    window.removeEventListener('scroll', this.onScroll);
-  },
   methods: {
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen;
+    },
     searchPoetry() {
       this.searched = false;
       this.results = [];
       const q = this.searchQuery.trim();
       if (!q) return alert('请输入关键词');
       this.loading = true;
-      // 模糊搜索
       setTimeout(() => {
         this.results = this.fuse.search(q).map(r => r.item);
-        // 更新历史
         if (!this.history.includes(q)) {
           this.history.unshift(q);
           this.history = this.history.slice(0, 5);
@@ -177,7 +162,7 @@ export default {
       this.searchPoetry();
     },
     goToDetail(id) {
-this.$router.push(`/poem/${id}`);
+      this.$router.push(`/poem/${id}`);
     },
     isFavorite(id) {
       return this.favorites.includes(id);
@@ -198,16 +183,14 @@ this.$router.push(`/poem/${id}`);
     exportFavorites() {
       const favs = this.poetryData.filter(p => this.isFavorite(p.id));
       const md = favs.map(p =>
-`## ${p.title} — ${p.author}\n\n${p.content}\n`
-      ).join('\n---\n');
+`## ${p.title} — ${p.author}\n\n${p.content}\n`).join('\n---\n');
       const blob = new Blob([md], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = 'favorites.md'; a.click();
+      a.href = url;
+      a.download = 'favorites.md';
+      a.click();
       URL.revokeObjectURL(url);
-    },
-    adjustFontSize(delta) {
-      this.fontSize = Math.max(14, this.fontSize + delta);
     },
     toggleDarkMode() {
       this.isDarkMode = !this.isDarkMode;
@@ -217,77 +200,190 @@ this.$router.push(`/poem/${id}`);
       const i = this.expandedIds.indexOf(id);
       if (i >= 0) this.expandedIds.splice(i, 1);
       else this.expandedIds.push(id);
-    },
-    onScroll() {
-      this.scrolled = window.scrollY > 300;
-    },
-    scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 };
 </script>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&display=swap');
-
-:root {
-  --transition: 0.3s ease;
-  --card-bg: #fff;
-  --card-bg-dark: #1F2937;
+.poetry-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f5efe6;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  overflow: hidden;
 }
 
-/* 全局过渡与字体 */
-* {
-  font-family: 'ZCOOL XiaoWei', serif;
-  transition: all var(--transition);
+.poetry-header {
+  text-align: center;
+  padding: 1.2rem;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-/* 操作按钮 */
-.btn-sm {
-  padding: 0.25rem 0.5rem;
-  background: #E5E7EB;
-  color: #1F2937;
-  border-radius: 0.375rem;
-}
-.btn-md {
-  padding: 0.5rem 1rem;
-  background: #F59E0B;
-  color: #fff;
-  border-radius: 0.5rem;
-}
-.btn-primary {
-  padding: 0.5rem 1rem;
-  background: #D97706;
-  color: #fff;
-  border-radius: 0.5rem;
-}
-.btn-icon {
-  font-size: 1.5rem;
-  padding: 0.25rem;
+.poetry-header h1 {
+  margin: 0;
+  font-size: 2rem;
 }
 
-/* 卡片 */
-.poem-card {
-  background: var(--card-bg);
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+.poetry-header .subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.search-panel {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.search-box {
+  position: relative;
+  width: 90%;
+  max-width: 600px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #8c7853;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  font-size: 1rem;
+  border: 1px solid #d6cab4;
+  border-radius: 24px;
+  background: #f8f4ed;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.search-input:focus {
+  border-color: #8c7853;
+  box-shadow: 0 0 0 2px rgba(140, 120, 83, 0.2);
+}
+
+.actions-panel {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.actions-panel button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  transition: all 0.2s;
+}
+
+.actions-panel button:hover {
+  transform: translateY(-2px);
+}
+
+.history-panel {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.history-panel h3 {
+  margin: 0.5rem 0;
+  color: #5a4634;
+}
+
+.history-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.history-tags button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: #f8f4ed;
+  color: #5a4634;
+  border: 1px solid #d6cab4;
+  border-radius: 16px;
   cursor: pointer;
 }
-.dark .poem-card {
-  background: var(--card-bg-dark);
-}
-.poem-card:hover {
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+
+.results-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 
-/* 过渡效果 */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0);  }
+.status-text {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #8c7853;
+  padding: 2rem 0;
 }
-.fade-enter-active, .fade-leave-active {
-  animation: fadeInUp 0.4s ease forwards;
+
+.poem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.2rem;
 }
+
+.poem-card {
+  background: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.poem-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 12px rgba(0,0,0,0.1);
+}
+
+.poem-card h3 {
+  font-size: 1.1rem;
+  color: #8c7853;
+  margin: 0 0 0.5rem;
+}
+
+.poem-card .meta {
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.fav-btn {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 1.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.welcome-title {
+  text-align: center;
+  font-size: 1.4rem;
+  color: #8c7853;
+  margin-bottom: 1.2rem;
+  font-weight: bold;
+}
+
 </style>
