@@ -6,9 +6,22 @@
     </header>
     
     <div v-if="!gameStarted" class="start-container">
-      <button @click="startGame" class="start-btn">
-        <i class="iconfont">🌸</i> 开始游戏 
-      </button>
+      <div class="difficulty-selector">
+        <h3>选择难度</h3>
+        <div class="difficulty-options">
+          <button
+            v-for="option in difficultyOptions"
+            :key="option.value"
+            @click="difficulty = option.value"
+            :class="{ active: difficulty === option.value }"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+        <button @click="startGame" class="start-btn" :disabled="!difficulty">
+          <i class="iconfont">🌸</i> 开始游戏 
+        </button>
+      </div>
     </div>
     
     <div v-if="gameStarted" class="chat-area">
@@ -59,6 +72,12 @@ export default {
       showError: false,
       errorTimeout: null,
       usedVerses: [], // 新增：记录已使用过的诗句
+      difficulty: 'normal', // 默认难度
+      difficultyOptions: [
+        { value: 'easy', label: '简单', time: 45 },
+        { value: 'normal', label: '普通', time: 30 },
+        { value: 'hard', label: '困难', time: 15 }
+      ],
       versesMap: {
         '花': [
           '花间一壶酒，独酌无相亲。',
@@ -94,7 +113,7 @@ export default {
           '空山新雨后，天气晚来秋。',
           '不识庐山真面目，只缘身在此山中。',
           '山重水复疑无路，柳暗花明又一村。'
-        ]
+        ],
       },
       countdown: 30, // 初始倒计时30秒
       countdownInterval: null,
@@ -111,7 +130,10 @@ export default {
 
     startCountdown() {
       this.clearCountdown();
-      this.countdown = 30; // 重置倒计时
+      const selectedDifficulty = this.difficultyOptions.find(
+        opt => opt.value === this.difficulty
+      );
+      this.countdown = selectedDifficulty.time;
       this.countdownInterval = setInterval(() => {
         this.countdown--;
         if (this.countdown <= 0) {
@@ -354,8 +376,26 @@ export default {
   align-items: center;
   justify-content: center;
 }
- 
+
+.difficulty-selector {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  width: 90%;
+  max-width: 500px;
+}
+
+.difficulty-options {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
 .start-btn {
+  width: 100%;
   padding: 14px 32px;
   font-size: 1.2rem;
   background: linear-gradient(to right, #8c7853, #6e5773);
@@ -367,7 +407,14 @@ export default {
   transition: all 0.3s;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+}
+
+.start-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #d6cab4;
 }
  
 .start-btn:hover {
@@ -527,7 +574,6 @@ export default {
     padding: 0.8rem;
   }
 }
-</style>
 
 .countdown {
   font-size: 0.9rem;
@@ -544,3 +590,44 @@ export default {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+.difficulty-selector {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.difficulty-selector h3 {
+  color: #5a4634;
+  margin-bottom: 1rem;
+}
+
+.difficulty-options {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.difficulty-options button {
+  padding: 8px 16px;
+  border: 1px solid #d6cab4;
+  border-radius: 20px;
+  background: #f8f4ed;
+  color: #5a4634;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.difficulty-options button.active {
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: white;
+  border-color: transparent;
+}
+
+.difficulty-options button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+</style>
+
