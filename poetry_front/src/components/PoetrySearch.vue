@@ -47,16 +47,22 @@
   <!-- 搜索结果 -->
 <div class="results-panel">
   <!-- 欢迎展示：未搜索时显示精选诗词 -->
-  <div v-if="!searched && !loading" class="welcome-poems">
-    <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
-    <div class="poem-grid">
-      <div v-for="poem in featuredPoems" :key="poem.id" class="poem-card">
-        <h3>{{ poem.title }}</h3>
-        <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
-        <p :style="{ fontSize: fontSize + 'px' }">{{ poem.content }}</p>
-      </div>
+<div v-if="!searched && !loading" class="welcome-poems">
+  <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
+  <div class="poem-grid">
+    <div v-for="poem in featuredPoems" :key="poem.id" class="poem-card">
+      <button @click.stop="toggleFavorite(poem.id)" class="fav-btn">
+        {{ isFavorite(poem.id) ? '❤️' : '🤍' }}
+      </button>
+      <h3 class="poem-title">{{ poem.title }}</h3>
+      <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
+      <p class="poem-content" :style="{ fontSize: fontSize + 'px' }">
+        {{ poem.content }}
+      </p>
+      <div v-if="poem.brief" class="brief-analysis">📝 {{ poem.brief }}</div>
     </div>
   </div>
+</div>
 
   <!-- 加载中 -->
   <div v-if="loading" class="status-text">正在加载，请稍候…</div>
@@ -113,10 +119,88 @@ export default {
         { id: 3, title: '登鹳雀楼',  author: '王之涣', content: '白日依山尽，黄河入海流。\n欲穷千里目，更上一层楼。' },
         { id: 4, title: '望庐山瀑布', author: '李白', content: '日照香炉生紫烟，遥看瀑布挂前川。\n飞流直下三千尺，疑是银河落九天。' }
       ],
-      featuredPoems: [
-  { id: 101, title: '登高', author: '杜甫', dynasty: '唐代', content: '无边落木萧萧下，不尽长江滚滚来。' },
-  { id: 102, title: '江雪', author: '柳宗元', dynasty: '唐代', content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。' },
-  { id: 103, title: '山居秋暝', author: '王维', dynasty: '唐代', content: '空山新雨后，天气晚来秋。明月松间照，清泉石上流。' }
+
+ featuredPoems: [
+  {
+    id: 101,
+    title: '登高',
+    author: '杜甫',
+    dynasty: '唐代',
+    content: '无边落木萧萧下，不尽长江滚滚来。',
+    brief: '晚年感慨，借景抒情，情景交融。'
+  },
+  {
+    id: 102,
+    title: '江雪',
+    author: '柳宗元',
+    dynasty: '唐代',
+    content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。',
+    brief: '意境孤寂冷峻，蕴含高洁情操。'
+  },
+  {
+    id: 103,
+    title: '山居秋暝',
+    author: '王维',
+    dynasty: '唐代',
+    content: '空山新雨后，天气晚来秋。明月松间照，清泉石上流。',
+    brief: '诗中有画，清幽自然，禅意悠远。'
+  },
+  {
+    id: 104,
+    title: '静夜思',
+    author: '李白',
+    dynasty: '唐代',
+    content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
+    brief: '语言浅显，情真意切，思乡经典。'
+  },
+  {
+    id: 105,
+    title: '黄鹤楼送孟浩然之广陵',
+    author: '李白',
+    dynasty: '唐代',
+    content: '故人西辞黄鹤楼，烟花三月下扬州。',
+    brief: '惜别情深，意境秀丽，抒友情怀。'
+  },
+  {
+    id: 106,
+    title: '相思',
+    author: '王维',
+    dynasty: '唐代',
+    content: '红豆生南国，春来发几枝。愿君多采撷，此物最相思。',
+    brief: '托物言情，情意缠绵，脍炙人口。'
+  },
+  {
+    id: 107,
+    title: '早发白帝城',
+    author: '李白',
+    dynasty: '唐代',
+    content: '朝辞白帝彩云间，千里江陵一日还。',
+    brief: '节奏轻快，意境飞扬，展现豪情壮志。'
+  },
+  {
+    id: 108,
+    title: '夜泊牛渚怀古',
+    author: '李白',
+    dynasty: '唐代',
+    content: '牛渚西江夜，青天无片云。',
+    brief: '怀古抒情，清丽典雅，意境开阔。'
+  },
+  {
+    id: 109,
+    title: '秋词',
+    author: '刘禹锡',
+    dynasty: '唐代',
+    content: '自古逢秋悲寂寥，我言秋日胜春朝。',
+    brief: '逆境乐观，气势昂扬，别具一格。'
+  },
+  {
+    id: 110,
+    title: '送元二使安西',
+    author: '王维',
+    dynasty: '唐代',
+    content: '劝君更尽一杯酒，西出阳关无故人。',
+    brief: '惜别感人，意境悠长，传颂千古。'
+  }
 ]
 
     };
@@ -384,6 +468,78 @@ export default {
   color: #8c7853;
   margin-bottom: 1.2rem;
   font-weight: bold;
+}
+.welcome-poems {
+  background: #f9f4ed;
+  padding: 2rem 1rem;
+  border-top: 2px solid #e1d8c9;
+  border-bottom: 2px solid #e1d8c9;
+  margin-bottom: 2rem;
+}
+
+.welcome-title {
+  text-align: center;
+  font-size: 1.6rem;
+  color: #8c7853;
+  margin-bottom: 1.5rem;
+  font-weight: bold;
+}
+
+.poem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.poem-card {
+  position: relative;
+  background: #fffaf2;
+  border-radius: 16px;
+  padding: 1.25rem 1rem;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+  transition: transform 0.3s ease;
+}
+.poem-card:hover {
+  transform: translateY(-4px);
+}
+
+.poem-title {
+  color: #8c7853;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.meta {
+  color: #a68b6d;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.poem-content {
+  color: #4a3b2c;
+  line-height: 1.8;
+  white-space: pre-line;
+  margin-bottom: 0.75rem;
+}
+
+.brief-analysis {
+  font-size: 0.85rem;
+  color: #5a4634;
+  background: #f5efe6;
+  padding: 6px 10px;
+  border-radius: 12px;
+  text-align: center;
+  font-style: italic;
+}
+
+.fav-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
 }
 
 </style>
