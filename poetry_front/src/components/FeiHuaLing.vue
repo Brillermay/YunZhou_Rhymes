@@ -1,4 +1,5 @@
 <template>
+  <div class="feihua-layout">
   <div class="feihua-container">
     <header class="feihua-header">
       <h1>飞花令</h1>
@@ -58,6 +59,20 @@
       </div>
     </div>
   </div>
+  <aside class="sidebar">
+      <h2>历史记录</h2>
+      <ul class="history-list">
+        <li 
+          v-for="(item, index) in historyRecords" 
+          :key="index"
+          @click="loadHistory(index)"
+        >
+          {{ item.date }} - {{ item.keyword }}
+        </li>
+      </ul>
+      <button @click="startGame" class="new-game-btn">🎮 新的挑战</button>
+    </aside>
+</div>
 </template>
  
 <script>
@@ -67,6 +82,7 @@ export default {
     return {
       gameStarted: false,
       currentKeyword: '',
+      historyRecords: [],
       userInput: '',
       chatHistory: [],
       showError: false,
@@ -154,11 +170,25 @@ export default {
       this.gameEnded = true;
       this.addSystemMessage(`时间到！挑战失败。`);
     },
-    
+    loadHistory(index) {
+      const record = this.historyRecords[index];
+      this.currentKeyword = record.keyword;
+      this.chatHistory = [...record.chatHistory];
+      this.usedVerses = [...record.usedVerses];
+      this.gameStarted = true;
+      this.gameEnded = true; // 防止继续输入
+      this.addSystemMessage(`你正在查看 ${record.date} 的挑战记录`);
+  },
     gameSuccess() {
       this.clearCountdown();
       this.gameEnded = true;
       this.addSystemMessage(`恭喜！连续三次回答成功，挑战成功！`);
+      this.historyRecords.push({
+      keyword: this.currentKeyword,
+      date: new Date().toLocaleString(),
+      chatHistory: [...this.chatHistory],
+      usedVerses: [...this.usedVerses]
+});
     },
     
     // 修改startGame方法
@@ -329,6 +359,55 @@ export default {
 </script>
  
 <style scoped>
+.feihua-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background: #eae1d4;
+  padding: 1rem;
+  border-right: 1px solid #d6cab4;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #5a4634;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.history-list li {
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: #f8f4ed;
+  border-radius: 8px;
+  transition: background 0.3s;
+}
+
+.history-list li:hover {
+  background: #e6ddd0;
+}
+
+.new-game-btn {
+  margin-top: 1rem;
+  padding: 10px 20px;
+  width: 100%;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 1rem;
+}
 .feihua-container {
   width: 100%;
   margin: 0;
@@ -630,4 +709,3 @@ export default {
 }
 
 </style>
-
