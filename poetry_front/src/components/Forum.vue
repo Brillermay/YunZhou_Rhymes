@@ -27,14 +27,6 @@
           <input v-model="newPost.title" placeholder="标题" class="input-title">
           <textarea v-model="newPost.content" placeholder="请在此泼墨..." class="input-content"></textarea>
           <div class="form-row">
-            <!-- <select v-model="newPost.category" class="category-select">
-              <option 
-                v-for="cat in categories.filter(c => c !== '全部')" 
-                :value="cat" 
-                :key="cat">
-                {{ cat }}
-              </option>
-            </select> -->
             <select v-model="newPost.category" class="category-select">
               <option v-for="cat in filteredCategories.filter(c => c !== '全部')" 
                 :value="cat" 
@@ -121,8 +113,23 @@
         </div>
       </div>
       
-      <!-- 帖子分类 -->
+      <!-- 侧边栏 -->
       <div class="sidebar">
+
+        <!-- 登录状态显示区域 -->
+        <div class="login-status">
+          <span v-if="isLoggedIn">
+            欢迎，{{ username }}！
+            <button @click="logout" class="logout-btn">注销</button>
+          </span>
+          <span v-else>
+            <router-link to="/forumlogin">
+              <button class="login-btn">登录</button>
+            </router-link>
+          </span>
+        </div>
+
+        <!-- 帖子分类 -->
         <div class="category-filter">
           <h3>帖子分类</h3>
           <ul>
@@ -177,6 +184,9 @@ export default {
   data() {
     return {
       isAdmin: true,  // 管理员设置,不是很懂所以多标注一点显得明显1111
+      username: localStorage.getItem('username') || null, // 获取登录用户名（如果有）
+      isLoggedIn: localStorage.getItem('username') !== null, // 判断用户是否登录
+      
       showPostForm: false,
       selectedCategory: '全部',
       sortType: 'time',
@@ -185,7 +195,7 @@ export default {
         title: '',
         content: '',
         category: '作品分享',
-        author: '匿名'
+        author: this.username,
       },
       posts: [],
       categories: ['全部', '作品分享', '诗词赏析', '写作心得', '创作讨论', '提问求助'],
@@ -209,7 +219,6 @@ export default {
       }
       return this.categories;
     },
-    
     filteredPosts() {
       if (this.selectedCategory === '全部') return this.posts;
       return this.posts.filter(post => post.category === this.selectedCategory);
@@ -256,7 +265,6 @@ export default {
 
       return tagMap;
     },
-
     sortedTags() {
       return Object.entries(this.contentTags)
         .sort((a, b) => b[1] - a[1]) // 按热度排序
@@ -353,7 +361,7 @@ export default {
       post.commentError = "";
       const newComment = {
         id: Date.now(),
-        author: '匿名',
+        author: this.username,
         content: post.newComment
       };
       post.comments.push(newComment);
@@ -378,6 +386,13 @@ export default {
         return `<span class="tag-highlight">${match}</span>`;
       });
     },
+    logout() {
+      // 清除本地存储，设置为未登录状态
+      localStorage.removeItem('username');
+      this.username = null;
+      this.isLoggedIn = false;
+      // this.$router.push('/forumlogin'); // 跳转到登录页面
+    }
   }
 }
 </script>
@@ -396,11 +411,42 @@ export default {
 
 .forum-header {
   text-align: center;
-  padding: 0.8rem;
+  padding: 0.5rem;
   background: linear-gradient(to right, #8c7853, #6e5773);
   color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
   border-radius: 10px;
   margin-bottom: 2rem;
+}
+
+/* 抄mt的浮动效果 */
+.forum-header h1 {
+  display: flex;
+  justify-content: center;
+  color: #e5e5e5;
+  font-family: eva;
+  font-size: 40px;
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5); /* 字体的阴影效果 */
+  animation: float 3s ease-in-out infinite; /* 浮动动画 */
+}
+.forum-header p {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0); /* 初始位置 */
+  }
+
+  50% {
+    transform: translateY(-4px); /* 向上浮动4px */
+  }
+
+  100% {
+    transform: translateY(0); /* 还原回原始位置 */
+  }
 }
 
 .forum-main {
@@ -832,5 +878,38 @@ export default {
   0% { background-color: #fff9e7; }
   100% { background-color: white; }
 }
+
+.login-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f5efe6;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.login-status span {
+  display: flex;
+  align-items: center;
+}
+
+.login-btn,
+.logout-btn {
+  padding: 8px 16px;
+  background-color: #8c7853;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.login-btn:hover,
+.logout-btn:hover {
+  background-color: #6e5773;
+}
+
 
 </style>

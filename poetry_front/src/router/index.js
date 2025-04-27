@@ -4,6 +4,7 @@ import PoetrySearch from '@/components/PoetrySearch.vue'
 import PoemDetail from '@/components/PoemDetail.vue';
 import PoetryGame from '@/components/PoetryTest.vue'
 import Forum from '@/components/Forum.vue'
+import ForumLogin from '@/components/ForumLogin.vue'
 import feihua from '@/components/FeiHuaLing.vue'
 
 const router = createRouter({
@@ -16,7 +17,8 @@ const router = createRouter({
   { path: '/poem/:id', component: PoemDetail },
   { path: '/game', component: PoetryGame },
   { path: '/feihua', component: feihua },
-  { path: '/forum', component: Forum }
+  { path: '/forum', component: Forum },
+  { path: '/forumlogin', component: ForumLogin },
 ]
 })
 
