@@ -16,7 +16,7 @@
             <button :class="{ active: sortType === 'time' }" @click="sortBy('time')">按时间排序</button>
             <button :class="{ active: sortType === 'hot' }" @click="sortBy('hot')">按热度排序</button>
           </div>
-          <button class="post-btn" @click="showPostForm = !showPostForm">
+          <button class="post-btn" @click="handlePostClick">
             <i class="iconfont">✒️</i> 发布
           </button>
         </div>
@@ -182,11 +182,14 @@
 export default {
   name: 'PoetryForum',
   data() {
+    const username = localStorage.getItem('username') || null;
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+ 
     return {
-      isAdmin: true,  // 管理员设置,不是很懂所以多标注一点显得明显1111
-      username: localStorage.getItem('username') || null, // 获取登录用户名（如果有）
-      isLoggedIn: localStorage.getItem('username') !== null, // 判断用户是否登录
-      
+      username,
+      isAdmin,
+      isLoggedIn: !!username,
+
       showPostForm: false,
       selectedCategory: '全部',
       sortType: 'time',
@@ -195,11 +198,62 @@ export default {
         title: '',
         content: '',
         category: '作品分享',
-        author: this.username,
+        author: username,
       },
-      posts: [],
+      posts: [
+        {
+          id: 1,
+          title: '初入墨阁，聊诗会友',
+          content: '江南无所有，聊赠一枝春。\n#欢迎',
+          category: '作品分享',
+          author: '系统管理员',
+          time: '2025-05-01',
+          likes: 5,
+          liked: false,
+          comments: [
+            { id: 1, author: 'alice', content: '意境真美~' }
+          ],
+          showComments: false,
+          isExpanded: false,
+          newComment: '',
+          commentError: ''
+        },
+        {
+          id: 2,
+          title: '求助：关于仿古诗的押韵问题',
+          content: '写仿古诗是否一定要押平水韵？有没有比较宽松的做法？',
+          category: '提问求助',
+          author: 'bob',
+          time: '2025-05-03',
+          likes: 3,
+          liked: false,
+          comments: [],
+          showComments: false,
+          isExpanded: false,
+          newComment: '',
+          commentError: ''
+        },
+        {
+          id: 3,
+          title: '每日话题：你最喜欢的春景描写',
+          content: '欢迎分享你心中最美的春天诗句或自创诗！\n#春景',
+          category: '每日话题',
+          author: '系统管理员',
+          time: '2025-05-07',
+          likes: 7,
+          liked: false,
+          comments: [],
+          showComments: false,
+          isExpanded: false,
+          newComment: '',
+          commentError: ''
+        }
+      ],
       categories: ['全部', '作品分享', '诗词赏析', '写作心得', '创作讨论', '提问求助'],
     }
+  },
+  created() {
+    this.newPost.author = this.username;
   },
   computed: {
     recentDailyTopics() {
@@ -341,6 +395,10 @@ export default {
       }
     },
     likePost(post) {
+      if (!this.isLoggedIn) {
+        alert("请先登录再点赞！");
+        return;
+      }
       if (post.liked) {
         post.likes--;
         post.liked = false;
@@ -353,6 +411,10 @@ export default {
       post.showComments = !post.showComments;
     },
     addComment(post) {
+      if (!this.isLoggedIn) {
+        alert("请先登录再发表评论！");
+        return;
+      }
       const content = post.newComment?.trim();
       if (!content) {
         post.commentError = "评论不能为空！";
@@ -392,9 +454,18 @@ export default {
       this.username = null;
       this.isLoggedIn = false;
       // this.$router.push('/forumlogin'); // 跳转到登录页面
+    },
+    handlePostClick() {
+      if (!this.isLoggedIn) {
+        alert("请先登录再发帖！");
+        // this.$router.push('/forumlogin'); 
+        return;
+      }
+      this.showPostForm = !this.showPostForm;
     }
   }
-}
+};
+
 </script>
 
 <style scoped>
@@ -408,7 +479,6 @@ export default {
   overflow-x: hidden;     
 }
 
-
 .forum-header {
   text-align: center;
   padding: 0.5rem;
@@ -418,7 +488,6 @@ export default {
   border-radius: 10px;
   margin-bottom: 2rem;
 }
-
 /* 抄mt的浮动效果 */
 .forum-header h1 {
   display: flex;
@@ -431,6 +500,7 @@ export default {
   text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5); /* 字体的阴影效果 */
   animation: float 3s ease-in-out infinite; /* 浮动动画 */
 }
+
 .forum-header p {
   animation: float 3s ease-in-out infinite;
 }
@@ -833,6 +903,7 @@ export default {
   background: #f8f8f8;
   border-radius: 4px;
 }
+
 .daily-topic-panel {
   margin-top: 2rem;
 }
@@ -880,36 +951,46 @@ export default {
 }
 
 .login-status {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f5efe6;
-  padding: 10px;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  background: #fffaf2;
+  border: 1px solid #e5d8c3;
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .login-status span {
-  display: flex;
-  align-items: center;
+  display: block;
+  font-size: 1rem;
+  color: #5a4634;
+  margin-bottom: 10px;
 }
 
 .login-btn,
 .logout-btn {
-  padding: 8px 16px;
-  background-color: #8c7853;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-size: 1rem;
   font-weight: bold;
-  margin-left: 10px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .login-btn:hover,
 .logout-btn:hover {
-  background-color: #6e5773;
+  background: linear-gradient(to right, #a3916a, #7c6488);
+  transform: translateY(-2px);
 }
+
 
 
 </style>
