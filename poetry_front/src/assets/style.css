@@ -1,58 +1,58 @@
-/* ȫ����ʽ */
+/* 全局样式 */
 body {
-    margin: 0; /* �Ƴ�Ĭ�� body �� margin */
+    margin: 0; /* 移除默认 body 的 margin */
     font-family: Arial, sans-serif;
     background-color: #f0f4f8;
   }
   
   #app {
-    display: flex; /* ʹ�� flex ���� */
-    width: 100%; /* ����ռ�������ӿ� */
-    height: 100vh; /* �߶�ռ�������ӿ� */
+    display: flex; /* 使用 flex 布局 */
+    width: 100%; /* 宽度占满整个视口 */
+    height: 100vh; /* 高度占满整个视口 */
   }
   
-  /* ��ർ���� */
+  /* 左侧导航栏 */
   .navbar {
-    width: 250px; /* ���ӿ��� */
-    background-color: white; /* ������Ϊ��ɫ */
-    color: #007bff; /* ������ɫ��Ϊ��ɫ */
-    padding: 20px; /* �ڱ߾� */
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* ��Ӱ */
-    display: flex; /* ʹ�� flex ���� */
-    flex-direction: column; /* ��ֱ���� */
-    justify-content: space-around; /* ���ֿռ� */
+    width: 250px; /* 增加宽度 */
+    background-color: white; /* 背景改为白色 */
+    color: #007bff; /* 文字颜色改为蓝色 */
+    padding: 20px; /* 内边距 */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); /* 阴影 */
+    display: flex; /* 使用 flex 布局 */
+    flex-direction: column; /* 垂直排列 */
+    justify-content: space-around; /* 均分空间 */
   }
   
   .navbar ul {
-    list-style: none; /* �Ƴ�Ĭ���б���ʽ */
+    list-style: none; /* 移除默认列表样式 */
     padding: 0;
-    margin: 0; /* �Ƴ�Ĭ����߾� */
-    flex: 1; /* ռ��ʣ��ռ� */
-    display: flex; /* ʹ�� flex ���� */
-    flex-direction: column; /* ��ֱ���� */
-    justify-content: space-around; /* ���ֿռ� */
+    margin: 0; /* 移除默认外边距 */
+    flex: 1; /* 占据剩余空间 */
+    display: flex; /* 使用 flex 布局 */
+    flex-direction: column; /* 垂直排列 */
+    justify-content: space-around; /* 均分空间 */
   }
   
   .navbar ul li {
-    text-align: center; /* ���־��� */
+    text-align: center; /* 文字居中 */
   }
   
   .navbar ul li a {
-    color: #007bff; /* ����������ɫ��Ϊ��ɫ */
-    text-decoration: none; /* �Ƴ��»��� */
-    font-size: 18px; /* �������� */
-    font-weight: 500; /* ����Ӵ� */
+    color: #007bff; /* 链接文字颜色改为蓝色 */
+    text-decoration: none; /* 移除下划线 */
+    font-size: 18px; /* 调大字体 */
+    font-weight: 500; /* 字体加粗 */
   }
   
   .navbar ul li a:hover {
-    text-decoration: underline; /* �����ͣʱ��ʾ�»��� */
+    text-decoration: underline; /* 鼠标悬停时显示下划线 */
   }
   
-  /* �Ҳ��������� */
+  /* 右侧内容区域 */
   .content {
-    flex: 1; /* ռ��ʣ��ռ� */
-    width: 100%; /* ����ռ�� */
-    background-color: white; /* ������ɫ */
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1); /* ��Ӱ */
-    overflow-y: auto; /* ������ݳ����߶ȣ���ʾ������ */
+    flex: 1; /* 占据剩余空间 */
+    width: 100%; /* 宽度占满 */
+    background-color: white; /* 背景颜色 */
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1); /* 阴影 */
+    overflow-y: auto; /* 如果内容超出高度，显示滚动条 */
   }
