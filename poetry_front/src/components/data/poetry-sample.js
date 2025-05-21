@@ -31,5 +31,16 @@ export default [
             "举头望明月，低头思故乡。"
         ],
         orderWeight: 3
+    },
+    {
+        id: "T004",
+        title: "静夜思3",
+        author: "李白",
+        dynasty: "唐",
+        content: [
+            "床前明月光，疑是地上霜。",
+            "举头望明月，低头思故乡。"
+        ],
+        orderWeight: 3
     }
 ]
