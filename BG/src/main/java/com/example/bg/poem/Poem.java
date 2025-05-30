@@ -6,4 +6,5 @@ import lombok.Data;
 public class Poem {
     private String title,poet,text,category,background,appreciation,translation;
     private int PID;
+    private int PoID;
 }

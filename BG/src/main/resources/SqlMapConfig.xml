@@ -23,10 +23,13 @@
 
     <!--指定映射配置文件的位置，映射配置文件指的是每个dao独立的配置文件-->
     <mappers>
-        <mapper resource="com/example/demoapplication/GetClimateMapper.xml"/>
-        <mapper resource="com/example/demoapplication/HourDataMapper.xml"/>
-        <mapper resource="com/example/demoapplication/HourDataFuMapper.xml"/>
-        <mapper resource="com/example/demoapplication/FutureClimateMapper.xml"/>
+<!--        <mapper resource="com/example/demoapplication/GetClimateMapper.xml"/>-->
+        <mapper resource="com/example/bg/poem/PoemGetMapper.xml"/>
+        <mapper resource="com/example/bg/poem/PoetGetMapper.xml"/>
+        <mapper resource="com/example/bg/user/UserAddMapper.xml"/>
+        <mapper resource="com/example/bg/user/UserDelMapper.xml"/>
+        <mapper resource="com/example/bg/user/UserLoginMapper.xml"/>
+
     </mappers>
 
 
