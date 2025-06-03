@@ -179,6 +179,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'PoetryForum',
   data() {
@@ -254,6 +256,19 @@ export default {
   },
   created() {
     this.newPost.author = this.username;
+
+    // 加入获取评论请求（假设后端接口是 /comment/init）
+    axios.get('http://localhost:8080/comment/init')  // 注意端口号改为你后端运行端口
+      .then(response => {
+        const comments = response.data;
+        // 假设你想把评论放进每个 post 的 comments 中
+        this.posts.forEach(post => {
+          post.comments = comments.filter(c => c.postId === post.id);  // 你需要确保 Comment 对象中有 postId 字段
+        });
+      })
+      .catch(error => {
+        console.error('获取评论失败', error);
+      });
   },
   computed: {
     recentDailyTopics() {
@@ -385,14 +400,24 @@ export default {
     },
     deletePost(postId) {
        // 获取要删除的帖子
-      const postToDelete = this.posts.find(post => post.id === postId);
-      
-      // 判断管理员或是发布者自己
-      if (this.isAdmin || postToDelete.author === this.newPost.author) {
-        this.posts = this.posts.filter(post => post.id !== postId);
-      } else {
+        const postToDelete = this.posts.find(post => post.id === postId);
+
+      // 权限校验（管理员或发布者自己）
+      if (!(this.isAdmin || postToDelete.author === this.currentUser)) {
         alert("你不能删除其他用户发布的帖子！");
+        return;
       }
+
+      // 调用后端删除接口（假设后端接口为 POST /comment/del/{id}）
+      axios.post(`http://localhost:8080/comment/del/${postId}`)
+        .then(() => {
+          // 删除成功后从本地 posts 中移除该帖子
+          this.posts = this.posts.filter(post => post.id !== postId);
+        })
+        .catch(error => {
+          console.error('删除失败:', error);
+          alert('删除失败，请检查网络连接或权限设置');
+        });
     },
     likePost(post) {
       if (!this.isLoggedIn) {
@@ -424,10 +449,20 @@ export default {
       const newComment = {
         id: Date.now(),
         author: this.username,
-        content: post.newComment
+        content: post.newComment,
+        postId: post.id  // 假设评论有 postId 字段
       };
       post.comments.push(newComment);
       post.newComment = '';
+
+      // 假设你用的是后端接口 addComment(int cid)，你需要传入 Comment 的 ID
+      axios.post(`http://localhost:8080/comment/add/`, newComment )
+        .then(() => {
+          console.log('评论已提交');
+        })
+        .catch(err => {
+          console.error('评论提交失败', err);
+        });
     },
     sortBy(type) {
       this.sortType = type;
@@ -463,7 +498,24 @@ export default {
       }
       this.showPostForm = !this.showPostForm;
     }
-  }
+  },
+  mounted() {
+    // 页面加载时请求评论
+    axios.get('http://localhost:8080/comment/init')
+      .then(res => {
+        const cids = res.data;
+        return axios.post('http://localhost:8080/comment/get', cids);
+      })
+      .then(res => {
+        const comments = res.data;
+      this.posts.forEach(post => {
+        post.comments = comments.filter(c => c.postId === post.id);
+      });  
+      })  
+      .catch(err => {
+        console.error("评论加载失败", err);
+      });
+  },
 };
 
 </script>

@@ -90,17 +90,13 @@ const populatePoems = () => {
 
 // 修改 getCardBackgroundStyle 函数
 const getCardBackgroundStyle = (poem) => {
-  // 确保使用正确的路径
-  const imagePath = poem.backgroundImage || '/poetry_bg_1.jpg';
-  // 检查路径是否存在并添加调试信息
-  console.log('使用图片路径:', imagePath);
-  
+  const imagePath = '/poetry_bg_1.jpg';
   return {
     backgroundImage: `url(${imagePath})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
-    backgroundColor: '#f5efe6', // 备用背景色
-    backgroundBlendMode: 'overlay'
+    backgroundRepeat: 'no-repeat'
+    // 移除 backgroundColor 和 backgroundBlendMode
   };
 };
 
@@ -244,7 +240,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.3); /* 从 0.85 改为 0.3，让背景图片更明显 */
   z-index: 1;
   pointer-events: none;
 }
