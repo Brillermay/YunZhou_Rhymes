@@ -26,7 +26,7 @@
     <!--    </delete>-->
     <!--    这里就是函数的主功能，看下应该也能看懂-->
     <select id="getCID" resultType="java.lang.Integer">
-        select CID from ids LIMIT 1
+        select CID from ids
 
     </select>
 

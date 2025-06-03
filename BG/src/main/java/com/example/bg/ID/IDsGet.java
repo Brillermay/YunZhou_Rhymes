@@ -36,13 +36,15 @@ import java.util.stream.Collectors;
 public class IDsGet extends ConnetMySQL  {
     @GetMapping("/get_cid")
     @Operation(summary = "不需要传递参数，返回一个整数作为评论的cid")
-    public int getCID() throws IOException
+    public Integer getCID() throws IOException
     {
         try {
             InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
             SqlSession session=getSession(in);
             IDsGetMapper iDsGetMapper=session.getMapper(IDsGetMapper.class);
-            int ans=iDsGetMapper.getCID();
+            Integer ans=iDsGetMapper.getCID();
+            iDsGetMapper.updateCID();
+            session.commit();
             in.close();
             session.close();
             return ans;
