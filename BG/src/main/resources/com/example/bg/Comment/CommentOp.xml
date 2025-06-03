@@ -47,4 +47,36 @@
         FROM linklist
         WHERE CID=#{CID}
     </select>
+    <insert id="insertComment" parameterType="com.example.bg.Comment.Comment">
+        INSERT INTO comment (
+            PersonID,
+            ParentID,
+            Content,
+            Timestamp,
+            hasTitle,
+            isAdmin,
+            Title,
+            Category,
+            LikeCounts,
+            CommentCounts,
+            CommentID
+        ) VALUES (
+                     #{PersonID},
+                     #{ParentID},
+                     #{Content},
+                     #{Timestamp},
+                     #{hasTitle},
+                     #{isAdmin},
+                     #{Title},
+                     #{Category},
+                     #{LikeCounts},
+                     #{CommentCounts},
+                     #{CommentID}
+                 )
+    </insert>
+    <update id="incrementCommentCount" parameterType="int">
+        UPDATE comment
+        SET CommentCounts = CommentCounts + 1
+        WHERE CommentID = #{commentId}
+    </update>
 </mapper>

@@ -1,17 +1,23 @@
 package com.example.bg.ID;
 
+import com.example.bg.Comment.Comment;
 import com.example.bg.ConnetMySQL;
 import com.example.bg.poem.Poem;
 import com.example.bg.poem.PoemGetMapper;
 import com.example.bg.poem.Poet;
 import com.example.bg.poem.PoetGetMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.stream.Collectors;
 
 @CrossOrigin(
         origins = {
@@ -79,4 +85,5 @@ public class IDsGet extends ConnetMySQL  {
             throw new RuntimeException("error:"+e.getMessage());
         }
     }
+
 }

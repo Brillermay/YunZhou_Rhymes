@@ -29,6 +29,11 @@
         select CID from ids LIMIT 1
 
     </select>
+
+    <update id="updateCID" >
+        UPDATE ids
+        SET CID = CID + 1
+    </update>
     <insert id="addStarID">
         INSERT INTO starlist (UID,PID)
         VALUES (#{UID},#{PID})
