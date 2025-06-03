@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class Poet {
-    private String name,text,dayLife;
-    private int PoID;
+    public String name,text,dayLife;
+    public int PoID;
 }

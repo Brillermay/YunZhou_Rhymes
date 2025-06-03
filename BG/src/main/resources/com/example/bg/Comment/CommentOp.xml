@@ -7,7 +7,7 @@
 
 
 <!--这里记得改，namespace就是文件夹名字-->
-<mapper namespace="com.example.bg.poem">
+<mapper namespace="com.example.bg.ID">
     <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
     <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
     <!--    <select id="findAll" resultType="com.example.demo.User">-->
@@ -25,9 +25,26 @@
     <!--        delete from user where id=#{id}-->
     <!--    </delete>-->
     <!--    这里就是函数的主功能，看下应该也能看懂-->
-    <select id="getPoet" resultType="com.example.bg.poem.Poet">
-        select * from poet where PoID=#{PoID}
-
+    <select id="Init" resultType="java.lang.Integer">
+        select CommentID from comment where hasTitle = 1
     </select>
-
+    <select id="getComment" resultType="com.example.bg.Comment.Comment">
+        SELECT *
+        FROM comment
+        WHERE CommentID IN   <!-- 根据接口，这里应该是根据CIDs查询，但字段名可能是CommentID，请根据实际表结构调整 -->
+        <foreach item="cid" index="index" collection="CIDs" open="(" separator="," close=")">
+            #{cid}
+        </foreach>
+    </select>
+    <delete id="delComment" >
+        delete from comment where CommentID IN   <!-- 根据接口，这里应该是根据CIDs查询，但字段名可能是CommentID，请根据实际表结构调整 -->
+        <foreach item="cid" index="index" collection="CIDs" open="(" separator="," close=")">
+            #{cid}
+        </foreach>
+    </delete>
+    <select id="getChild" resultType="java.lang.Integer">
+        SELECT NCID
+        FROM linklist
+        WHERE CID=#{CID}
+    </select>
 </mapper>

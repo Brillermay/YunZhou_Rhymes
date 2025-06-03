@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class IDs {
-    private int CID;
+    public int CID;
 }

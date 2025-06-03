@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class Comment {
-    private int CommentID,nextCID,LikeCounts,CommentCounts,PersonID;
-    private String Timestamp,Category,Title,Content;
-    private boolean hasTitle;
+    public int CommentID,LikeCounts,CommentCounts,PersonID;
+    public String Timestamp,Category,Title,Content;
+    public boolean hasTitle,isAdmin;
 }

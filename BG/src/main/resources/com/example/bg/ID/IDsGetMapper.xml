@@ -7,7 +7,7 @@
 
 
 <!--这里记得改，namespace就是文件夹名字-->
-<mapper namespace="com.example.bg.poem">
+<mapper namespace="com.example.bg.ID">
     <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
     <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
     <!--    <select id="findAll" resultType="com.example.demo.User">-->
@@ -25,9 +25,16 @@
     <!--        delete from user where id=#{id}-->
     <!--    </delete>-->
     <!--    这里就是函数的主功能，看下应该也能看懂-->
-    <select id="getPoet" resultType="com.example.bg.poem.Poet">
-        select * from poet where PoID=#{PoID}
+    <select id="getCID" resultType="java.lang.Integer">
+        select CID from ids LIMIT 1
 
     </select>
+    <insert id="addStarID">
+        INSERT INTO starlist (UID,PID)
+        VALUES (#{UID},#{PID})
 
+    </insert>
+    <delete id="delStarID">
+        delete from starlist where UID=#{UID} AND PID=#{PID}
+    </delete>
 </mapper>

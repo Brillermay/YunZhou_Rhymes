@@ -29,7 +29,8 @@
         <mapper resource="com/example/bg/user/UserAddMapper.xml"/>
         <mapper resource="com/example/bg/user/UserDelMapper.xml"/>
         <mapper resource="com/example/bg/user/UserLoginMapper.xml"/>
-
+        <mapper resource="com/example/bg/Comment/CommentOp.xml"/>
+        <mapper resource="com/example/bg/ID/IDsGetMapper.xml"/>
     </mappers>
 
 

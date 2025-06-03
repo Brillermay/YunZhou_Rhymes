@@ -1,6 +1,5 @@
 package com.example.bg.Comment;
 
-import javax.swing.text.AbstractDocument;
 import java.util.List;
 
 //基础逻辑：
@@ -10,8 +9,8 @@ import java.util.List;
 
 public interface CommentOpMapper {
     List<Comment> getComment(List<Integer> CIDs);//传入CIDs返回Comment类的列表
-    void delComment(int CID);
-    void addComment(int CID);
+    void delComment(List<Integer> CIDs);
+    void addComment(int CID);//通过request提交表单
     List<Integer>Init();
-    List<Integer>OpenComment();
+    List<Integer>getChild(int CID);//返回某一个节点对应的子节点
 }
