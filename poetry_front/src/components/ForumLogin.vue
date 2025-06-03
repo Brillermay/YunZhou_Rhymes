@@ -42,6 +42,8 @@
 </template>
   
 <script>
+import { useUserStore } from '@/stores/user';
+
 export default {
   name: 'ForumLogin',
   data() {
@@ -56,8 +58,8 @@ export default {
   created() {
     if (this.accounts.length === 0) {
       this.accounts = [
-        { username: 'alice', password: '123456', isAdmin: true },  // 管理员
-        { username: 'bob', password: 'abc123', isAdmin: false },    // 普通用户
+        { uid: 1, username: 'alice', password: '123456', isAdmin: true },  // 管理员
+        { uid: 2, username: 'bob', password: 'abc123', isAdmin: false },    // 普通用户
       ];
       localStorage.setItem('accounts', JSON.stringify(this.accounts));
     }
@@ -72,6 +74,10 @@ export default {
         if (user) {
           localStorage.setItem('username', this.username);
           localStorage.setItem('isAdmin', user.isAdmin); // 保存管理员身份
+          
+          const userStore = useUserStore();
+          userStore.login(user);  // 更新全局 store
+
           this.$router.push('/Forum');
         } else {
           alert('用户名或密码错误，请重新输入');

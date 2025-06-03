@@ -180,6 +180,7 @@
 
 <script>
 import axios from 'axios';
+import { useUserStore } from '@/stores/user';
 
 export default {
   name: 'PoetryForum',
@@ -489,6 +490,10 @@ export default {
       localStorage.removeItem('username');
       this.username = null;
       this.isLoggedIn = false;
+
+      const userStore = useUserStore();
+      userStore.logout();  // 更新全局 store
+
       // this.$router.push('/forumlogin'); // 跳转到登录页面
     },
     handlePostClick() {
