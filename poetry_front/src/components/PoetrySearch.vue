@@ -95,7 +95,8 @@
 
 
 <script>
-import Fuse from 'fuse.js';
+import axios from 'axios';
+
 
 export default {
   name: 'PoetrySearch',
@@ -110,137 +111,50 @@ export default {
       fontSize: 18,
       isDarkMode: JSON.parse(localStorage.getItem('darkMode') || 'false'),
       expandedIds: [],
-      scrolled: false,
       sidebarOpen: true,
-      fuse: null,
-      poetryData: [
-        { id: 1, title: '静夜思',    author: '李白', content: '床前明月光，疑是地上霜。\n举头望明月，低头思故乡。' },
-        { id: 2, title: '春晓',      author: '孟浩然', content: '春眠不觉晓，处处闻啼鸟。\n夜来风雨声，花落知多少。' },
-        { id: 3, title: '登鹳雀楼',  author: '王之涣', content: '白日依山尽，黄河入海流。\n欲穷千里目，更上一层楼。' },
-        { id: 4, title: '望庐山瀑布', author: '李白', content: '日照香炉生紫烟，遥看瀑布挂前川。\n飞流直下三千尺，疑是银河落九天。' }
-      ],
-
- featuredPoems: [
-  {
-    id: 101,
-    title: '登高',
-    author: '杜甫',
-    dynasty: '唐代',
-    content: '无边落木萧萧下，不尽长江滚滚来。',
-    brief: '晚年感慨，借景抒情，情景交融。'
-  },
-  {
-    id: 102,
-    title: '江雪',
-    author: '柳宗元',
-    dynasty: '唐代',
-    content: '千山鸟飞绝，万径人踪灭。孤舟蓑笠翁，独钓寒江雪。',
-    brief: '意境孤寂冷峻，蕴含高洁情操。'
-  },
-  {
-    id: 103,
-    title: '山居秋暝',
-    author: '王维',
-    dynasty: '唐代',
-    content: '空山新雨后，天气晚来秋。明月松间照，清泉石上流。',
-    brief: '诗中有画，清幽自然，禅意悠远。'
-  },
-  {
-    id: 104,
-    title: '静夜思',
-    author: '李白',
-    dynasty: '唐代',
-    content: '床前明月光，疑是地上霜。举头望明月，低头思故乡。',
-    brief: '语言浅显，情真意切，思乡经典。'
-  },
-  {
-    id: 105,
-    title: '黄鹤楼送孟浩然之广陵',
-    author: '李白',
-    dynasty: '唐代',
-    content: '故人西辞黄鹤楼，烟花三月下扬州。',
-    brief: '惜别情深，意境秀丽，抒友情怀。'
-  },
-  {
-    id: 106,
-    title: '相思',
-    author: '王维',
-    dynasty: '唐代',
-    content: '红豆生南国，春来发几枝。愿君多采撷，此物最相思。',
-    brief: '托物言情，情意缠绵，脍炙人口。'
-  },
-  {
-    id: 107,
-    title: '早发白帝城',
-    author: '李白',
-    dynasty: '唐代',
-    content: '朝辞白帝彩云间，千里江陵一日还。',
-    brief: '节奏轻快，意境飞扬，展现豪情壮志。'
-  },
-  {
-    id: 108,
-    title: '夜泊牛渚怀古',
-    author: '李白',
-    dynasty: '唐代',
-    content: '牛渚西江夜，青天无片云。',
-    brief: '怀古抒情，清丽典雅，意境开阔。'
-  },
-  {
-    id: 109,
-    title: '秋词',
-    author: '刘禹锡',
-    dynasty: '唐代',
-    content: '自古逢秋悲寂寥，我言秋日胜春朝。',
-    brief: '逆境乐观，气势昂扬，别具一格。'
-  },
-  {
-    id: 110,
-    title: '送元二使安西',
-    author: '王维',
-    dynasty: '唐代',
-    content: '劝君更尽一杯酒，西出阳关无故人。',
-    brief: '惜别感人，意境悠长，传颂千古。'
-  }
-]
+      poetryData: [],//这样就有了一个空的 poetryData，保证不会报错
 
     };
-  },
-  computed: {
-    sortedResults() {
-      return [...this.results].sort((a, b) =>
-        this.isFavorite(a.id) === this.isFavorite(b.id)
-          ? 0
-          : this.isFavorite(a.id) ? -1 : 1
-      );
-    }
-  },
-  created() {
-    this.fuse = new Fuse(this.poetryData, {
-      keys: ['title', 'author', 'content'],
-      threshold: 0.3
-    });
   },
   methods: {
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen;
     },
-    searchPoetry() {
+    async searchPoetry() {
       this.searched = false;
       this.results = [];
       const q = this.searchQuery.trim();
       if (!q) return alert('请输入关键词');
       this.loading = true;
-      setTimeout(() => {
-        this.results = this.fuse.search(q).map(r => r.item);
-        if (!this.history.includes(q)) {
+          try
+           {
+        // 这里调用后端接口
+        const response = await axios.get('http://localhost:8080/api/poems/search', 
+        {
+          params: { key: q }
+        });
+    this.results = response.data.result;  // 取result数组
+this.poetryData = response.data.result; // 也同步保存全部数据，方便导出收藏
+        // 记录搜索历史
+        if (!this.history.includes(q))
+         {
           this.history.unshift(q);
           this.history = this.history.slice(0, 5);
           localStorage.setItem('history', JSON.stringify(this.history));
         }
+      }
+       catch (error) 
+       {
+        alert('搜索失败，请检查后端服务是否启动');
+        console.error(error);
+      } finally 
+      {
         this.loading = false;
         this.searched = true;
-      }, 200);
+      }
     },
+
+
     searchFromHistory(h) {
       this.searchQuery = h;
       this.searchPoetry();
