@@ -258,13 +258,14 @@ export default {
     this.newPost.author = this.username;
 
     // 加入获取评论请求（假设后端接口是 /comment/init）
-    axios.get('http://localhost:8080/comment/init')  // 注意端口号改为你后端运行端口
+    axios.get('http://localhost:8081/comment/init')  // 注意端口号改为你后端运行端口
       .then(response => {
         const comments = response.data;
         // 假设你想把评论放进每个 post 的 comments 中
         this.posts.forEach(post => {
           post.comments = comments.filter(c => c.postId === post.id);  // 你需要确保 Comment 对象中有 postId 字段
         });
+        console.log(comments)
       })
       .catch(error => {
         console.error('获取评论失败', error);
@@ -409,7 +410,7 @@ export default {
       }
 
       // 调用后端删除接口（假设后端接口为 POST /comment/del/{id}）
-      axios.post(`http://localhost:8080/comment/del/${postId}`)
+      axios.post(`http://localhost:8081/comment/del/${postId}`)
         .then(() => {
           // 删除成功后从本地 posts 中移除该帖子
           this.posts = this.posts.filter(post => post.id !== postId);
@@ -456,7 +457,7 @@ export default {
       post.newComment = '';
 
       // 假设你用的是后端接口 addComment(int cid)，你需要传入 Comment 的 ID
-      axios.post(`http://localhost:8080/comment/add/`, newComment )
+      axios.post(`http://localhost:8081/comment/add/`, newComment )
         .then(() => {
           console.log('评论已提交');
         })
@@ -501,10 +502,10 @@ export default {
   },
   mounted() {
     // 页面加载时请求评论
-    axios.get('http://localhost:8080/comment/init')
+    axios.get('http://localhost:8081/comment/init')
       .then(res => {
         const cids = res.data;
-        return axios.post('http://localhost:8080/comment/get', cids);
+        return axios.post('http://localhost:8081/comment/get', cids);
       })
       .then(res => {
         const comments = res.data;

@@ -100,7 +100,7 @@
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
-            <version>8.2.0</version>  <!-- Spring Boot 3.4+ 官方兼容版本 -->
+            <version>8.3.0</version>  <!-- Spring Boot 3.4+ 官方兼容版本 -->
             <scope>runtime</scope>    <!-- 避免编译阶段冲突 -->
         </dependency>
     </dependencies>

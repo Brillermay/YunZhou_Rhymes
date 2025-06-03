@@ -1,15 +1,14 @@
-package com.example.bg.poem;
+package com.example.bg;
 
-import com.example.bg.ConnetMySQL;
+import com.example.bg.poem.Poem;
+import com.example.bg.poem.PoemGetMapper;
+import io.swagger.v3.oas.annotations.Operation;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-
 
 @CrossOrigin(
         origins = {
@@ -24,33 +23,25 @@ import java.util.List;
         allowCredentials = "true"
 )
 @RestController
-@RequestMapping(value = "/poem")
-public class PoemGet extends ConnetMySQL {
-    @GetMapping("/{id}")
+@RequestMapping(value = "/con")
+public class testController extends ConnetMySQL{
+    @GetMapping("/")
     @Operation(summary = "传递参数为诗词id，返回符合条件的诗词")
-    public Poem getPoem(@PathVariable String id)throws IOException{
+    public int getPoem()throws IOException {
         //接下来使用工厂方法进行查询功能的实现
         try {
-            int idInt=Integer.parseInt(id);
             InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
             SqlSession session=getSession(in);
-            PoemGetMapper getClimateMapper=session.getMapper(PoemGetMapper.class);
-            Poem ans=getClimateMapper.getPoem(idInt);
+            testMapper testMapper=session.getMapper(testMapper.class);
+            testMapper.retT();
+            session.commit();
             in.close();
             session.close();
-            return ans;
+            return 0;
         }catch (Exception e){
             e.printStackTrace();
             throw new RuntimeException("error:"+e.getMessage());
         }
     }
-    @GetMapping("/keyword/{ky}")
-    @Operation(summary = "传递参数为诗词id，返回符合条件的诗词")
-    public List<Poem> getPoems(@PathVariable String ky)throws IOException{
-        List<Poem>ls=new ArrayList<>();
-        ls.add(new Poem());
-        return ls;
-    }
-
 
 }

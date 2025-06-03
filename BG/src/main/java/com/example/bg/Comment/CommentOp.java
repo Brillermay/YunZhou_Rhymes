@@ -111,93 +111,93 @@ public class CommentOp extends ConnetMySQL {
             throw new RuntimeException("error:"+e.getMessage());
         }
     }
-    @PostMapping("/addComment")
-    @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "添加新评论")
-    public ResponseEntity<?> addComment(
-            @Valid @RequestBody Comment comment,
-            BindingResult result
-    ) {
-        // ===== 1. 表单验证 =====
-        if (result.hasErrors())  {
-            List<String> errors = result.getFieldErrors().stream()
-                    .map(fieldError -> fieldError.getField()  + ": " + fieldError.getDefaultMessage())
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "status", "VALIDATION_FAILED",
-                            "errors", errors,
-                            "timestamp", LocalDateTime.now().toString()
-                    ));
-        }
-
-        SqlSession session = null;
-        InputStream in = null;
-
-        try {
-            // ===== 2. 初始化数据库连接 =====
-            in = Resources.getResourceAsStream("SqlMapConfig.xml");
-            session = getSession(in);
-            CommentOpMapper mapper = session.getMapper(CommentOpMapper.class);
-            IDsGetMapper iDsGetMapper=session.getMapper(IDsGetMapper.class);
-            // ===== 3. 数据预处理 =====
-            // 设置服务器生成属性
-            comment.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            comment.setLikeCounts(0);
-            comment.setCommentCounts(0);
-
-            comment.setCommentID(iDsGetMapper.getCID());
-            iDsGetMapper.updateCID();
-            // 敏感词过滤
-            comment.setContent(filterSensitiveWords(comment.getContent()));
-
-            // ===== 4. 数据库操作 =====
-            // 4.1 插入主评论
-            mapper.insertComment(comment);
-            // 4.2 更新父评论（如果是回复）
-            while (comment.getParentID()  > 0) {
-                mapper.incrementCommentCount(comment.getParentID());
-                comment=mapper.getComment(new ArrayList<>(comment.getParentID())).get(0);
-            }
-
-            // 4.3 提交事务
-            session.commit();
-
-            // ===== 5. 构建响应 =====
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of(
-                            "status", "SUCCESS",
-                            "message", "评论添加成功",
-                            "commentId", comment.getCommentID(),
-                            "createdAt", comment.getTimestamp()
-                    ));
-
-        } catch (Exception e) {
-            // ===== 6. 异常处理 =====
-            e.printStackTrace();
-
-            // 回滚事务
-            if (session != null) {
-                session.rollback();
-            }
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "status", "SERVER_ERROR",
-                            "error", e.getMessage(),
-                            "timestamp", LocalDateTime.now().toString()
-                    ));
-
-        } finally {
-            try {
-                if (in != null) in.close();
-                if (session != null) session.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+//    @PostMapping("/addComment")
+//    @ResponseStatus(HttpStatus.CREATED)
+//    @Operation(summary = "添加新评论")
+//    public ResponseEntity<?> addComment(
+//            @Valid @RequestBody Comment comment,
+//            BindingResult result
+//    ) {
+//        // ===== 1. 表单验证 =====
+//        if (result.hasErrors())  {
+//            List<String> errors = result.getFieldErrors().stream()
+//                    .map(fieldError -> fieldError.getField()  + ": " + fieldError.getDefaultMessage())
+//                    .collect(Collectors.toList());
+//
+//            return ResponseEntity.badRequest()
+//                    .body(Map.of(
+//                            "status", "VALIDATION_FAILED",
+//                            "errors", errors,
+//                            "timestamp", LocalDateTime.now().toString()
+//                    ));
+//        }
+//
+//        SqlSession session = null;
+//        InputStream in = null;
+//
+//        try {
+//            // ===== 2. 初始化数据库连接 =====
+//            in = Resources.getResourceAsStream("SqlMapConfig.xml");
+//            session = getSession(in);
+//            CommentOpMapper mapper = session.getMapper(CommentOpMapper.class);
+//            IDsGetMapper iDsGetMapper=session.getMapper(IDsGetMapper.class);
+//            // ===== 3. 数据预处理 =====
+//            // 设置服务器生成属性
+//            comment.setTimestamp(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+//            comment.setLikeCounts(0);
+//            comment.setCommentCounts(0);
+//
+//            comment.setCommentID(iDsGetMapper.getCID());
+//            iDsGetMapper.updateCID();
+//            // 敏感词过滤
+//            comment.setContent(filterSensitiveWords(comment.getContent()));
+//
+//            // ===== 4. 数据库操作 =====
+//            // 4.1 插入主评论
+//            mapper.insertComment(comment);
+//            // 4.2 更新父评论（如果是回复）
+//            while (comment.getParentID()  > 0) {
+//                mapper.incrementCommentCount(comment.getParentID());
+//                comment=mapper.getComment(new ArrayList<>(comment.getParentID())).get(0);
+//            }
+//
+//            // 4.3 提交事务
+//            session.commit();
+//
+//            // ===== 5. 构建响应 =====
+//            return ResponseEntity.status(HttpStatus.CREATED)
+//                    .body(Map.of(
+//                            "status", "SUCCESS",
+//                            "message", "评论添加成功",
+//                            "commentId", comment.getCommentID(),
+//                            "createdAt", comment.getTimestamp()
+//                    ));
+//
+//        } catch (Exception e) {
+//            // ===== 6. 异常处理 =====
+//            e.printStackTrace();
+//
+//            // 回滚事务
+//            if (session != null) {
+//                session.rollback();
+//            }
+//
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of(
+//                            "status", "SERVER_ERROR",
+//                            "error", e.getMessage(),
+//                            "timestamp", LocalDateTime.now().toString()
+//                    ));
+//
+//        } finally {
+//            try {
+//                if (in != null) in.close();
+//                if (session != null) session.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//    }
 
     // 敏感词过滤方法
     private String filterSensitiveWords(String content) {

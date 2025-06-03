@@ -7,7 +7,7 @@
 
 
 <!--这里记得改，namespace就是文件夹名字-->
-<mapper namespace="com.example.bg.ID">
+<mapper namespace="com.example.bg.Comment.CommentOpMapper">
     <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
     <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
     <!--    <select id="findAll" resultType="com.example.demo.User">-->

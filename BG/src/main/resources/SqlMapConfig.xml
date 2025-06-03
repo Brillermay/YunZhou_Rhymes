@@ -14,7 +14,7 @@
             <dataSource type="POOLED">
                 <!--配置连接数据库的4个基本信息，注解是本机调试-->
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
-                <property name="url" value="jdbc:mysql://localhost:3306/mydata"/>
+                <property name="url" value="jdbc:mysql://localhost:3306/es"/>
                 <property name="username" value="root"/>
                 <property name="password" value="npnpnpnow"/>
             </dataSource>
@@ -29,8 +29,9 @@
         <mapper resource="com/example/bg/user/UserAddMapper.xml"/>
         <mapper resource="com/example/bg/user/UserDelMapper.xml"/>
         <mapper resource="com/example/bg/user/UserLoginMapper.xml"/>
-        <mapper resource="com/example/bg/Comment/CommentOp.xml"/>
+        <mapper resource="com/example/bg/Comment/CommentOpMapper.xml"/>
         <mapper resource="com/example/bg/ID/IDsGetMapper.xml"/>
+        <mapper resource="com/example/bg/testMapper.xml"/>
     </mappers>
 
 
