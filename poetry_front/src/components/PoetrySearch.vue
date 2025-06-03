@@ -44,60 +44,56 @@
       </div>
     </div>
 
-  <!-- 搜索结果 -->
-<div class="results-panel">
-  <!-- 欢迎展示：未搜索时显示精选诗词 -->
-<div v-if="!searched && !loading" class="welcome-poems">
-  <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
-  <div class="poem-grid">
-    <div v-for="poem in featuredPoems" :key="poem.id" class="poem-card">
-      <button @click.stop="toggleFavorite(poem.id)" class="fav-btn">
-        {{ isFavorite(poem.id) ? '❤️' : '🤍' }}
-      </button>
-      <h3 class="poem-title">{{ poem.title }}</h3>
-      <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
-      <p class="poem-content" :style="{ fontSize: fontSize + 'px' }">
-        {{ poem.content }}
-      </p>
-      <div v-if="poem.brief" class="brief-analysis">📝 {{ poem.brief }}</div>
+    <!-- 搜索结果 -->
+    <div class="results-panel">
+      <!-- 欢迎展示：未搜索时显示精选诗词 -->
+      <div v-if="!searched && !loading" class="welcome-poems">
+        <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
+        <div class="poem-grid">
+          <div v-for="poem in featuredPoems" :key="poem.pid" class="poem-card">
+            <button @click.stop="toggleFavorite(poem.pid)" class="fav-btn">
+              {{ isFavorite(poem.pid) ? '❤️' : '🤍' }}
+            </button>
+            <h3 class="poem-title">{{ poem.title }}</h3>
+            <p class="meta">{{ poem.poet }} • {{ poem.category }}</p>
+            <p class="poem-content" :style="{ fontSize: fontSize + 'px' }">
+              {{ formatPoemText(poem.text) }}
+            </p>
+            <div v-if="poem.appreciation" class="brief-analysis">📝 {{ poem.appreciation }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 加载中 -->
+      <div v-if="loading" class="status-text">正在加载，请稍候…</div>
+
+      <!-- 无搜索结果 -->
+      <div v-if="searched && !loading && !sortedResults.length" class="status-text">
+        🤔 没有找到相关诗词，尝试其他关键词吧
+      </div>
+
+      <!-- 搜索结果展示 -->
+      <div v-if="sortedResults.length" class="poem-grid">
+        <div
+          v-for="poem in sortedResults"
+          :key="poem.pid"
+          class="poem-card"
+          @click="goToDetail(poem.pid)"
+        >
+          <button @click.stop="toggleFavorite(poem.pid)" class="fav-btn">
+            {{ isFavorite(poem.pid) ? '❤️' : '🤍' }}
+          </button>
+          <h3>{{ poem.title }}</h3>
+          <p class="meta">{{ poem.poet }} • {{ poem.category }}</p>
+          <p :style="{ fontSize: fontSize + 'px' }">{{ formatPoemText(poem.text) }}</p>
+          <div v-if="poem.background" class="brief-analysis">📝 {{ poem.background }}</div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-
-  <!-- 加载中 -->
-  <div v-if="loading" class="status-text">正在加载，请稍候…</div>
-
-  <!-- 无搜索结果 -->
-  <div v-if="searched && !loading && !sortedResults.length" class="status-text">
-    🤔 没有找到相关诗词
-  </div>
-
-  <!-- 搜索结果展示 -->
-  <div v-if="sortedResults.length" class="poem-grid">
-    <div
-      v-for="poem in sortedResults"
-      :key="poem.id"
-      class="poem-card"
-      @click="goToDetail(poem.id)"
-    >
-      <button @click.stop="toggleFavorite(poem.id)" class="fav-btn">
-        {{ isFavorite(poem.id) ? '❤️' : '🤍' }}
-      </button>
-      <h3>{{ poem.title }}</h3>
-      <p class="meta">{{ poem.author }} • {{ poem.dynasty }}</p>
-      <p :style="{ fontSize: fontSize + 'px' }">{{ poem.content }}</p>
-    </div>
-  </div>
-</div>
-
   </div>
 </template>
 
-
 <script>
-import axios from 'axios';
-
-
 export default {
   name: 'PoetrySearch',
   data() {
@@ -112,76 +108,152 @@ export default {
       isDarkMode: JSON.parse(localStorage.getItem('darkMode') || 'false'),
       expandedIds: [],
       sidebarOpen: true,
-      poetryData: [],//这样就有了一个空的 poetryData，保证不会报错
-
+      poetryData: [], // 存储搜索结果
+      featuredPoems: [], // 精选诗词
+      API_BASE_URL: 'http://localhost:8081/poem'
     };
   },
+  
+  computed: {
+    sortedResults() {
+      return this.results;
+    }
+  },
+
+  async mounted() {
+    // 页面加载时获取精选诗词
+    await this.loadFeaturedPoems();
+  },
+
   methods: {
-    toggleSidebar() {
-      this.sidebarOpen = !this.sidebarOpen;
+    // 格式化诗词文本
+    formatPoemText(text) {
+      if (!text) return '';
+      // 如果文本太长，可以添加换行
+      return text.replace(/[。！？；]/g, '$&\n');
     },
+
+    // 加载精选诗词（页面初始显示）
+    async loadFeaturedPoems() {
+      try {
+        // 获取几首经典诗词作为精选展示，这里使用固定ID 1
+        const response = await fetch(`${this.API_BASE_URL}/1`);
+        if (response.ok) {
+          const poem = await response.json();
+          // 创建几个变体作为精选展示
+          this.featuredPoems = [
+            { ...poem, pid: `featured-1` },
+          ];
+        }
+      } catch (error) {
+        console.error('加载精选诗词失败:', error);
+        // 如果API失败，可以设置一些默认的精选诗词
+        this.featuredPoems = [];
+      }
+    },
+
+    // 调整字体大小
+    adjustFontSize(delta) {
+      this.fontSize = Math.max(12, Math.min(24, this.fontSize + delta));
+    },
+
+    // 搜索诗词
     async searchPoetry() {
       this.searched = false;
       this.results = [];
       const q = this.searchQuery.trim();
-      if (!q) return alert('请输入关键词');
+      
+      if (!q) {
+        alert('请输入关键词');
+        return;
+      }
+      
       this.loading = true;
-          try
-           {
-        // 这里调用后端接口
-        const response = await axios.get('http://localhost:8080/api/poems/search', 
-        {
-          params: { key: q }
-        });
-    this.results = response.data.result;  // 取result数组
-this.poetryData = response.data.result; // 也同步保存全部数据，方便导出收藏
+      
+      try {
+        console.log(`正在搜索关键词: ${q}`); // 调试日志
+        
+        // 调用后端API搜索
+        const response = await fetch(`${this.API_BASE_URL}/keyword/${encodeURIComponent(q)}`);
+        
+        console.log(`搜索响应状态: ${response.status}`); // 调试日志
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('搜索结果:', data); // 调试日志
+        
+        // 检查返回数据格式
+        if (Array.isArray(data)) {
+          this.results = data;
+          this.poetryData = data; // 保存全部数据，方便导出收藏
+        } else {
+          console.error('返回数据格式不正确:', data);
+          this.results = [];
+        }
+        
         // 记录搜索历史
-        if (!this.history.includes(q))
-         {
+        if (!this.history.includes(q)) {
           this.history.unshift(q);
           this.history = this.history.slice(0, 5);
           localStorage.setItem('history', JSON.stringify(this.history));
         }
-      }
-       catch (error) 
-       {
-        alert('搜索失败，请检查后端服务是否启动');
-        console.error(error);
-      } finally 
-      {
+        
+      } catch (error) {
+        console.error('搜索失败:', error);
+        alert('搜索失败，请检查网络连接或后端服务是否启动');
+        this.results = [];
+      } finally {
         this.loading = false;
         this.searched = true;
       }
     },
 
-
+    // 从历史记录搜索
     searchFromHistory(h) {
       this.searchQuery = h;
       this.searchPoetry();
     },
+
+    // 跳转到详情页
     goToDetail(id) {
-      this.$router.push(`/poem/${id}`);
+      // 这里可以根据需要实现详情页跳转
+      console.log('查看诗词详情:', id);
+      // this.$router.push(`/poem/${id}`);
     },
+
+    // 检查是否收藏
     isFavorite(id) {
       return this.favorites.includes(id);
     },
+
+    // 切换收藏状态
     toggleFavorite(id) {
-      if (this.isFavorite(id))
+      if (this.isFavorite(id)) {
         this.favorites = this.favorites.filter(x => x !== id);
-      else
+      } else {
         this.favorites.push(id);
+      }
       localStorage.setItem('favorites', JSON.stringify(this.favorites));
     },
+
+    // 清空收藏
     clearFavorites() {
       if (confirm('确认清空所有收藏？')) {
         this.favorites = [];
         localStorage.setItem('favorites', '[]');
       }
     },
+
+    // 导出收藏
     exportFavorites() {
-      const favs = this.poetryData.filter(p => this.isFavorite(p.id));
+      const favs = this.poetryData.filter(p => this.isFavorite(p.pid));
       const md = favs.map(p =>
-`## ${p.title} — ${p.author}\n\n${p.content}\n`).join('\n---\n');
+        `## ${p.title} — ${p.poet}\n\n${this.formatPoemText(p.text)}\n`
+      ).join('\n---\n');
+      
       const blob = new Blob([md], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -190,14 +262,21 @@ this.poetryData = response.data.result; // 也同步保存全部数据，方便�
       a.click();
       URL.revokeObjectURL(url);
     },
+
+    // 切换暗黑模式
     toggleDarkMode() {
       this.isDarkMode = !this.isDarkMode;
       localStorage.setItem('darkMode', JSON.stringify(this.isDarkMode));
     },
+
+    // 切换展开状态
     toggleExpand(id) {
       const i = this.expandedIds.indexOf(id);
-      if (i >= 0) this.expandedIds.splice(i, 1);
-      else this.expandedIds.push(id);
+      if (i >= 0) {
+        this.expandedIds.splice(i, 1);
+      } else {
+        this.expandedIds.push(id);
+      }
     }
   }
 };
@@ -335,54 +414,6 @@ this.poetryData = response.data.result; // 也同步保存全部数据，方便�
   padding: 2rem 0;
 }
 
-.poem-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.2rem;
-}
-
-.poem-card {
-  background: #fff;
-  padding: 1rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
-  transition: all 0.3s;
-  position: relative;
-}
-
-.poem-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 12px rgba(0,0,0,0.1);
-}
-
-.poem-card h3 {
-  font-size: 1.1rem;
-  color: #8c7853;
-  margin: 0 0 0.5rem;
-}
-
-.poem-card .meta {
-  font-size: 0.85rem;
-  color: #888;
-  margin-bottom: 0.5rem;
-}
-
-.fav-btn {
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  font-size: 1.2rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.welcome-title {
-  text-align: center;
-  font-size: 1.4rem;
-  color: #8c7853;
-  margin-bottom: 1.2rem;
-  font-weight: bold;
-}
 .welcome-poems {
   background: #f9f4ed;
   padding: 2rem 1rem;
@@ -412,7 +443,9 @@ this.poetryData = response.data.result; // 也同步保存全部数据，方便�
   padding: 1.25rem 1rem;
   box-shadow: 0 6px 12px rgba(0,0,0,0.05);
   transition: transform 0.3s ease;
+  cursor: pointer;
 }
+
 .poem-card:hover {
   transform: translateY(-4px);
 }
@@ -421,6 +454,12 @@ this.poetryData = response.data.result; // 也同步保存全部数据，方便�
   color: #8c7853;
   font-size: 1.1rem;
   margin-bottom: 0.25rem;
+}
+
+.poem-card h3 {
+  font-size: 1.1rem;
+  color: #8c7853;
+  margin: 0 0 0.5rem;
 }
 
 .meta {
@@ -455,5 +494,4 @@ this.poetryData = response.data.result; // 也同步保存全部数据，方便�
   font-size: 1.3rem;
   cursor: pointer;
 }
-
 </style>
