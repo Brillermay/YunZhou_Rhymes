@@ -203,73 +203,35 @@ export default {
         category: '作品分享',
         author: username,
       },
-      posts: [
-        {
-          id: 1,
-          title: '初入墨阁，聊诗会友',
-          content: '江南无所有，聊赠一枝春。\n#欢迎',
-          category: '作品分享',
-          author: '系统管理员',
-          time: '2025-05-01',
-          likes: 5,
-          liked: false,
-          comments: [
-            { id: 1, author: 'alice', content: '意境真美~' }
-          ],
-          showComments: false,
-          isExpanded: false,
-          newComment: '',
-          commentError: ''
-        },
-        {
-          id: 2,
-          title: '求助：关于仿古诗的押韵问题',
-          content: '写仿古诗是否一定要押平水韵？有没有比较宽松的做法？',
-          category: '提问求助',
-          author: 'bob',
-          time: '2025-05-03',
-          likes: 3,
-          liked: false,
-          comments: [],
-          showComments: false,
-          isExpanded: false,
-          newComment: '',
-          commentError: ''
-        },
-        {
-          id: 3,
-          title: '每日话题：你最喜欢的春景描写',
-          content: '欢迎分享你心中最美的春天诗句或自创诗！\n#春景',
-          category: '每日话题',
-          author: '系统管理员',
-          time: '2025-05-07',
-          likes: 7,
-          liked: false,
-          comments: [],
-          showComments: false,
-          isExpanded: false,
-          newComment: '',
-          commentError: ''
-        }
-      ],
+      posts: [],
       categories: ['全部', '作品分享', '诗词赏析', '写作心得', '创作讨论', '提问求助'],
     }
   },
   created() {
     this.newPost.author = this.username;
 
-    // 加入获取评论请求（假设后端接口是 /comment/init）
-    axios.get('http://localhost:8081/comment/init')  // 注意端口号改为你后端运行端口
+     // 从后端加载帖子数据
+     axios.get('http://localhost:8081/comment/init')
       .then(response => {
-        const comments = response.data;
-        // 假设你想把评论放进每个 post 的 comments 中
-        this.posts.forEach(post => {
-          post.comments = comments.filter(c => c.postId === post.id);  // 你需要确保 Comment 对象中有 postId 字段
-        });
-        console.log(comments)
+        const postsData = response.data;
+        this.posts = postsData.map(post => ({
+          id: post.CommentID,
+          title: post.Title,
+          content: post.Content,
+          category: post.Category,
+          author: post.PersonID,
+          time: new Date(post.Timestamp).toLocaleDateString(),
+          likes: post.LikeCounts,
+          liked: false,
+          comments: [], // 初始化为空数组
+          showComments: false,
+          isExpanded: false,
+          newComment: '',
+          commentError: '',
+        }));
       })
       .catch(error => {
-        console.error('获取评论失败', error);
+        console.error('加载帖子失败', error);
       });
   },
   computed: {
@@ -366,55 +328,82 @@ export default {
         }
       });
     },
-    submitPost() {
-      const title = this.newPost.title.trim();
-      const content = this.newPost.content.trim();
+    async submitPost() {
+      const data = {
+        parentID: 0, // 为根帖子
+        Category: this.newPost.category || "作品分享", // 使用表单中的分类
+        Title: this.newPost.title.trim(),
+        Content: this.newPost.content.trim(),
+        PersonID: this.$store.state.userId, // 从 Vuex 中获取用户 ID
+        hasTitle: this.newPost.title.trim().length > 0,
+        isAdmin: this.$store.state.isAdmin // 从 Vuex 中获取管理员状态
+      };
 
-      if (!title) {
+      if (!data.hasTitle) {
         alert("标题不能为空！");
         return;
       }
 
-      if (!content) {
+      if (!data.Content) {
         alert("正文不能为空！");
         return;
       }
-      const newPost = {
-        ...this.newPost,
-        title,
-        content,
-        id: Date.now(),
-        time: new Date().toLocaleDateString(),
-        likes: 0,
-        liked: false,
-        comments: [],
-        showComments: false,
-        isExpanded: false,
-        newComment: '',
-        commentError: ''
-      };
 
-      this.posts.unshift(newPost);
-      this.newPost.title = '';
-      this.newPost.content = '';
-      this.newPost.category = '作品分享'; // 默认分类
-      this.showPostForm = false;
+      try {
+        const res = await this.$http.post('/comment/addComment', data);
+        console.log(res.data);
+
+        if (res.data.status === "SUCCESS") {
+          // 如果后端返回成功，可以将新帖子添加到本地列表
+          const newPost = {
+            id: res.data.commentId, // 使用后端返回的 commentId
+            title: data.Title,
+            content: data.Content,
+            category: data.Category,
+            author: this.username,
+            time: new Date(res.data.createdAt).toLocaleDateString(), // 使用后端返回的创建时间
+            likes: 0,
+            liked: false,
+            comments: [],
+            showComments: false,
+            isExpanded: false,
+            newComment: '',
+            commentError: ''
+          };
+
+          this.posts.unshift(newPost);
+
+          // 重置表单
+          this.newPost.title = '';
+          this.newPost.content = '';
+          this.newPost.category = '作品分享'; // 默认分类
+          this.showPostForm = false;
+
+          alert(res.data.message); // 显示后端返回的成功消息
+        } else {
+          alert("提交失败，请检查后端返回状态！");
+        }
+      } catch (error) {
+        console.error('提交失败:', error);
+        alert('提交失败，请检查网络连接或后端服务！');
+      }
     },
     deletePost(postId) {
-       // 获取要删除的帖子
-        const postToDelete = this.posts.find(post => post.id === postId);
+      // 获取要删除的帖子
+      const postToDelete = this.posts.find(post => post.id === postId);
 
       // 权限校验（管理员或发布者自己）
-      if (!(this.isAdmin || postToDelete.author === this.currentUser)) {
+      if (!(this.isAdmin || postToDelete.author === this.username)) {
         alert("你不能删除其他用户发布的帖子！");
         return;
       }
 
-      // 调用后端删除接口（假设后端接口为 POST /comment/del/{id}）
-      axios.post(`http://localhost:8081/comment/del/${postId}`)
+      // 调用后端删除接口
+      axios.delete(`http://127.0.0.1:8081/del/${postId}`)
         .then(() => {
           // 删除成功后从本地 posts 中移除该帖子
           this.posts = this.posts.filter(post => post.id !== postId);
+          alert("帖子删除成功！");
         })
         .catch(error => {
           console.error('删除失败:', error);
@@ -435,36 +424,81 @@ export default {
       }
     },
     toggleComment(post) {
-      post.showComments = !post.showComments;
+       // 如果评论已经展开，则直接切换显示状态
+      if (post.showComments) {
+        post.showComments = false;
+        return;
+      }
+
+      // 向后端请求展开评论数据
+      axios.get(`http://127.0.0.1:8081/open_comment/${post.id}`)
+        .then(response => {
+          const comments = response.data;
+
+          // 更新帖子的评论数据
+          post.comments = comments.map(comment => ({
+            id: comment.CommentID,
+            author: comment.PersonID, 
+            content: comment.Content,
+            time: new Date(comment.Timestamp).toLocaleDateString() // 格式化时间
+          }));
+
+          // 展开评论区
+          post.showComments = true;
+        })
+        .catch(error => {
+          console.error('评论加载失败:', error);
+          alert('评论加载失败，请检查网络连接或后端服务！');
+        });
     },
-    addComment(post) {
+    async addComment(post) {
       if (!this.isLoggedIn) {
         alert("请先登录再发表评论！");
         return;
       }
+
       const content = post.newComment?.trim();
       if (!content) {
         post.commentError = "评论不能为空！";
         return;
       }
-      post.commentError = "";
-      const newComment = {
-        id: Date.now(),
-        author: this.username,
-        content: post.newComment,
-        postId: post.id  // 假设评论有 postId 字段
-      };
-      post.comments.push(newComment);
-      post.newComment = '';
 
-      // 假设你用的是后端接口 addComment(int cid)，你需要传入 Comment 的 ID
-      axios.post(`http://localhost:8081/comment/add/`, newComment )
-        .then(() => {
-          console.log('评论已提交');
-        })
-        .catch(err => {
-          console.error('评论提交失败', err);
-        });
+      post.commentError = "";
+
+      const data = {
+        parentID: post.id, // 评论的父帖子 ID
+        Category: post.category, // 使用帖子分类
+        Title: post.title, // 使用帖子标题
+        Content: content, // 评论内容
+        PersonID: this.$store.state.userId, // 从 Vuex 中获取用户 ID
+        hasTitle: false, // 评论不需要标题
+        isAdmin: this.$store.state.isAdmin // 从 Vuex 中获取管理员状态
+      };
+
+      try {
+        const res = await axios.post('http://localhost:8081/comment/addComment', data);
+        console.log(res.data);
+
+        if (res.data.status === "SUCCESS") {
+          // 如果后端返回成功，将新评论添加到帖子评论列表
+          const newComment = {
+            id: res.data.commentId, // 使用后端返回的 commentId
+            author: this.username,
+            content: content,
+            time: new Date(res.data.createdAt).toLocaleDateString() // 使用后端返回的创建时间
+          };
+
+          post.comments.push(newComment);
+          post.newComment = ''; 
+
+          alert(res.data.message); 
+        } else {
+          alert("评论提交失败，请检查后端返回状态！");
+        }
+      } catch (error) {
+        console.error('评论提交失败:', error);
+        alert('评论提交失败，请检查网络连接或后端服务！');
+      }
     },
     sortBy(type) {
       this.sortType = type;
@@ -506,21 +540,21 @@ export default {
     }
   },
   mounted() {
-    // 页面加载时请求评论
-    axios.get('http://localhost:8081/comment/init')
-      .then(res => {
-        const cids = res.data;
-        return axios.post('http://localhost:8081/comment/get', cids);
-      })
-      .then(res => {
-        const comments = res.data;
-      this.posts.forEach(post => {
-        post.comments = comments.filter(c => c.postId === post.id);
-      });  
-      })  
-      .catch(err => {
-        console.error("评论加载失败", err);
-      });
+    // // 页面加载时请求评论
+    // axios.get('http://localhost:8081/comment/init')
+    //   .then(res => {
+    //     const cids = res.data;
+    //     return axios.post('http://localhost:8081/comment/get', cids);
+    //   })
+    //   .then(res => {
+    //     const comments = res.data;
+    //   this.posts.forEach(post => {
+    //     post.comments = comments.filter(c => c.postId === post.id);
+    //   });  
+    //   })  
+    //   .catch(err => {
+    //     console.error("评论加载失败", err);
+    //   });
   },
 };
 

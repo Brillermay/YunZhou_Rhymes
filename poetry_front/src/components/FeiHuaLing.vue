@@ -55,7 +55,7 @@
           </div>
           <div>
             当前模式：<span class="mode-mark">{{ getModeLabel }}</span>
-            <span v-if="mode === 'endless'"> | 已答题：{{ answerCount }}次</span>
+            <span v-if="mode === 'endless'"> | 已答题：{{ answerCount/2 }}次</span>
             <span v-if="mode === 'challenge'"> | 第{{ currentRound }}轮 ({{ roundProgress }})</span>
           </div>
           <div>
@@ -110,6 +110,9 @@
 </template>
  
 <script>
+
+import axios from 'axios';
+
 export default {
   name: 'FeiHuaLingChat',
   computed: {
@@ -130,13 +133,14 @@ export default {
   data() {
     return {
       gameStarted: false,
-      keywords: ['风', '月', '山', '花', '春'],
+      keywords: ['月', '花', '春'],
       currentKeyword: '',
       historyRecords: [],
       userInput: '',
       chatHistory: [],
       showError: false,
       errorTimeout: null,
+      apiVerses: [], // 用于存储从API获取的诗句
       usedVerses: [], // 记录已使用过的诗句 
       
       // 游戏模式相关 
@@ -233,7 +237,10 @@ export default {
         this.countdownInterval  = null;
       }
     },
-    
+    getAvailableVerses(verses) {
+      // 过滤掉已用过的诗句，返回可用的
+     return verses.filter(verse => !this.usedVerses.includes(verse));
+    },
     gameFailed() {
       this.clearCountdown(); 
       this.gameEnded  = true;
@@ -330,25 +337,42 @@ export default {
       }
     },
     
-    startNewRound() {
-      this.fetchRandomKeyword().then(response  => {
-        this.currentKeyword  = response.keyword; 
-        this.chatHistory  = [];
-        this.usedVerses  = [];
-        this.gameEnded  = false;
-        
-        const roundInfo = this.challengeRounds[this.currentRound  - 1];
-        roundInfo.keyword  = this.currentKeyword; 
-        
-        this.addSystemMessage(` 第${this.currentRound} 轮开始！关键词："${this.currentKeyword}" ，需要完成${roundInfo.required} 次正确回答`);
-        this.startCountdown(); 
-      });
+    async startNewRound() {
+      try {
+        const response = await this.fetchRandomKeyword();
+       this.currentKeyword = response.keyword;
+    
+       // 获取新关键词对应的诗句
+       const verseResponse = await this.fetchRelatedVerse(this.currentKeyword);
+        this.apiVerses = verseResponse.verses;
+    
+       this.chatHistory = [];
+        this.usedVerses = [];
+        this.gameEnded = false;
+    
+        const roundInfo = this.challengeRounds[this.currentRound - 1];
+        roundInfo.keyword = this.currentKeyword;
+    
+        this.addSystemMessage(`第${this.currentRound}轮开始！关键词："${this.currentKeyword}"，需要完成${roundInfo.required}次正确回答`);
+       this.startCountdown();
+      } catch (error) {
+        console.error('开始新轮次失败:', error);
+        this.addSystemMessage("开始新轮次失败，请重新开始游戏");
+     }
     },
     
     async startGame() {
       try {
         const response = await this.fetchRandomKeyword(); 
         this.currentKeyword  = response.keyword; 
+        const verseResponse = await this.fetchRelatedVerse(this.currentKeyword);
+        this.apiVerses = verseResponse.verses;
+
+        const availableVerses = this.getAvailableVerses(this.apiVerses);
+        if (availableVerses.length === 0) {
+          this.addSystemMessage("没有可用的诗句，请重新开始游戏");
+          return;
+        }
         this.gameStarted  = true;
         this.gameEnded  = false;
         this.chatHistory  = [];
@@ -433,7 +457,7 @@ export default {
         setTimeout(() => {
           const cleanedInput = verse.trim().replace(/[ ，。！？、；：'"“”‘’「」【】（）〔〕\s]/g, '');
  
-          const match = this.versesList.some(dbVerse  => {
+          const match = this.apiVerses.some(dbVerse  => {
             const cleanedDbVerse = dbVerse.replace(/[ ，。！？、；：'"“”‘’「」【】（）〔〕\s]/g, '');
             return cleanedDbVerse === cleanedInput && dbVerse.includes(keyword); 
           });
@@ -468,8 +492,10 @@ export default {
  
     scrollToBottom() {
       this.$nextTick(() => {
-        const container = this.$refs.chatMessages; 
-        container.scrollTop  = container.scrollHeight; 
+        const container = this.$refs.chatMessages;
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
       });
     },
  
@@ -483,22 +509,16 @@ export default {
     },
  
     async fetchRelatedVerse(keyword) {
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const availableVerses = this.versesList.filter(verse  => 
-            verse.includes(keyword)  && !this.usedVerses.includes(verse) 
-          );
- 
-          if (availableVerses.length  === 0) {
-            resolve({ verse: `所有包含"${keyword}"的诗句已用完` });
-            return;
-          }
- 
-          const randomVerse = availableVerses[Math.floor(Math.random() * availableVerses.length)]; 
-          this.usedVerses.push(randomVerse); 
-          resolve({ verse: randomVerse });
-        }, 100);
-      });
+      const url = `http://localhost:8081/poem/keyword/${encodeURIComponent(keyword)}`;
+      try {
+        const response = await axios.get(url);
+        // 提取返回的Poem对象数组中的text字段组成字符串数组
+        const apiVerses = [...new Set(response.data.map(poem => poem.text))];
+        return { verses: apiVerses }; // 只返回数据，不处理游戏逻辑
+      } catch (error) {
+        console.error('获取诗句失败:', error);
+        return { verses: [] };
+      }
     }
   }
 };
