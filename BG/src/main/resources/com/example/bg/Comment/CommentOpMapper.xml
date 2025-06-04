@@ -49,6 +49,10 @@
             #{cid}
         </foreach>
     </delete>
+    <insert id="updLinklist">
+        insert into linklist (CID,NCID) values (#{NCID},#{CID})
+    </insert>
+    
     <select id="getChild" resultType="java.lang.Integer">
         SELECT NCID
         FROM linklist
@@ -86,4 +90,5 @@
         SET CommentCounts = CommentCounts + 1
         WHERE CommentID = #{commentId}
     </update>
+
 </mapper>

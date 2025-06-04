@@ -155,6 +155,7 @@ public class CommentOp extends ConnetMySQL {
             // ===== 4. 数据库操作 =====
             // 4.1 插入主评论
             mapper.insertComment(comment);
+            mapper.updLinklist(comment.CommentID,comment.parentID);
             // 4.2 更新父评论（如果是回复）
             while (comment.parentID  > 0) {
                 mapper.incrementCommentCount(comment.parentID);

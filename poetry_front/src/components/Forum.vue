@@ -340,7 +340,8 @@ export default {
         hasTitle: this.newPost.title.trim().length > 0,
         isAdmin: userStore.isAdmin // 从 Vuex 中获取管理员状态
       };
-
+      console.log("hey data:\n");
+      console.log(data);
       if (!data.hasTitle) {
         alert("标题不能为空！");
         return;
@@ -352,7 +353,7 @@ export default {
       }
 
       try {
-        const res = await this.$http.post('/comment/addComment', data);
+        const res = await axios.post('http://127.0.0.1:8081/comment/addComment', data);
         //console.log(res.data);
 
         if (res.data.status === "SUCCESS") {
