@@ -16,10 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @CrossOrigin(
@@ -107,6 +104,7 @@ public class CommentOp extends ConnetMySQL {
             ans=commentOpMapper.getComment(getAllChild(cid));
             in.close();
             session.close();
+            ans=ans.subList(1,ans.size());
             return ans;
         }catch (Exception e){
             e.printStackTrace();
@@ -160,12 +158,14 @@ public class CommentOp extends ConnetMySQL {
             // 4.2 更新父评论（如果是回复）
             while (comment.parentID  > 0) {
                 mapper.incrementCommentCount(comment.parentID);
-                comment=mapper.getComment(new ArrayList<>(comment.parentID)).get(0);
+                comment=mapper.getComment(Collections.singletonList(comment.parentID)).get(0);
             }
 
             // 4.3 提交事务
             session.commit();
 
+            session.close();
+            in.close();
             // ===== 5. 构建响应 =====
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of(

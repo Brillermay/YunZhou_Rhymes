@@ -85,7 +85,7 @@
                 👍 赞 {{ post.likes }}
               </button>
               <button class="comment-btn" @click="toggleComment(post)">
-                💬 评 {{ post.comments.length }}
+                💬 评 {{ post.commentNum }}
               </button>
             </div>
 
@@ -224,6 +224,7 @@ export default {
           likes: post.LikeCounts,
           liked: false,
           comments: [], // 初始化为空数组
+          commentNum:post.CommentCounts,
           showComments: false,
           isExpanded: false,
           newComment: '',
@@ -329,14 +330,15 @@ export default {
       });
     },
     async submitPost() {
+      const userStore = useUserStore();
       const data = {
         parentID: 0, // 为根帖子
         Category: this.newPost.category || "作品分享", // 使用表单中的分类
         Title: this.newPost.title.trim(),
         Content: this.newPost.content.trim(),
-        PersonID: this.$store.state.userId, // 从 Vuex 中获取用户 ID
+        PersonID: userStore.uid, // 从 Vuex 中获取用户 ID
         hasTitle: this.newPost.title.trim().length > 0,
-        isAdmin: this.$store.state.isAdmin // 从 Vuex 中获取管理员状态
+        isAdmin: userStore.isAdmin // 从 Vuex 中获取管理员状态
       };
 
       if (!data.hasTitle) {
@@ -351,7 +353,7 @@ export default {
 
       try {
         const res = await this.$http.post('/comment/addComment', data);
-        console.log(res.data);
+        //console.log(res.data);
 
         if (res.data.status === "SUCCESS") {
           // 如果后端返回成功，可以将新帖子添加到本地列表
@@ -365,6 +367,7 @@ export default {
             likes: 0,
             liked: false,
             comments: [],
+            commentNum:data.CommentCounts,
             showComments: false,
             isExpanded: false,
             newComment: '',
@@ -431,10 +434,10 @@ export default {
       }
 
       // 向后端请求展开评论数据
-      axios.get(`http://127.0.0.1:8081/open_comment/${post.id}`)
+      axios.get(`http://127.0.0.1:8081/comment/open_comment/${post.id}`)
         .then(response => {
           const comments = response.data;
-
+          post.commentNum=comments.length;
           // 更新帖子的评论数据
           post.comments = comments.map(comment => ({
             id: comment.CommentID,
@@ -452,6 +455,8 @@ export default {
         });
     },
     async addComment(post) {
+      const userStore = useUserStore();
+
       if (!this.isLoggedIn) {
         alert("请先登录再发表评论！");
         return;
@@ -464,17 +469,18 @@ export default {
       }
 
       post.commentError = "";
-
+      //console.log(userStore.uid);
       const data = {
         parentID: post.id, // 评论的父帖子 ID
         Category: post.category, // 使用帖子分类
-        Title: post.title, // 使用帖子标题
+        Title: null, // 使用帖子标题
         Content: content, // 评论内容
-        PersonID: this.$store.state.userId, // 从 Vuex 中获取用户 ID
+        //PersonID: userStore.uid, // 从 Vuex 中获取用户 ID
+        PersonID:486,
         hasTitle: false, // 评论不需要标题
-        isAdmin: this.$store.state.isAdmin // 从 Vuex 中获取管理员状态
+        isAdmin: userStore.isAdmin // 从 Vuex 中获取管理员状态
       };
-
+      console.log(data);
       try {
         const res = await axios.post('http://localhost:8081/comment/addComment', data);
         console.log(res.data);

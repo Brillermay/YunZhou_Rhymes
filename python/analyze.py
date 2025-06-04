@@ -107,7 +107,7 @@ def extract_poem_from_html(html_content):
 
                 if "·­Òë" in h2.get_text():
                     poem.translation = clean_content
-                elif "¼øÉÍ" in h2.get_text():
+                elif "¼øÉÍ" in h2.get_text() or "ÉÍÎö" in h2.get_text():
                     poem.appreciation = clean_content
                 elif "±³¾°" in h2.get_text():
                     poem.background = clean_content
