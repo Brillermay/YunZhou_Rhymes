@@ -42,6 +42,13 @@
             #{cid}
         </foreach>
     </delete>
+    <delete id="delCommentAbout">
+        delete
+        from linklist where CID IN
+        <foreach item="cid" index="index" collection="CIDs" open="(" separator="," close=")">
+            #{cid}
+        </foreach>
+    </delete>
     <select id="getChild" resultType="java.lang.Integer">
         SELECT NCID
         FROM linklist
@@ -62,7 +69,7 @@
             CommentID
         ) VALUES (
                      #{PersonID},
-                     #{ParentID},
+                     #{parentID},
                      #{Content},
                      #{Timestamp},
                      #{hasTitle},

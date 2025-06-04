@@ -16,4 +16,5 @@ public interface CommentOpMapper {
     void insertComment(Comment comment);//通过request提交表单
     List<Integer>getChild(int CID);//返回某一个节点对应的子节点
     void incrementCommentCount(@Param("commentId") int commentId);
+    void delCommentAbout(List<Integer>CIDs);
 }

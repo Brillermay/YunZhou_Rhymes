@@ -63,6 +63,7 @@ public class IDsGet extends ConnetMySQL  {
             SqlSession session=getSession(in);
             IDsGetMapper iDsGetMapper=session.getMapper(IDsGetMapper.class);
             iDsGetMapper.addStarID(PID,UID);
+            session.commit();
             in.close();
             session.close();
         }catch (Exception e){
@@ -80,6 +81,7 @@ public class IDsGet extends ConnetMySQL  {
             SqlSession session=getSession(in);
             IDsGetMapper iDsGetMapper=session.getMapper(IDsGetMapper.class);
             iDsGetMapper.delStarID(PID,UID);
+            session.commit();
             in.close();
             session.close();
         }catch (Exception e){
