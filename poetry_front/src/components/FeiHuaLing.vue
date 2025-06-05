@@ -133,7 +133,7 @@ export default {
   data() {
     return {
       gameStarted: false,
-      keywords: ['月', '花', '春'],
+      keywords: ['月', '花', '春','酒','山','鸟'],
       currentKeyword: '',
       historyRecords: [],
       userInput: '',
@@ -367,7 +367,6 @@ export default {
         this.currentKeyword  = response.keyword; 
         const verseResponse = await this.fetchRelatedVerse(this.currentKeyword);
         this.apiVerses = verseResponse.verses;
-
         const availableVerses = this.getAvailableVerses(this.apiVerses);
         if (availableVerses.length === 0) {
           this.addSystemMessage("没有可用的诗句，请重新开始游戏");
@@ -415,7 +414,10 @@ export default {
       }
  
       // 记录用户输入 
-      this.usedVerses.push(this.userInput); 
+      this.usedVerses.push(this.userInput);
+      // console.log(this.userInput);
+      // console.log(this.apiVerses);
+      // console.log(this.currentKeyword);
       this.addUserMessage(this.userInput); 
  
       try {
@@ -459,7 +461,8 @@ export default {
  
           const match = this.apiVerses.some(dbVerse  => {
             const cleanedDbVerse = dbVerse.replace(/[ ，。！？、；：'"“”‘’「」【】（）〔〕\s]/g, '');
-            return cleanedDbVerse === cleanedInput && dbVerse.includes(keyword); 
+
+            return cleanedDbVerse.includes(cleanedInput)  && dbVerse.includes(keyword);
           });
  
           resolve(match);

@@ -46,6 +46,7 @@
   
 <script>
 import { useUserStore } from '@/stores/user';
+import axios from "axios";
 
 export default {
   name: 'ForumLogin',
@@ -97,10 +98,15 @@ export default {
         
         if (result === '添加成功') {
           alert('注册成功！请登录');
+
           this.isLoginPage = true;
           this.password = '';
           this.confirmPassword = '';
         } else {
+          console.log(JSON.stringify({
+            UserName: this.username,     // 改为 UserName（匹配后端实体类）
+            PassWord: this.password      // 改为 PassWord（匹配后端实体类）
+          }))
           alert('注册失败，用户名可能已存在');
         }
       } catch (error) {
@@ -134,15 +140,14 @@ export default {
         });
 
         const loginResult = await loginResponse.text();
-        
         if (loginResult === '登录成功') {
           const userInfoResponse = await this.getUserInfo();
-          
+          console.log(userInfoResponse.uid);
           if (userInfoResponse) {
             localStorage.setItem('username', this.username);
-            localStorage.setItem('uid', userInfoResponse.uid);
+            useUserStore().uid=userInfoResponse.uid;
+            useUserStore().username=this.username;
             localStorage.setItem('isAdmin', userInfoResponse.isAdmin || false);
-            
             alert('登录成功！');
             this.$router.push('/Forum');
           } else {
@@ -164,10 +169,18 @@ export default {
         // 这里需要根据你的数据库结构来实现
         // 由于你的登录接口没有返回用户详细信息，我们可能需要额外的接口
         // 暂时使用模拟数据，你可能需要添加一个根据用户名获取用户信息的接口
-        
+        const response = await axios.get(
+            `http://127.0.0.1:8081/user/loginID/${encodeURIComponent(this.username)}`,
+            {
+              headers: {
+                'Cache-Control': 'no-cache'
+              },
+              timeout: 10000  // 10秒超时
+            }
+        );
         // 模拟返回用户信息（实际应该从后端获取）
         return {
-          uid: this.generateTemporaryUid(), // 临时生成UID
+          uid: response.data, // 临时生成UID//await 127.0.0.1:8081/user/loginID/{username}
           name: this.username,              // 改为 name
           isAdmin: false // 默认非管理员
         };

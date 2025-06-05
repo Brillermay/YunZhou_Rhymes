@@ -6,7 +6,7 @@
 
 <mapper namespace="com.example.bg.user.UserAddMapper">
     <insert id="UserAdd" parameterType="com.example.bg.user.User">
-        INSERT INTO poem.user (name, pwd)
+        INSERT INTO user (name, pwd)
         VALUES (#{UserName}, #{PassWord})
     </insert>
 </mapper>

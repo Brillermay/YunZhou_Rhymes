@@ -5,12 +5,7 @@ import java.io.InputStream;
 
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.bg.ConnetMySQL;
 
@@ -48,4 +43,41 @@ public class UserLogin extends ConnetMySQL {
             throw new RuntimeException("error:" + e.getMessage());
         }
     }
+
+    @GetMapping("/loginID/{username}")
+    @Operation(summary = "返回id")
+    public int retRegisID(@PathVariable String username)throws IOException
+    {
+        try {
+            InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
+            SqlSession session = getSession(in);
+            UserLoginMapper userLoginMapper = session.getMapper(UserLoginMapper.class);
+            int result = userLoginMapper.getID(username);
+            in.close();
+            session.close();
+            return result ;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("error:" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/loginName/{uid}")
+    @Operation(summary = "返回名字")
+    public String retName(@PathVariable int uid)throws IOException
+    {
+        try {
+            InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
+            SqlSession session = getSession(in);
+            UserLoginMapper userLoginMapper = session.getMapper(UserLoginMapper.class);
+            String result = userLoginMapper.getName(uid);
+            in.close();
+            session.close();
+            return result ;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("error:" + e.getMessage());
+        }
+    }
+
 }

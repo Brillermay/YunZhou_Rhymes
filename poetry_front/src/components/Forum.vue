@@ -350,7 +350,7 @@ export default {
     },
     async getUserName(uid) {
       try {
-        const response = await fetch(`${this.API_BASE_URL}/getName/${uid}`, {
+        const response = await fetch(`${this.API_BASE_URL}/loginName/${uid}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

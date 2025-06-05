@@ -52,10 +52,10 @@
                 <h4>背景</h4>
                 <p>{{ poem.background }}</p>
               </div>
-              <div v-if="poem?.appreciation" class="poem-info">
-                <h4>赏析</h4>
-                <p>{{ poem.appreciation }}</p>
-              </div>
+<!--              <div v-if="poem?.appreciation" class="poem-info">-->
+<!--                <h4>赏析</h4>-->
+<!--                <p>{{ poem.appreciation }}</p>-->
+<!--              </div>-->
             </div>
           </div>
         </div>
