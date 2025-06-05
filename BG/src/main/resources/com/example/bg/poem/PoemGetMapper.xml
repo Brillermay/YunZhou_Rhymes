@@ -26,12 +26,12 @@
     <!--    </delete>-->
 <!--    这里就是函数的主功能，看下应该也能看懂-->
     <select id="getPoem" resultType="com.example.bg.poem.Poem">
-        select * from poem where PID=#{PID}
+        select * from poem.poem where PID=#{PID}
 
     </select>
     <!-- 根据关键字搜索诗词列表 -->
     <select id="getPoems" resultType="com.example.bg.poem.Poem">
-        select * from poem
+        select * from poem.poem
         where title like CONCAT('%', #{key}, '%') 
            or poet like CONCAT('%', #{key}, '%') 
            or text like CONCAT('%', #{key}, '%')

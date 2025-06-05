@@ -192,6 +192,7 @@ export default {
       username,
       isAdmin,
       isLoggedIn: !!username,
+      API_BASE_URL: 'http://localhost:8081/user', // 添加这一行
 
       showPostForm: false,
       selectedCategory: '全部',
@@ -222,25 +223,31 @@ export default {
 
     this.newPost.author = username;
 
-     // 从后端加载帖子数据
-     axios.get('http://localhost:8081/comment/init')
-      .then(response => {
+    // 从后端加载帖子数据并转换UID为用户名
+    axios.get('http://localhost:8081/comment/init')
+      .then(async (response) => {
         const postsData = response.data;
-        this.posts = postsData.map(post => ({
-          id: post.CommentID,
-          title: post.Title,
-          content: post.Content,
-          category: post.Category,
-          author: post.PersonID,
-          time: new Date(post.Timestamp).toLocaleDateString(),
-          likes: post.LikeCounts,
-          liked: false,
-          comments: [], // 初始化为空数组
-          commentNum:post.CommentCounts,
-          showComments: false,
-          isExpanded: false,
-          newComment: '',
-          commentError: '',
+        
+        // 处理每个帖子，将PersonID转换为用户名
+        this.posts = await Promise.all(postsData.map(async (post) => {
+          const authorName = await this.getUserName(post.PersonID);
+          return {
+            id: post.CommentID,
+            title: post.Title,
+            content: post.Content,
+            category: post.Category,
+            author: authorName || `用户${post.PersonID}`, // 如果获取失败，显示备用格式
+            authorId: post.PersonID, // 保留原始UID用于权限判断
+            time: new Date(post.Timestamp).toLocaleDateString(),
+            likes: post.LikeCounts,
+            liked: false,
+            comments: [],
+            commentNum: post.CommentCounts,
+            showComments: false,
+            isExpanded: false,
+            newComment: '',
+            commentError: '',
+          };
         }));
       })
       .catch(error => {
@@ -341,6 +348,25 @@ export default {
         }
       });
     },
+    async getUserName(uid) {
+      try {
+        const response = await fetch(`${this.API_BASE_URL}/getName/${uid}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const name = await response.text();
+          return name;
+        }
+        return null;
+      } catch (error) {
+        console.error('获取用户名失败:', error);
+        return null;
+      }
+    },
     async submitPost() {
       const userStore = useUserStore();
 
@@ -410,7 +436,7 @@ export default {
       const postToDelete = this.posts.find(post => post.id === postId);
 
       // 权限校验（管理员或发布者自己）
-      if (!(this.isAdmin || postToDelete.author === this.username)) {
+      if (!(this.isAdmin || postToDelete.authorId === userStore.uid)) {
         alert("你不能删除其他用户发布的帖子！");
         return;
       }
@@ -440,33 +466,37 @@ export default {
         post.liked = true;
       }
     },
-    toggleComment(post) {
-       // 如果评论已经展开，则直接切换显示状态
+    async toggleComment(post) {
+      // 如果评论已经展开，则直接切换显示状态
       if (post.showComments) {
         post.showComments = false;
         return;
       }
 
-      // 向后端请求展开评论数据
-      axios.get(`http://127.0.0.1:8081/comment/open_comment/${post.id}`)
-        .then(response => {
-          const comments = response.data;
-          post.commentNum=comments.length;
-          // 更新帖子的评论数据
-          post.comments = comments.map(comment => ({
-            id: comment.CommentID,
-            author: comment.PersonID, 
-            content: comment.Content,
-            time: new Date(comment.Timestamp).toLocaleDateString() // 格式化时间
-          }));
+      try {
+        // 向后端请求展开评论数据
+        const response = await axios.get(`http://127.0.0.1:8081/comment/open_comment/${post.id}`);
+        const comments = response.data;
+        post.commentNum = comments.length;
 
-          // 展开评论区
-          post.showComments = true;
-        })
-        .catch(error => {
-          console.error('评论加载失败:', error);
-          alert('评论加载失败，请检查网络连接或后端服务！');
-        });
+        // 为每个评论获取用户名
+        post.comments = await Promise.all(comments.map(async (comment) => {
+          const authorName = await this.getUserName(comment.PersonID);
+          return {
+            id: comment.CommentID,
+            author: authorName || `用户${comment.PersonID}`, // 显示用户名或备用格式
+            authorId: comment.PersonID, // 保留UID
+            content: comment.Content,
+            time: new Date(comment.Timestamp).toLocaleDateString()
+          };
+        }));
+
+        // 展开评论区
+        post.showComments = true;
+      } catch (error) {
+        console.error('评论加载失败:', error);
+        alert('评论加载失败，请检查网络连接或后端服务！');
+      }
     },
     async addComment(post) {
       const userStore = useUserStore();

@@ -6,6 +6,8 @@
 
 <mapper namespace="com.example.bg.user.UserLoginMapper">
     <select id="login" parameterType="com.example.bg.user.User" resultType="com.example.bg.user.User">
-        SELECT * FROM user WHERE UserName = #{UserName} AND PassWord = #{PassWord}
+        SELECT UID, name as UserName, pwd as PassWord 
+        FROM poem.user 
+        WHERE name = #{UserName} AND pwd = #{PassWord}
     </select>
 </mapper>
