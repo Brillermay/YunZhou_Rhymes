@@ -25,9 +25,7 @@
       <button @click="adjustFontSize(2)">A⁺</button>
       <button v-if="favorites.length" @click="exportFavorites">📥 导出收藏</button>
       <button v-if="favorites.length" @click="clearFavorites">🗑 清空收藏</button>
-      <button @click="toggleDarkMode">
-        {{ isDarkMode ? '☀️ 日间模式' : '🌙 夜间模式' }}
-      </button>
+   
     </div>
 
     <!-- 搜索历史 -->
@@ -102,7 +100,8 @@ export default {
       results: [],
       searched: false,
       loading: false,
-      favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
+      favorites: JSON.parse(localStorage.getItem('favorites') || '[]').map(String),
+
       history: JSON.parse(localStorage.getItem('history') || '[]'),
       fontSize: 18,
       isDarkMode: JSON.parse(localStorage.getItem('darkMode') || 'false'),
@@ -225,19 +224,23 @@ export default {
     },
 
     // 检查是否收藏
-    isFavorite(id) {
-      return this.favorites.includes(id);
-    },
+  isFavorite(id) {
+  return this.favorites.includes(String(id));
+},
 
-    // 切换收藏状态
+
     toggleFavorite(id) {
-      if (this.isFavorite(id)) {
-        this.favorites = this.favorites.filter(x => x !== id);
-      } else {
-        this.favorites.push(id);
-      }
-      localStorage.setItem('favorites', JSON.stringify(this.favorites));
-    },
+  const sid = String(id); // 统一转成字符串
+  if (this.isFavorite(sid)) {
+    // 移除收藏
+    this.favorites = this.favorites.filter(x => x !== sid);
+  } else {
+    // 添加收藏
+    this.favorites.push(sid);
+  }
+  // 更新本地存储
+  localStorage.setItem('favorites', JSON.stringify(this.favorites));
+},
 
     // 清空收藏
     clearFavorites() {
