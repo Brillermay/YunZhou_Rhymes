@@ -248,19 +248,44 @@ export default {
     },
 
     // 导出收藏
-    exportFavorites() {
-      const favs = this.poetryData.filter(p => this.isFavorite(p.pid));
-      const md = favs.map(p =>
-        `## ${p.title} — ${p.poet}\n\n${this.formatPoemText(p.text)}\n`
-      ).join('\n---\n');
-      
-      const blob = new Blob([md], { type: 'text/markdown' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'favorites.md';
-      a.click();
-      URL.revokeObjectURL(url);
+    async exportFavorites() {
+      try {
+        // 获取所有收藏的诗词详情
+        const favoritePoems = [];
+        for (const pid of this.favorites) {
+          try {
+            const response = await fetch(`${this.API_BASE_URL}/${pid}`);
+            if (response.ok) {
+              const poem = await response.json();
+              favoritePoems.push(poem);
+            }
+          } catch (error) {
+            console.error(`获取诗词${pid}详情失败:`, error);
+          }
+        }
+
+        const timestamp = new Date().toLocaleString('zh-CN');
+        const md = `# 我的诗词收藏 (${timestamp})\n\n` + 
+          favoritePoems.map(poem => 
+            `## ${poem.title}\n\n` +
+            `* 作者：${poem.poet || '佚名'}\n` +
+            `* 朝代：${poem.category || '未知'}\n\n` +
+            `${this.formatPoemText(poem.text)}\n\n` +
+            (poem.appreciation ? `> 赏析：${poem.appreciation}\n\n` : '') +
+            '---\n'
+          ).join('\n');
+
+        const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `诗词收藏_${new Date().toISOString().slice(0,10)}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('导出收藏失败:', error);
+        alert('导出收藏失败，请稍后重试');
+      }
     },
 
     // 切换暗黑模式
