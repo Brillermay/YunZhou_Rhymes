@@ -25,9 +25,7 @@
       <button @click="adjustFontSize(2)">A⁺</button>
       <button v-if="favorites.length" @click="exportFavorites">📥 导出收藏</button>
       <button v-if="favorites.length" @click="clearFavorites">🗑 清空收藏</button>
-      <button @click="toggleDarkMode">
-        {{ isDarkMode ? '☀️ 日间模式' : '🌙 夜间模式' }}
-      </button>
+      
     </div>
 
     <!-- 搜索历史 -->
@@ -250,41 +248,45 @@ export default {
     // 导出收藏
     async exportFavorites() {
       try {
-        // 获取所有收藏的诗词详情
         const favoritePoems = [];
-        for (const pid of this.favorites) {
+        // 获取每个收藏的诗词详情
+        for (const id of this.favorites) {
           try {
-            const response = await fetch(`${this.API_BASE_URL}/${pid}`);
+            const response = await fetch(`${this.API_BASE_URL}/${id}`);
             if (response.ok) {
               const poem = await response.json();
               favoritePoems.push(poem);
             }
           } catch (error) {
-            console.error(`获取诗词${pid}详情失败:`, error);
+            console.error(`获取诗词${id}详情失败:`, error);
           }
         }
+        
+        // 如果没有成功获取到任何诗词
+        if (favoritePoems.length === 0) {
+          alert('没有找到任何收藏的诗词');
+          return;
+        }
 
-        const timestamp = new Date().toLocaleString('zh-CN');
-        const md = `# 我的诗词收藏 (${timestamp})\n\n` + 
-          favoritePoems.map(poem => 
-            `## ${poem.title}\n\n` +
-            `* 作者：${poem.poet || '佚名'}\n` +
-            `* 朝代：${poem.category || '未知'}\n\n` +
-            `${this.formatPoemText(poem.text)}\n\n` +
-            (poem.appreciation ? `> 赏析：${poem.appreciation}\n\n` : '') +
-            '---\n'
-          ).join('\n');
+        // 导出为markdown格式
+        const md = favoritePoems.map(poem => 
+          `## ${poem.title}\n` +
+          `* 作者：${poem.author || '佚名'}\n` +
+          `* 朝代：${poem.category || '未知'}\n\n` +
+          `${this.formatPoemText(poem.content)}\n`
+        ).join('\n---\n');
 
+        // 下载文件
         const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `诗词收藏_${new Date().toISOString().slice(0,10)}.md`;
+        a.download = `我的诗词收藏_${new Date().toISOString().slice(0,10)}.md`;
         a.click();
         URL.revokeObjectURL(url);
       } catch (error) {
         console.error('导出收藏失败:', error);
-        alert('导出收藏失败，请稍后重试');
+        alert('导出失败，请稍后重试');
       }
     },
 
