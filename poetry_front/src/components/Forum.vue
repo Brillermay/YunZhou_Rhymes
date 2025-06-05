@@ -208,7 +208,19 @@ export default {
     }
   },
   created() {
-    this.newPost.author = this.username;
+    const userStore = useUserStore(); // 获取 Pinia 的 Store
+    const username = localStorage.getItem('username');
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+    if (username) {
+      const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
+      const user = accounts.find(acc => acc.username === username);
+      if (user) {
+        userStore.login(user); // 同步用户信息到 Pinia
+      }
+    }
+
+    this.newPost.author = username;
 
      // 从后端加载帖子数据
      axios.get('http://localhost:8081/comment/init')
@@ -331,14 +343,15 @@ export default {
     },
     async submitPost() {
       const userStore = useUserStore();
+
       const data = {
         parentID: 0, // 为根帖子
         Category: this.newPost.category || "作品分享", // 使用表单中的分类
         Title: this.newPost.title.trim(),
         Content: this.newPost.content.trim(),
-        PersonID: userStore.uid, // 从 Vuex 中获取用户 ID
+        PersonID: userStore.uid, // 从  中获取用户 ID
         hasTitle: this.newPost.title.trim().length > 0,
-        isAdmin: userStore.isAdmin // 从 Vuex 中获取管理员状态
+        isAdmin: userStore.isAdmin // 从  中获取管理员状态
       };
       console.log("hey data:\n");
       console.log(data);
@@ -363,12 +376,12 @@ export default {
             title: data.Title,
             content: data.Content,
             category: data.Category,
-            author: this.username,
+            author: userStore.username,
             time: new Date(res.data.createdAt).toLocaleDateString(), // 使用后端返回的创建时间
             likes: 0,
             liked: false,
             comments: [],
-            commentNum:data.CommentCounts,
+            commentNum:0,
             showComments: false,
             isExpanded: false,
             newComment: '',
@@ -474,12 +487,11 @@ export default {
       const data = {
         parentID: post.id, // 评论的父帖子 ID
         Category: post.category, // 使用帖子分类
-        Title: null, // 使用帖子标题
+        Title: null, 
         Content: content, // 评论内容
-        //PersonID: userStore.uid, // 从 Vuex 中获取用户 ID
-        PersonID:486,
+        PersonID: userStore.uid, // 从中获取用户 ID
         hasTitle: false, // 评论不需要标题
-        isAdmin: userStore.isAdmin // 从 Vuex 中获取管理员状态
+        isAdmin: userStore.isAdmin // 从中获取管理员状态
       };
       console.log(data);
       try {
@@ -490,13 +502,16 @@ export default {
           // 如果后端返回成功，将新评论添加到帖子评论列表
           const newComment = {
             id: res.data.commentId, // 使用后端返回的 commentId
-            author: this.username,
+            author: userStore.username,
             content: content,
             time: new Date(res.data.createdAt).toLocaleDateString() // 使用后端返回的创建时间
           };
 
           post.comments.push(newComment);
           post.newComment = ''; 
+          
+          // 对该帖子的评论数递增
+          post.commentNum++;
 
           alert(res.data.message); 
         } else {
