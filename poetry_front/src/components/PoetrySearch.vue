@@ -225,26 +225,19 @@ export default {
     },
 
     // 检查是否收藏
-  isFavorite(id) {
-  return this.favorites.some(p => p.pid === id);
-},
-
+    isFavorite(id) {
+      return this.favorites.includes(id);
+    },
 
     // 切换收藏状态
     toggleFavorite(id) {
-  const allPoems = [...this.featuredPoems, ...this.results];
-  const poem = allPoems.find(p => p.pid === id);
-  if (!poem) return;
-
-  if (this.isFavorite(id)) {
-    this.favorites = this.favorites.filter(p => p.pid !== id);
-  } else {
-    this.favorites.push(poem);
-  }
-
-  localStorage.setItem('favorites', JSON.stringify(this.favorites));
-}
-,
+      if (this.isFavorite(id)) {
+        this.favorites = this.favorites.filter(x => x !== id);
+      } else {
+        this.favorites.push(id);
+      }
+      localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    },
 
     // 清空收藏
     clearFavorites() {
@@ -255,25 +248,36 @@ export default {
     },
 
     // 导出收藏
-   exportFavorites() {
-  if (!this.favorites.length) {
-    alert('收藏列表为空，无法导出。');
-    return;
-  }
+    exportFavorites() {
+      const favs = this.poetryData.filter(p => this.isFavorite(p.pid));
+      const md = favs.map(p =>
+        `## ${p.title} — ${p.poet}\n\n${this.formatPoemText(p.text)}\n`
+      ).join('\n---\n');
+      
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'favorites.md';
+      a.click();
+      URL.revokeObjectURL(url);
+    },
 
-  const md = this.favorites.map(p =>
-    `## ${p.title} — ${p.poet}\n\n${this.formatPoemText(p.text)}\n`
-  ).join('\n---\n');
+    // 切换暗黑模式
+    toggleDarkMode() {
+      this.isDarkMode = !this.isDarkMode;
+      localStorage.setItem('darkMode', JSON.stringify(this.isDarkMode));
+    },
 
-  const blob = new Blob([md], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'favorites.md';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
+    // 切换展开状态
+    toggleExpand(id) {
+      const i = this.expandedIds.indexOf(id);
+      if (i >= 0) {
+        this.expandedIds.splice(i, 1);
+      } else {
+        this.expandedIds.push(id);
+      }
+    }
   }
 };
 </script>
