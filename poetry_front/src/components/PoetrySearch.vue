@@ -139,9 +139,9 @@ export default {
         if (response.ok) {
           const poem = await response.json();
           // 创建几个变体作为精选展示
-          this.featuredPoems = [
-            { ...poem, pid: `featured-1` },
-          ];
+       this.featuredPoems = [
+  { ...poem, pid: `featured-${Date.now()}-${Math.random()}` }, // 确保 pid 唯一且不会冲突
+];
         }
       } catch (error) {
         console.error('加载精选诗词失败:', error);
@@ -246,49 +246,52 @@ export default {
     },
 
     // 导出收藏
-    async exportFavorites() {
-      try {
-        const favoritePoems = [];
-        // 获取每个收藏的诗词详情
-        for (const id of this.favorites) {
-          try {
-            const response = await fetch(`${this.API_BASE_URL}/${id}`);
-            if (response.ok) {
-              const poem = await response.json();
-              favoritePoems.push(poem);
-            }
-          } catch (error) {
-            console.error(`获取诗词${id}详情失败:`, error);
-          }
-        }
-        
-        // 如果没有成功获取到任何诗词
-        if (favoritePoems.length === 0) {
-          alert('没有找到任何收藏的诗词');
-          return;
-        }
+async exportFavorites() {
+  try {
+    const favoritePoems = [];
 
-        // 导出为markdown格式
-        const md = favoritePoems.map(poem => 
-          `## ${poem.title}\n` +
-          `* 作者：${poem.author || '佚名'}\n` +
-          `* 朝代：${poem.category || '未知'}\n\n` +
-          `${this.formatPoemText(poem.content)}\n`
-        ).join('\n---\n');
-
-        // 下载文件
-        const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `我的诗词收藏_${new Date().toISOString().slice(0,10)}.md`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('导出收藏失败:', error);
-        alert('导出失败，请稍后重试');
+    for (const id of this.favorites) {
+      if (typeof id === 'string' && id.startsWith('featured-')) {
+        // 跳过非真实 pid
+        continue;
       }
-    },
+
+      try {
+        const response = await fetch(`${this.API_BASE_URL}/${id}`);
+        if (response.ok) {
+          const poem = await response.json();
+          favoritePoems.push(poem);
+        }
+      } catch (error) {
+        console.error(`获取诗词 ${id} 详情失败:`, error);
+      }
+    }
+
+    if (favoritePoems.length === 0) {
+      alert('没有找到任何收藏的诗词');
+      return;
+    }
+
+    const md = favoritePoems.map(poem =>
+      `## ${poem.title}\n` +
+      `* 作者：${poem.author || '佚名'}\n` +
+      `* 朝代：${poem.category || '未知'}\n\n` +
+      `${this.formatPoemText(poem.content || poem.text)}\n`
+    ).join('\n---\n');
+
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `我的诗词收藏_${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('导出收藏失败:', error);
+    alert('导出失败，请稍后重试');
+  }
+},
+
 
     // 切换暗黑模式
     toggleDarkMode() {
