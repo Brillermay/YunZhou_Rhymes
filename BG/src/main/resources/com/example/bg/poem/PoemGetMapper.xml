@@ -1,39 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
-
-<!--这里记得改，namespace就是文件夹名字-->
 <mapper namespace="com.example.bg.poem.PoemGetMapper">
-    <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
-    <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
-    <!--    <select id="findAll" resultType="com.example.demo.User">-->
-    <!--        select * from user-->
-    <!--    </select>-->
-    <!--    &lt;!&ndash; XML 映射文件 &ndash;&gt;-->
-    <!--    <insert id="insertUser">-->
-    <!--        INSERT INTO user (id, age, name)-->
-    <!--        VALUES (#{id}, #{age}, #{name})-->
-    <!--    </insert>-->
-    <!--    <select id="find" resultType="com.example.demo.User">-->
-    <!--        select * from user where id=#{id}-->
-    <!--    </select>-->
-    <!--    <delete id="del">-->
-    <!--        delete from user where id=#{id}-->
-    <!--    </delete>-->
-<!--    这里就是函数的主功能，看下应该也能看懂-->
-    <select id="getPoem" resultType="com.example.bg.poem.Poem">
-        select * from poem where PID=#{PID}
 
+    <!-- 原有的方法 -->
+    <select id="getPoem" parameterType="int" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem WHERE PID = #{PID}
     </select>
-    <!-- 根据关键字搜索诗词列表 -->
-    <select id="getPoems" resultType="com.example.bg.poem.Poem">
-        select * from poem
-        where title like CONCAT('%', #{key}, '%') 
-           or poet like CONCAT('%', #{key}, '%') 
-           or text like CONCAT('%', #{key}, '%')
+
+    <select id="getPoems" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem WHERE text LIKE CONCAT('%', #{key}, '%') OR title LIKE CONCAT('%', #{key}, '%')
     </select>
+
+    <!-- RAG功能新增的方法 -->
+    <select id="searchPoemsByKeyword" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        WHERE title LIKE CONCAT('%', #{keyword}, '%')
+           OR poet LIKE CONCAT('%', #{keyword}, '%')
+           OR text LIKE CONCAT('%', #{keyword}, '%')
+           OR background LIKE CONCAT('%', #{keyword}, '%')
+           OR appreciation LIKE CONCAT('%', #{keyword}, '%')
+           OR translation LIKE CONCAT('%', #{keyword}, '%')
+            LIMIT 10
+    </select>
+
+    <select id="searchPoemsByCategory" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        WHERE category LIKE CONCAT('%', #{category}, '%')
+            LIMIT 10
+    </select>
+
+    <select id="searchPoemsByPoet" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        WHERE poet LIKE CONCAT('%', #{poet}, '%')
+            LIMIT 10
+    </select>
+
+    <select id="getAllPoems" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        ORDER BY PID
+            LIMIT 100
+    </select>
+
+    <select id="getRandomPoems" parameterType="int" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        ORDER BY RAND()
+            LIMIT #{limit}
+    </select>
+
 </mapper>

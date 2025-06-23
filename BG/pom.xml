@@ -103,6 +103,12 @@
             <version>8.3.0</version>  <!-- Spring Boot 3.4+ 官方兼容版本 -->
             <scope>runtime</scope>    <!-- 避免编译阶段冲突 -->
         </dependency>
+        <dependency>
+    <groupId>com.alibaba</groupId>
+    <artifactId>dashscope-sdk-java</artifactId>
+    <!-- 请将 'the-latest-version' 替换为最新版本号：https://mvnrepository.com/artifact/com.alibaba/dashscope-sdk-java -->
+    <version>2.20.6</version>
+</dependency>
     </dependencies>
 
 
