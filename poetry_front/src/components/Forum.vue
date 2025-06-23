@@ -212,6 +212,7 @@ export default {
     const userStore = useUserStore(); // 获取 Pinia 的 Store
     const username = localStorage.getItem('username');
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    const userId = localStorage.getItem('uid'); // 从 localStorage 获取用户 ID
 
     if (username) {
       const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
@@ -227,8 +228,20 @@ export default {
     axios.get('http://localhost:8081/comment/init')
       .then(async (response) => {
         const postsData = response.data;
-        
-        // 处理每个帖子，将PersonID转换为用户名
+
+        // 获取用户喜欢的评论列表
+        let likedCommentIds = [];
+        if (userId) {
+          try {
+            const likedResponse = await axios.get(`http://localhost:8081/comment/getLikeIDs/${userId}`);
+            likedCommentIds = likedResponse.data; // 获取喜欢的评论 ID 列表
+
+          } catch (error) {
+            console.error('加载喜欢的评论失败', error);
+          }
+        }
+
+        // 处理每个帖子，将PersonID转换为用户名，并设置 liked 属性
         this.posts = await Promise.all(postsData.map(async (post) => {
           const authorName = await this.getUserName(post.PersonID);
           return {
@@ -240,7 +253,7 @@ export default {
             authorId: post.PersonID, // 保留原始UID用于权限判断
             time: new Date(post.Timestamp).toLocaleDateString(),
             likes: post.LikeCounts,
-            liked: false,
+            liked: likedCommentIds.includes(post.CommentID), // 根据喜欢的评论列表设置 liked
             comments: [],
             commentNum: post.CommentCounts,
             showComments: false,
@@ -458,13 +471,32 @@ export default {
         alert("请先登录再点赞！");
         return;
       }
-      if (post.liked) {
-        post.likes--;
-        post.liked = false;
-      } else {
-        post.likes++;
-        post.liked = true;
+
+      const userId = localStorage.getItem('uid'); // 从 localStorage 获取用户 ID
+      if (!userId) {
+        alert("用户信息缺失，请重新登录！");
+        return;
       }
+
+      // 根据当前点赞状态调用不同的接口
+      const url = post.liked
+        ? `http://127.0.0.1:8081/comment/delLikeComment/${userId}/${post.id}`
+        : `http://127.0.0.1:8081/comment/likeComment/${userId}/${post.id}`;
+
+      axios.get(url)
+        .then((response) => {
+          if (response.status === 200) {
+            // 更新点赞状态和点赞数
+            post.liked = !post.liked;
+            post.likes += post.liked ? 1 : -1; // 根据状态更新点赞数
+          } else {
+            alert("操作失败，请稍后重试！");
+          }
+        })
+        .catch((error) => {
+          console.error("操作失败:", error);
+          alert("操作失败，请检查网络连接或后端服务！");
+        });
     },
     async toggleComment(post) {
       // 如果评论已经展开，则直接切换显示状态
@@ -572,14 +604,15 @@ export default {
       });
     },
     logout() {
-      // 清除本地存储，设置为未登录状态
+      const userStore = useUserStore();
+      userStore.logout(); // 使用 Pinia 的 action 清除状态
+
       localStorage.removeItem('username');
+      localStorage.removeItem('uid');
+      localStorage.removeItem('isAdmin');
+
       this.username = null;
       this.isLoggedIn = false;
-
-      const userStore = useUserStore();
-      userStore.logout();  // 更新全局 store
-
       // this.$router.push('/forumlogin'); // 跳转到登录页面
     },
     handlePostClick() {

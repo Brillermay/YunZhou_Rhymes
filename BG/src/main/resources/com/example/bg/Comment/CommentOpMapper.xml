@@ -90,5 +90,25 @@
         SET CommentCounts = CommentCounts + 1
         WHERE CommentID = #{commentId}
     </update>
-
+    <!--评论点赞相关-->
+    <update id="updLikeNum" parameterType="int">
+        UPDATE comment
+        SET LikeCounts = LikeCounts + 1
+        WHERE CommentID = #{CID}
+    </update>
+    <update id="delLikeNum" parameterType="int">
+        UPDATE comment
+        SET LikeCounts = LikeCounts - 1
+        WHERE CommentID = #{CID}
+    </update>
+    <insert id="updLikeList">
+        insert into ltou (CID,UID) values (#{CID},#{UID})
+    </insert>
+    <delete id="delLikeList">
+        delete
+        from ltou where CID = #{CID} and UID = #{UID}
+    </delete>
+    <select id="getLikeList" resultType="java.lang.Integer">
+        select CID from ltou where UID = #{UID}
+    </select>
 </mapper>

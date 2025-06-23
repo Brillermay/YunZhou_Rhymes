@@ -145,8 +145,12 @@ export default {
           console.log(userInfoResponse.uid);
           if (userInfoResponse) {
             localStorage.setItem('username', this.username);
-            useUserStore().uid=userInfoResponse.uid;
-            useUserStore().username=this.username;
+            const userStore = useUserStore();
+            userStore.login({
+              username: this.username,
+              uid: userInfoResponse.uid,
+              isAdmin: userInfoResponse.isAdmin || false,
+            });
             localStorage.setItem('isAdmin', userInfoResponse.isAdmin || false);
             alert('登录成功！');
             this.$router.push('/Forum');
