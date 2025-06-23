@@ -48,9 +48,9 @@
       <div v-if="!searched && !loading" class="welcome-poems">
         <h2 class="welcome-title">🌸 精选诗词欣赏 🌸</h2>
         <div class="poem-grid">
-          <div v-for="poem in featuredPoems" :key="poem.pid" class="poem-card">
-            <button @click.stop="toggleFavorite(poem.pid)" class="fav-btn">
-              {{ isFavorite(poem.pid) ? '❤️' : '🤍' }}
+          <div v-for="poem in featuredPoems" :key="poem.PID" class="poem-card">
+            <button @click.stop="toggleFavorite(poem.PID)" class="fav-btn">
+              {{ isFavorite(poem.PID) ? '❤️' : '🤍' }}
             </button>
             <h3 class="poem-title">{{ poem.title }}</h3>
             <p class="meta">{{ poem.poet }} • {{ poem.category }}</p>
@@ -74,12 +74,12 @@
       <div v-if="sortedResults.length" class="poem-grid">
         <div
           v-for="poem in sortedResults"
-          :key="poem.pid"
+          :key="poem.PID"
           class="poem-card"
-          @click="goToDetail(poem.pid)"
+          @click="goToDetail(poem.PID)"
         >
-          <button @click.stop="toggleFavorite(poem.pid)" class="fav-btn">
-            {{ isFavorite(poem.pid) ? '❤️' : '🤍' }}
+          <button @click.stop="toggleFavorite(poem.PID)" class="fav-btn">
+            {{ isFavorite(poem.PID) ? '❤️' : '🤍' }}
           </button>
           <h3>{{ poem.title }}</h3>
           <p class="meta">{{ poem.poet }} • {{ poem.category }}</p>
@@ -141,7 +141,7 @@ export default {
           const poem = await response.json();
           // 创建几个变体作为精选展示
           this.featuredPoems = [
-            { ...poem, pid: `featured-1` },
+            { ...poem, PID: `featured-1` },
           ];
         }
       } catch (error) {
@@ -230,17 +230,17 @@ export default {
 
 
     toggleFavorite(id) {
-  const sid = String(id); // 统一转成字符串
-  if (this.isFavorite(sid)) {
-    // 移除收藏
-    this.favorites = this.favorites.filter(x => x !== sid);
-  } else {
-    // 添加收藏
-    this.favorites.push(sid);
-  }
-  // 更新本地存储
-  localStorage.setItem('favorites', JSON.stringify(this.favorites));
-},
+      const sid = String(id); // 统一转成字符串
+      if (this.isFavorite(sid)) {
+        // 移除收藏
+        this.favorites = this.favorites.filter(x => x !== sid);
+      } else {
+        // 添加收藏
+        this.favorites.push(sid);
+      }
+      // 更新本地存储
+      localStorage.setItem('favorites', JSON.stringify(this.favorites));
+    },
 
     // 清空收藏
     clearFavorites() {
@@ -252,7 +252,7 @@ export default {
 
     // 导出收藏
     exportFavorites() {
-      const favs = this.poetryData.filter(p => this.isFavorite(p.pid));
+      const favs = this.poetryData.filter(p => this.isFavorite(p.PID));
       const md = favs.map(p =>
         `## ${p.title} — ${p.poet}\n\n${this.formatPoemText(p.text)}\n`
       ).join('\n---\n');
