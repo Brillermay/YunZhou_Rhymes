@@ -18,4 +18,11 @@ public interface CommentOpMapper {
     void incrementCommentCount(@Param("commentId") int commentId);
     void delCommentAbout(List<Integer>CIDs);
     void updLinklist(int CID,int NCID);
+
+    /*评论点赞相关*/
+    void updLikeList(int CID,int UID);//传入UID、CID，完成：联表数据插入
+    void updLikeNum(int CID);// 完成：点赞数据自增
+    void delLikeList(int CID,int UID);
+    void delLikeNum(int CID);
+    List<Integer>getLikeList(int UID);//传入UID,返回喜欢的评论CID
 }

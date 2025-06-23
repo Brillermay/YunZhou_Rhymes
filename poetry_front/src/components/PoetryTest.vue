@@ -8,9 +8,6 @@
             <p>一卷诗书藏古意，半帘花影读春秋</p>
           </header>
 
-
-
-
           <!-- 弹窗 -->
           <div v-if="isModalVisible" class="modal-overlay">
             <div class="modal">
@@ -21,8 +18,10 @@
                 <h2 v-else-if="correctCount<=0.8*selectedQuestionCount">诗词小达人</h2>
                 <h2 v-else>诗词通关王</h2>
                 <p>你答对了 {{ correctCount }} 道题！</p>
-                <p>{{ modalContent.explanation }}</p>
-                <button @click="confirm(); handleProgressClick()">再来一遍</button>
+                <div class="result-btn-group">
+                  <button @click="confirm(); handleProgressClick()">再来一遍</button>
+                  <button @click="showDetailModal = true" style="margin-left: 20px;">答题详情</button>
+                </div>
               </template>
 
               <template v-else>
@@ -36,8 +35,6 @@
             </div>
           </div>
         </div>
-
-
 
 
         <!-- 当前题目显示 -->
@@ -72,14 +69,67 @@
 
           <transition name="fade" mode="out-in">
             <div class="a" v-if="currentQuestion && !showStartScreen" :key="currentQuestion.id">
-              <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
-              <div class="option">
-                <button v-for="(text, key) in currentQuestion.options" :key="key"
-                  :class="buttonState(optionIdPrefix(currentQuestion.id, key))"
-                  @click="handleOptionClick(currentQuestion.id, key)" :disabled="showResultsFlag || isAnswered">
-                  {{ optLabel(key) }}.{{ text }}
-                </button>
-              </div>
+              <!-- 对句题 -->
+              <template v-if="currentQuestion.type === 'duiju'">
+                <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
+                <div class="duiju-answer-box">
+                  <span v-for="(char, idx) in duijuUserAnswer" :key="idx" class="duiju-answer-char">{{ char }}</span>
+                  <span v-for="i in duijuAnswerLength - duijuUserAnswer.length" :key="'empty'+i" class="duiju-answer-char empty"></span>
+                </div>
+                <div class="duiju-options">
+                  <div class="duiju-row" v-for="row in 2" :key="row">
+                    <button
+                      v-for="col in 8"
+                      :key="(row-1)*8 + (col-1)"
+                      :disabled="duijuSelectedIdx.includes((row-1)*8 + (col-1))"
+                      @click="selectDuijuChar((row-1)*8 + (col-1))"
+                      class="duiju-option-btn"
+                    >
+                      {{ currentQuestion.duijuOptions[(row-1)*8 + (col-1)] }}
+                    </button>
+                  </div>
+                </div>
+                <div class="duiju-actions">
+                  <button @click="submitDuijuAnswer" :disabled="duijuUserAnswer.length !== duijuAnswerLength">提交</button>
+                  <button @click="resetDuijuAnswer">重选</button>
+                </div>
+              </template>
+              <!-- 字词识诗题 -->
+              <template v-else-if="currentQuestion.type === 'zici'">
+                <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
+                <div class="zici-answer-box">
+                  <span v-for="(char, idx) in ziciUserAnswer" :key="idx" class="zici-answer-char">{{ char }}</span>
+                  <span v-for="i in ziciAnswerLength - ziciUserAnswer.length" :key="'empty'+i" class="zici-answer-char empty"></span>
+                </div>
+                <div class="zici-options">
+                  <div class="zici-row" v-for="row in 2" :key="row">
+                    <button
+                      v-for="col in 6"
+                      :key="(row-1)*6 + (col-1)"
+                      :disabled="ziciSelectedIdx.includes((row-1)*6 + (col-1))"
+                      @click="selectZiciChar((row-1)*6 + (col-1))"
+                      class="zici-option-btn"
+                    >
+                      {{ currentQuestion.ziciOptions[(row-1)*6 + (col-1)] }}
+                    </button>
+                  </div>
+                </div>
+                <div class="zici-actions">
+                  <button @click="submitZiciAnswer" :disabled="ziciUserAnswer.length !== ziciAnswerLength">提交</button>
+                  <button @click="resetZiciAnswer">重选</button>
+                </div>
+              </template>
+              <!-- 普通题 -->
+              <template v-else>
+                <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
+                <div class="option">
+                  <button v-for="(text, key) in currentQuestion.options" :key="key"
+                    :class="buttonState(optionIdPrefix(currentQuestion.id, key))"
+                    @click="handleOptionClick(currentQuestion.id, key)" :disabled="showResultsFlag || isAnswered">
+                    {{ optLabel(key) }}.{{ text }}
+                  </button>
+                </div>
+              </template>
             </div>
           </transition>
         </div>
@@ -94,6 +144,57 @@
           <div class="progress-text"> 第{{ currentIndex + 1 }} / {{ totalQuestions }} 题</div>
         </div>
 
+      </div>
+    </div>
+
+
+    <!-- 答题详情弹窗 -->
+    <div v-if="showDetailModal" class="modal-overlay">
+      <div class="modal detail-modal">
+        <h2>答题详情</h2>
+        <div class="detail-list">
+          <div v-for="(record, idx) in answerRecords" :key="idx" class="detail-item">
+            <div class="detail-q">
+              {{ idx + 1 }}. {{ record.question }}
+            </div>
+            <div class="detail-options">
+  <template v-if="record.type === 'duiju'">
+    <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
+      你的答案：{{ record.userAnswer }}
+    </span>
+    <span class="detail-opt correct">
+      正确答案：{{ record.correctAnswer }}
+    </span>
+  </template>
+  <template v-else-if="record.type === 'zici'">
+    <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
+      你的答案：{{ record.userAnswer }}
+    </span>
+    <span class="detail-opt correct">
+      正确答案：{{ record.correctAnswer }}
+    </span>
+  </template>
+  <template v-else>
+    <span
+      v-for="(text, key) in record.options"
+      :key="key"
+      :class="[
+        'detail-opt',
+        key === record.correctAnswer ? 'correct' : '',
+        key === record.userAnswer ? (record.isCorrect ? 'user-correct' : 'user-wrong') : ''
+      ]"
+    >
+      {{ optLabel(key) }}.{{ text }}
+    </span>
+  </template>
+</div>
+            <div class="detail-result">
+              <span v-if="record.isCorrect" style="color: #2ecc40;">✔ 答对</span>
+              <span v-else style="color: #e74c3c;">✘ 答错</span>
+            </div>
+          </div>
+        </div>
+        <button @click="showDetailModal = false" style="margin-top: 20px;">关闭</button>
       </div>
     </div>
   </div>
@@ -128,7 +229,13 @@ export default {
         title: '',
         message: '',
         explanation: ''
-      }
+      },
+      answerRecords: [], // 新增：记录每题作答情况
+      showDetailModal: false,
+      duijuUserAnswer: [],
+      duijuSelectedIdx: [],
+      ziciUserAnswer: [],
+      ziciSelectedIdx: [],
     };
   },
 
@@ -139,16 +246,18 @@ export default {
     totalQuestions() {
       return this.questions.length;
     },
-    answeredQuestionsCount() {
-      return Object.values(this.buttonStates).filter(
-        (state) => state === "color-change clicked"
-      ).length;
-    },
-    progressPercentage() {
-      return (this.answeredQuestionsCount / this.totalQuestions) * 100;
-    },
     currentQuestion() {
       return this.questions[this.currentIndex] || null;
+    },
+    duijuAnswerLength() {
+      return this.currentQuestion && this.currentQuestion.type === 'duiju'
+        ? this.currentQuestion.duijuAnswer.length
+        : 0;
+    },
+    ziciAnswerLength() {
+      return this.currentQuestion && this.currentQuestion.type === 'zici'
+        ? this.currentQuestion.ziciAnswer.length
+        : 0;
     },
   },
   mounted() {
@@ -159,8 +268,10 @@ export default {
         this.questions = this.shuffleArray(data).slice(0, 10);
 
         for (let q of this.questions) {
-          const correctId = this.optionIdPrefix(q.id, q.answer[0]);
-          this.correctAnswers[correctId] = true;
+          if (q.type !== 'duiju' && q.type !== 'zici') {
+            const correctId = this.optionIdPrefix(q.id, q.answer[0]);
+            this.correctAnswers[correctId] = true;
+          }
         }
       });
   },
@@ -189,8 +300,18 @@ export default {
       this.isAnswered = true;
 
       const correctId = Object.keys(this.correctAnswers).find((id) => id.startsWith(qid + '_'));
+      const isCorrect = btnId === correctId;
 
-      if (btnId === correctId) {
+      // 记录作答
+      this.answerRecords.push({
+        question: this.currentQuestion.question,
+        options: this.currentQuestion.options,
+        userAnswer: optKey,
+        correctAnswer: this.currentQuestion.answer[0],
+        isCorrect,
+      });
+
+      if (isCorrect) {
         this.correctCount++;
         setTimeout(() => {
           this.nextQuestion();
@@ -212,6 +333,8 @@ export default {
       this.nextQuestion();
     },
     nextQuestion() {
+      this.resetDuijuAnswer && this.resetDuijuAnswer();
+      this.resetZiciAnswer && this.resetZiciAnswer();
       if (this.currentIndex < this.questions.length - 1) {
         this.currentIndex++;
         this.isAnswered = false;
@@ -277,6 +400,7 @@ export default {
       this.buttonStates = {};
       this.currentIndex = 0;
       this.isAnswered = false;
+      this.answerRecords = []; // 新增
 
       this.questions = this.shuffleArray(this.allQuestions).slice(0, 10);
 
@@ -292,31 +416,59 @@ export default {
       this.showStartScreen = false;
       const count = this.selectedQuestionCount;
 
-      // 筛选简单、中等、困难题目
-      const easyQuestions = this.allQuestions.filter(q => q.id < 50);
-      const hardQuestions = this.allQuestions.filter(q => q.id >= 50);
+      // 单独筛选对句题和字词题
+      const duijuQuestions = this.allQuestions.filter(q => q.type === 'duiju');
+      const ziciQuestions = this.allQuestions.filter(q => q.type === 'zici');
+      const nonDuijuZiciQuestions = this.allQuestions.filter(q => !q.type || (q.type !== 'duiju' && q.type !== 'zici'));
 
-      let selectedQuestions = [];
+      // 随机抽取1~4个对句题
+      let duijuCount = Math.min(duijuQuestions.length, Math.max(1, Math.floor(Math.random() * 4) + 1));
+      duijuCount = Math.min(duijuCount, count);
+
+      // 字词题数量
+      let ziciCount = 0;
+      if (this.selectedDifficulty === 'easy') {
+        ziciCount = 0;
+      } else if (this.selectedDifficulty === 'normal') {
+        ziciCount = Math.min(ziciQuestions.length, Math.floor(Math.random() * 2) + 1); // 1~2题
+      } else if (this.selectedDifficulty === 'hard') {
+        ziciCount = Math.min(ziciQuestions.length, Math.floor(Math.random() * 2) + 1); // 1~2题
+      }
+      ziciCount = Math.min(ziciCount, count - duijuCount);
+
+      const selectedDuiju = this.shuffleArray(duijuQuestions).slice(0, duijuCount);
+      const selectedZici = this.shuffleArray(ziciQuestions).slice(0, ziciCount);
+
+      // 其余题目按难度筛选
+      let selectedOthers = [];
+      const remainCount = count - duijuCount - ziciCount;
+      const easyQuestions = nonDuijuZiciQuestions.filter(q => q.id < 50);
+      const hardQuestions = nonDuijuZiciQuestions.filter(q => q.id >= 50);
 
       if (this.selectedDifficulty === 'easy') {
-        selectedQuestions = this.shuffleArray(easyQuestions).slice(0, count);
+        selectedOthers = this.shuffleArray(easyQuestions).slice(0, remainCount);
       } else if (this.selectedDifficulty === 'normal') {
-        const half = Math.floor(count / 2);
+        const half = Math.floor(remainCount / 2);
         const normalEasyPart = this.shuffleArray(easyQuestions).slice(0, half);
-        const normalHardPart = this.shuffleArray(hardQuestions).slice(0, count - half);
-        selectedQuestions = [...normalEasyPart, ...normalHardPart];
-        selectedQuestions = this.shuffleArray(selectedQuestions); // 再打乱一次
+        const normalHardPart = this.shuffleArray(hardQuestions).slice(0, remainCount - half);
+        selectedOthers = [...normalEasyPart, ...normalHardPart];
+        selectedOthers = this.shuffleArray(selectedOthers);
       } else if (this.selectedDifficulty === 'hard') {
-        selectedQuestions = this.shuffleArray(hardQuestions).slice(0, count);
+        selectedOthers = this.shuffleArray(hardQuestions).slice(0, remainCount);
       }
+
+      // 合并并打乱
+      let selectedQuestions = this.shuffleArray([...selectedDuiju, ...selectedZici, ...selectedOthers]);
 
       this.questions = selectedQuestions;
 
       // 初始化正确答案映射
       this.correctAnswers = {};
       for (let q of this.questions) {
-        const correctId = this.optionIdPrefix(q.id, q.answer[0]);
-        this.correctAnswers[correctId] = true;
+        if (q.type !== 'duiju' && q.type !== 'zici') {
+          const correctId = this.optionIdPrefix(q.id, q.answer[0]);
+          this.correctAnswers[correctId] = true;
+        }
       }
 
       // 初始化状态
@@ -328,6 +480,99 @@ export default {
       // 滚动到顶部
       window.scrollTo({ top: 0, behavior: "smooth" });
       this.showStartScreen = false;
+    },
+    // 对句题相关
+    selectDuijuChar(idx) {
+      if (
+        this.currentQuestion &&
+        this.currentQuestion.type === 'duiju' &&
+        this.duijuUserAnswer.length < this.duijuAnswerLength
+      ) {
+        this.duijuUserAnswer.push(this.currentQuestion.duijuOptions[idx]);
+        this.duijuSelectedIdx.push(idx);
+      }
+    },
+    resetDuijuAnswer() {
+      this.duijuUserAnswer = [];
+      this.duijuSelectedIdx = [];
+    },
+submitDuijuAnswer() {
+  const userStr = this.duijuUserAnswer.join('');
+  const correctStr = this.currentQuestion.duijuAnswer;
+  const isCorrect = userStr === correctStr;
+
+  // 记录作答
+  this.answerRecords.push({
+    question: this.currentQuestion.question,
+    options: {}, // 对句题无选项
+    userAnswer: userStr,
+    correctAnswer: correctStr,
+    isCorrect,
+    type: 'duiju'
+  });
+
+
+  if (isCorrect) {
+    this.correctCount++;
+    this.isAnswered = true;
+    setTimeout(() => {
+      this.nextQuestion();
+      this.resetDuijuAnswer();
+    }, 800);
+  } else {
+    this.modalContent = {
+      title: "答错啦",
+      message: `正确对句是：${correctStr}`,
+      explanation: ''
+    };
+    this.isModalVisible = true;
+  }
+},
+    // 字词识诗题相关
+    selectZiciChar(idx) {
+      if (
+        this.currentQuestion &&
+        this.currentQuestion.type === 'zici' &&
+        this.ziciUserAnswer.length < this.ziciAnswerLength
+      ) {
+        this.ziciUserAnswer.push(this.currentQuestion.ziciOptions[idx]);
+        this.ziciSelectedIdx.push(idx);
+      }
+    },
+    resetZiciAnswer() {
+      this.ziciUserAnswer = [];
+      this.ziciSelectedIdx = [];
+    },
+    submitZiciAnswer() {
+      const userStr = this.ziciUserAnswer.join('');
+      const correctStr = this.currentQuestion.ziciAnswer;
+      const isCorrect = userStr === correctStr;
+
+      // 记录作答
+      this.answerRecords.push({
+        question: this.currentQuestion.question,
+        options: {}, // 字词题无选项
+        userAnswer: userStr,
+        correctAnswer: correctStr,
+        isCorrect,
+        type: 'zici'
+      });
+
+      if (isCorrect) {
+        this.correctCount++;
+        this.isAnswered = true;
+        setTimeout(() => {
+          this.nextQuestion();
+          this.resetZiciAnswer();
+        }, 800);
+      } else {
+        this.modalContent = {
+          title: "答错啦",
+          message: `正确诗句是：${correctStr}`,
+          explanation: ''
+        };
+        this.isModalVisible = true;
+      }
     },
   },
 };
@@ -941,5 +1186,362 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+.detail-modal {
+  width: 90vw;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 90vh;
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f4e9c1, #f5ecc7);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+  animation: slideIn 0.4s ease-out forwards;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.detail-modal h2 {
+  font-size: 24px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 1.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.detail-modal h2::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: -5px;
+  left: 0;
+  background: linear-gradient(to right, transparent, #8c7853, transparent);
+}
+
+
+
+.detail-item {
+  margin-bottom: 1.2rem;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(245, 245, 245, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-q {
+  font-size: 18px;
+  color: #5a4634;
+  margin-bottom: 0.5rem;
+}
+
+.detail-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+  justify-content: center; /* 新增：让选项居中 */
+  width: 100%;             /* 新增：让选项区域占满父容器宽度 */
+}
+
+.detail-opt {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #5a4634;
+  font-weight: 500;
+  transition: background 0.3s, transform 0.3s;
+}
+
+.detail-opt.correct {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.detail-opt.user-correct {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+  transform: scale(1.05);
+}
+
+.detail-opt.user-wrong {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  transform: scale(1.05);
+}
+
+.detail-result {
+  font-size: 16px;
+  font-weight: 500;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.detail-result span {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.detail-result span:first-child {
+  margin-right: 5px;
+}
+
+.detail-result span.correct {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.detail-result span.wrong {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+/* 滑入动画 */
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+.detail-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.detail-item {
+  background: rgba(255,255,255,0.5);
+  border-radius: 8px;
+  margin-bottom: 18px;
+  padding: 12px 10px;
+  box-shadow: 0 2px 8px rgba(31,38,135,0.08);
+}
+
+.detail-q {
+  font-size: 18px;
+  color: #5a4634;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.detail-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.detail-opt {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 15px;
+  border: 1px solid #e5d8b8;
+  background: #f8f4ed;
+  color: #5a4634;
+}
+
+.detail-opt.correct {
+  border: 2px solid #2ecc40;
+  background: #eafbe7;
+  font-weight: bold;
+}
+
+.detail-opt.user-correct {
+  border: 2px solid #2ecc40;
+  background: #eafbe7;
+  color: #2ecc40;
+}
+
+.detail-opt.user-wrong {
+  border: 2px solid #e74c3c;
+  background: #fbeaea;
+  color: #e74c3c;
+}
+
+.detail-result {
+  margin-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.detail-modal button {
+  margin-top: 20px;
+  font-size: 18px;
+  padding: 12px 40px;
+}
+
+.result-btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 10px;
+}
+
+.duiju-answer-box {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+  min-height: 40px;
+}
+.duiju-answer-char {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  border-bottom: 2px solid #a17f61;
+  font-size: 22px;
+  margin: 0 2px;
+  text-align: center;
+  line-height: 36px;
+  background: #fffbe8;
+  border-radius: 6px;
+}
+.duiju-answer-char.empty {
+  background: transparent;
+  border-bottom: 2px dashed #c9c19e;
+}
+.duiju-options {
+  margin: 10px 0;
+}
+.duiju-row {
+  display: flex;
+  justify-content: flex-start; /* 或 center */
+  align-items: center;
+  gap: 10px !important;           /* 禁用gap */
+  padding: 10px;
+}
+.duiju-option-btn {
+  min-width: 28px;
+  height: 36px;
+  margin: 15px 20px !important;      /* 强制缩小间距 */
+  font-size: 22px !important;
+  background: #f6df8e;
+  border: 1.5px solid #a17f61;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0 2px !important;      /* 缩小内边距 */
+  box-sizing: border-box;
+  line-height: 36px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.duiju-option-btn:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.duiju-actions {
+  margin-top: 16px;
+}
+.duiju-actions button {
+  margin: 10px 100px;
+  font-size: 16px;
+  padding: 8px 0px;
+  width: 200px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* 按下时缩小 + 变色 + 收起阴影 */
+.duiju-actions button:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.08);
+  background-color: #e0e0e0;
+}
+
+/* 字词识诗题样式 */
+.zici-answer-box {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+  min-height: 40px;
+}
+.zici-answer-char {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  border-bottom: 2px solid #a17f61;
+  font-size: 22px;
+  margin: 0 2px;
+  text-align: center;
+  line-height: 36px;
+  background: #fffbe8;
+  border-radius: 6px;
+}
+.zici-answer-char.empty {
+  background: transparent;
+  border-bottom: 2px dashed #c9c19e;
+}
+.zici-options {
+  margin: 10px 0;
+}
+.zici-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px !important;
+  padding: 10px;
+}
+.zici-option-btn {
+  min-width: 28px;
+  height: 36px;
+  margin: 15px 20px !important;
+  font-size: 22px !important;
+  background: #f6df8e;
+  border: 1.5px solid #a17f61;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0 2px !important;
+  box-sizing: border-box;
+  line-height: 36px;
+  display: inline-block;
+  vertical-align: middle;
+}
+.zici-option-btn:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.zici-actions {
+  margin-top: 16px;
+}
+.zici-actions button {
+  margin: 10px 100px;
+  font-size: 16px;
+  padding: 8px 0px;
+  width: 200px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.zici-actions button:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.08);
+  background-color: #e0e0e0;
 }
 </style>
