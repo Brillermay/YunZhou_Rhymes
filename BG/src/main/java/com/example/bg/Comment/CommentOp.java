@@ -202,6 +202,58 @@ public class CommentOp extends ConnetMySQL {
         }
     }
 
+    @GetMapping("/delLikeComment/{uid}/{cid}")
+    @Operation(summary = "删去喜欢的comment")
+    public void delLikeCounts(@PathVariable int uid,@PathVariable int cid)throws IOException{
+        try {
+            InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
+            SqlSession session=getSession(in);
+            CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
+            commentOpMapper.delLikeList(cid,uid);
+            commentOpMapper.delLikeNum(cid);
+            in.close();
+            session.close();
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RuntimeException("error:"+e.getMessage());
+        }
+    }
+
+    @GetMapping("/likeComment/{uid}/{cid}")
+    @Operation(summary = "给评论添加喜好")
+    public void addLikeCounts(@PathVariable int uid,@PathVariable int cid)throws IOException{
+        try {
+            InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
+            SqlSession session=getSession(in);
+            CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
+            commentOpMapper.updLikeList(cid,uid);
+            commentOpMapper.updLikeNum(cid);
+            in.close();
+            session.close();
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RuntimeException("error:"+e.getMessage());
+        }
+    }
+    @GetMapping("/getLikeIDs/{uid}")
+    @Operation(summary = "返回当前uid对应的喜欢的评论list")
+    public List<Integer>retLikeCIDs(@PathVariable int uid)throws IOException
+    {
+        try {
+            List<Integer>ans;
+            InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
+            SqlSession session=getSession(in);
+            CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
+            ans=commentOpMapper.getLikeList(uid);
+            in.close();
+            session.close();
+            return ans;
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RuntimeException("error:"+e.getMessage());
+        }
+    }
+
     // 敏感词过滤方法
     private String filterSensitiveWords(String content) {
         // 实际项目中应从数据库或配置文件加载
