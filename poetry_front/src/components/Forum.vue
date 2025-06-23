@@ -603,14 +603,15 @@ export default {
       });
     },
     logout() {
-      // 清除本地存储，设置为未登录状态
+      const userStore = useUserStore();
+      userStore.logout(); // 使用 Pinia 的 action 清除状态
+
       localStorage.removeItem('username');
+      localStorage.removeItem('uid');
+      localStorage.removeItem('isAdmin');
+
       this.username = null;
       this.isLoggedIn = false;
-
-      const userStore = useUserStore();
-      userStore.logout();  // 更新全局 store
-
       // this.$router.push('/forumlogin'); // 跳转到登录页面
     },
     handlePostClick() {
