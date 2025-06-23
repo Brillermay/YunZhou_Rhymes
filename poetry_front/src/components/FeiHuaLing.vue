@@ -10,7 +10,7 @@
           @click="returnToModeSelection" 
           class="return-btn"
         >
-          ← 返回 
+          返回 
         </button>
       </header>
       
@@ -63,6 +63,9 @@
             <span class="countdown" :class="{ warning: countdown <= 10 }">
                | 剩余时间：{{ countdown }}秒 
             </span>
+            <button 
+              v-if="mode === 'endless'" 
+              @click="showLeaderboard = true" class="leaderboard-btn">排行榜</button>
           </div>
         </div>
         
@@ -91,9 +94,42 @@
           <span v-if="showError" class="error-mark">×</span>
         </div>
       </div>
+      <div v-if="showLeaderboard" class="custom-modal">
+        <div class="modal-mask" @click.self="showLeaderboard = false"></div>
+        <div class="modal-body leaderboard-body">
+          <h3>🏆 排行榜</h3>
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>昵称</th>
+                <th>关键词</th>
+                <th>答对次数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(e, i) in sortedLeaderboard" :key="i">
+                <td>{{ i+1 }}</td>
+                <td>{{ e.name }}</td>
+                <td>{{ e.keyword }}</td>
+                <td>{{ e.score/2 }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="modal-close-btn" @click="showLeaderboard = false">关闭</button>
+        </div>
+      </div>
+      <div v-if="askForName" class="custom-modal">
+        <div class="modal-mask" @click.self="askForName=false"></div>
+        <div class="modal-body name-body">
+          <h3>请输入您的昵称</h3>
+          <input v-model="playerName" @keyup.enter="submitName" placeholder="昵称" class="modal-input"/>
+          <button class="modal-confirm-btn" @click="submitName">提交</button>
+        </div>
+      </div>
     </div>
     
-    <aside class="sidebar" v-if="gameStarted && mode !== 'endless'">
+    <!-- <aside class="sidebar" v-if="gameStarted && mode !== 'endless'">
       <h2>历史记录</h2>
       <ul class="history-list">
         <li 
@@ -104,8 +140,8 @@
           {{ item.date  }} - {{ item.keyword  }}
         </li>
       </ul>
-      <button @click="restartGame" class="new-game-btn">🎮 新的挑战</button>
-    </aside>
+      <button @click="startNewChallenge" class="new-game-btn">🎮 新的挑战</button>
+    </aside> -->
   </div>
 </template>
  
@@ -116,6 +152,9 @@ import axios from 'axios';
 export default {
   name: 'FeiHuaLingChat',
   computed: {
+    sortedLeaderboard() {
+      return [...this.leaderboard].sort((a, b) => b.score - a.score);
+    },
     getDifficultyLabel() {
       const option = this.difficultyOptions.find(opt  => opt.value  === this.difficulty); 
       return option ? option.label  : '';
@@ -157,35 +196,6 @@ export default {
         { value: 'normal', label: '普通', time: 30 },
         { value: 'hard', label: '困难', time: 15 }
       ],
-      
-      // 诗句数据库 
-      versesList: [
-        '花间一壶酒，独酌无相亲。',
-        '感时花溅泪，恨别鸟惊心。',
-        '春宵一刻值千金，花有清香月有阴。',
-        '人闲桂花落，夜静春山空。',
-        '花开堪折直须折，莫待无花空折枝。',
-        '床前明月光，疑是地上霜。',
-        '海上生明月，天涯共此时。',
-        '露从今夜白，月是故乡明。',
-        '月落乌啼霜满天，江枫渔火对愁眠。',
-        '春江潮水连海平，海上明月共潮生。',
-        '春眠不觉晓，处处闻啼鸟。',
-        '红豆生南国，春来发几枝。',
-        '好雨知时节，当春乃发生。',
-        '春蚕到死丝方尽，蜡炬成灰泪始干。',
-        '春色满园关不住，一枝红杏出墙来。',
-        '夜来风雨声，花落知多少。',
-        '野火烧不尽，春风吹又生。',
-        '随风潜入夜，润物细无声。',
-        '长风破浪会有时，直挂云帆济沧海。',
-        '相见时难别亦难，东风无力百花残。',
-        '会当凌绝顶，一览众山小。',
-        '千山鸟飞绝，万径人踪灭。',
-        '空山新雨后，天气晚来秋。',
-        '不识庐山真面目，只缘身在此山中。',
-        '山重水复疑无路，柳暗花明又一村。'
-      ],
  
       // 游戏状态 
       countdown: 30,
@@ -202,10 +212,26 @@ export default {
         { required: 7, keyword: '' }
       ],
       currentRound: 1,
-      currentSuccessCount: 0 
+      currentSuccessCount: 0 ,
+      showLeaderboard: false,
+      askForName: false,
+      playerName: '',
+      leaderboard: []
     };
   },
   methods: {
+    submitName() {
+      const name = this.playerName.trim();
+      if (!name) return;
+      this.leaderboard.push({
+        name,
+        keyword: this.currentKeyword,
+        score: this.answerCount
+      });
+      this.playerName = '';
+      this.askForName = false;
+      this.addSystemMessage('已加入排行榜！点击“排行榜”查看排名😊');
+    },
     returnToModeSelection() {
       this.clearCountdown(); 
       this.gameStarted  = false;
@@ -245,7 +271,10 @@ export default {
       this.clearCountdown(); 
       this.gameEnded  = true;
       let message = '时间到！挑战失败。';
-      
+      if (this.mode === 'endless') {
+        message += ` 本轮共答对${this.answerCount/2}次。请留下姓名加入排行榜：`;
+        this.askForName = true;
+      }
       if (this.mode  === 'challenge') {
         message += ` 您完成了第${this.currentRound} 轮 ${this.currentSuccessCount}/${this.challengeRounds[this.currentRound  - 1].required}次`;
       }
@@ -282,14 +311,25 @@ export default {
       this.addSystemMessage(` 你正在查看 ${record.date}  的挑战记录`);
     },
     
-    restartGame() {
-      this.gameStarted  = false;
-      this.gameEnded  = false;
-      this.mode  = '';
-      this.difficulty  = '';
-      this.clearCountdown(); 
-    },
+    // restartGame() {
+    //   this.gameStarted  = false;
+    //   this.gameEnded  = false;
+    //   this.mode  = '';
+    //   this.difficulty  = '';
+    //   this.clearCountdown(); 
+    // },
     
+    startNewChallenge() {
+      this.gameStarted = false;
+      this.gameEnded = false;
+      this.clearCountdown();
+      this.currentRound = 1;
+      this.currentSuccessCount = 0;
+      this.chatHistory = [];
+      this.usedVerses = [];
+      // 不要重置 mode 和 difficulty
+      this.startGame(); // 重新开始游戏
+    },
     // 修改游戏成功逻辑 
     gameSuccess() {
       this.clearCountdown(); 
@@ -528,6 +568,125 @@ export default {
 </script>
  
 <style scoped>
+.leaderboard-btn {
+  float: right;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.456);
+  color: #8c7853;
+  border: 1px solid #8c7853;
+  border-radius: 15px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+ 
+.leaderboard-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.05);
+}
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.3); }
+.modal-content {
+  position: fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  background: white; padding: 1.5rem; border-radius:8px; width:300px;
+}
+.custom-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(40, 38, 32, 0.22);
+  z-index: 0;
+}
+
+.modal-body {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(60, 52, 30, 0.15);
+  width: 340px;
+  max-width: 90vw;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  text-align: center;
+  animation: modal-fade-in 0.28s cubic-bezier(.6,.4,.4,1.1);
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; transform: scale(0.95);}
+  to { opacity: 1; transform: scale(1);}
+}
+
+.leaderboard-body h3 {
+  margin-bottom: 1.2rem;
+  color: #8c7853;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+.leaderboard-table th, .leaderboard-table td {
+  padding: 0.45rem 0.3rem;
+  border-bottom: 1px solid #eee8dc;
+  font-size: 1.04rem;
+}
+.leaderboard-table th {
+  background: #f8f4ed;
+  color: #6e5773;
+  font-weight: 600;
+}
+.leaderboard-table tr:nth-child(odd) {
+  background: #fcfaf7;
+}
+.leaderboard-table tr:nth-child(even) {
+  background: #f4f0eb;
+}
+.modal-close-btn, .modal-confirm-btn {
+  margin-top: 1.2rem;
+  padding: 0.6em 1.6em;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(140, 120, 83, 0.08);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.modal-close-btn:hover, .modal-confirm-btn:hover {
+  background: linear-gradient(to right, #bda87d, #8c8fa9);
+  transform: scale(1.04);
+}
+
+.name-body h3 {
+  color: #6e5773;
+  margin-bottom: 1.6rem;
+}
+.modal-input {
+  width: 80%;
+  max-width: 220px;
+  padding: 0.8em;
+  font-size: 1.08rem;
+  border: 1px solid #e8e1d4;
+  border-radius: 16px;
+  margin: 0.5em 0 1em 0;
+  outline: none;
+  background: #fcfaf7;
+  transition: border-color 0.2s;
+}
+.modal-input:focus {
+  border-color: #8c7853;
+}
 .feihua-layout {
   display: flex;
   height: 100vh;
