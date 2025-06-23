@@ -8,7 +8,7 @@ def import_poems_to_mysql():
     conn = None  # 初始化连接对象
     try:
         # 1. 读取JSON文件
-        with open('poems.json', 'r', encoding='utf-8') as file:
+        with open('std/poems.json', 'r', encoding='utf-8') as file:
             poems = json.load(file)
 
             # 2. 数据库连接配置（请替换为实际值）

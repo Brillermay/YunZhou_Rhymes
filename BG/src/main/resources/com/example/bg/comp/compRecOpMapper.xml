@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<!--这里记得改，namespace就是文件夹名字-->
+<mapper namespace="com.example.bg.ID.IDsGetMapper">
+    <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
+    <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
+    <!--    <select id="findAll" resultType="com.example.demo.User">-->
+    <!--        select * from user-->
+    <!--    </select>-->
+    <!--    &lt;!&ndash; XML 映射文件 &ndash;&gt;-->
+    <!--    <insert id="insertUser">-->
+    <!--        INSERT INTO user (id, age, name)-->
+    <!--        VALUES (#{id}, #{age}, #{name})-->
+    <!--    </insert>-->
+    <!--    <select id="find" resultType="com.example.demo.User">-->
+    <!--        select * from user where id=#{id}-->
+    <!--    </select>-->
+    <!--    <delete id="del">-->
+    <!--        delete from user where id=#{id}-->
+    <!--    </delete>-->
+    <!--    这里就是函数的主功能，看下应该也能看懂-->
+</mapper>
