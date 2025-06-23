@@ -7,4 +7,11 @@ import java.util.List;
 public interface PoemGetMapper {
     Poem getPoem(int PID);
     List<Poem> getPoems(String key);
+    
+    // RAG功能所需的方法
+    List<Poem> searchPoemsByKeyword(String keyword);
+    List<Poem> searchPoemsByCategory(String category);
+    List<Poem> searchPoemsByPoet(String poet);
+    List<Poem> getAllPoems();
+    List<Poem> getRandomPoems(int limit);
 }
