@@ -211,6 +211,8 @@ public class CommentOp extends ConnetMySQL {
             CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
             commentOpMapper.delLikeList(cid,uid);
             commentOpMapper.delLikeNum(cid);
+            session.commit();
+
             in.close();
             session.close();
         }catch (Exception e){
@@ -228,6 +230,7 @@ public class CommentOp extends ConnetMySQL {
             CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
             commentOpMapper.updLikeList(cid,uid);
             commentOpMapper.updLikeNum(cid);
+            session.commit();
             in.close();
             session.close();
         }catch (Exception e){
@@ -245,6 +248,7 @@ public class CommentOp extends ConnetMySQL {
             SqlSession session=getSession(in);
             CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
             ans=commentOpMapper.getLikeList(uid);
+
             in.close();
             session.close();
             return ans;

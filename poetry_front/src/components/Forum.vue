@@ -235,6 +235,7 @@ export default {
           try {
             const likedResponse = await axios.get(`http://localhost:8081/comment/getLikeIDs/${userId}`);
             likedCommentIds = likedResponse.data; // 获取喜欢的评论 ID 列表
+
           } catch (error) {
             console.error('加载喜欢的评论失败', error);
           }
