@@ -6,7 +6,8 @@ package com.example.bg.comp;
 import java.util.List;
 
 public interface compRecOpMapper {
-    List<compRec>getHistory(int UID);
+    compRec getHistory(int UID, int Difficulty, int Sum);
     void updateHistory(compRec rec);
     void addHistory(compRec rec);
+    List<compRec> getRank(int Difficulty, int Sum);
 }
