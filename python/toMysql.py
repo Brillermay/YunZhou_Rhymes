@@ -23,6 +23,10 @@ def import_poems_to_mysql():
         conn = pymysql.connect(**db_config)
         cursor = conn.cursor()
 
+        truncate="truncate table poem"
+        cursor.execute(truncate)
+        conn.commit()
+
         # 4. ◊º±∏SQL≤Â»Î”Ôæ‰
         insert_query = """
         INSERT INTO poem (title, poet, text, category, translation, appreciation, background)

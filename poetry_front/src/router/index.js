@@ -5,7 +5,8 @@ import PoemDetail from '@/components/PoemDetail.vue';
 import PoetryGame from '@/components/PoetryTest.vue'
 import Forum from '@/components/Forum.vue'
 import ForumLogin from '@/components/ForumLogin.vue'
-import feihua from '@/components/FeiHuaLing.vue'
+import FeiHua from '@/components/FeiHuaLing.vue'
+import GameAll from "../components/gameAll.vue";
 
 
 const router = createRouter({
@@ -17,9 +18,10 @@ const router = createRouter({
   { path: '/search', component: PoetrySearch },
   { path: '/poem/:id', component: PoemDetail },
   { path: '/game', component: PoetryGame },
-  { path: '/feihua', component: feihua },
+  { path: '/feihua', component: FeiHua },
   { path: '/forum', component: Forum },
   { path: '/forumlogin', component: ForumLogin },
+     {path:'/play',component:GameAll}
 ]
 })
 

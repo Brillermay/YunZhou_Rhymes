@@ -127,7 +127,7 @@ def extract_poem_from_html(html_content):
 
             # 根据标题类型分类
             h2_text = h2.get_text(strip=True)
-            if "译" in h2_text:
+            if "译" in h2_text or "意" in h2_text:
                 poem.translation = clean_content
             elif "赏" in h2_text or "析" in h2_text:
                 poem.appreciation = clean_content
