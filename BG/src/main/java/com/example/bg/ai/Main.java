@@ -19,13 +19,7 @@ public class Main {
                 .build();
         Message userMsg = Message.builder()
                 .role(Role.USER.getValue())
-                .content("请你赏析这首诗：甫田,先秦 佚名,\"无田甫田，维莠骄骄。\n" +
-                        "无思远人，劳心忉忉。\n" +
-                        "无田甫田，维莠桀桀。\n" +
-                        "无思远人，劳心怛怛。\n" +
-                        "婉兮娈兮。\n" +
-                        "总角丱兮。\n" +
-                        "未几见兮，突而弁兮！\"")
+                .content("你是谁？")
                 .build();
         GenerationParam param = GenerationParam.builder()
                 // 若没有配置环境变量，请用阿里云百炼API Key将下行替换为：.apiKey("sk-xxx")

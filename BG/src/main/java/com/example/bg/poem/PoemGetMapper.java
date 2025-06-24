@@ -14,4 +14,6 @@ public interface PoemGetMapper {
     List<Poem> searchPoemsByPoet(String poet);
     List<Poem> getAllPoems();
     List<Poem> getRandomPoems(int limit);
+
+    int countAllPoems();
 }

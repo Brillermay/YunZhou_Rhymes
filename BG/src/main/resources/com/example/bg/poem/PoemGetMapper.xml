@@ -39,13 +39,18 @@
     <select id="getAllPoems" resultType="com.example.bg.poem.Poem">
         SELECT * FROM poem
         ORDER BY PID
-            LIMIT 100
+
     </select>
 
     <select id="getRandomPoems" parameterType="int" resultType="com.example.bg.poem.Poem">
         SELECT * FROM poem
         ORDER BY RAND()
             LIMIT #{limit}
+    </select>
+
+    <!-- 添加到你的 PoemGetMapper.xml 中 -->
+    <select id="countAllPoems" resultType="int">
+        SELECT COUNT(*) FROM poem
     </select>
 
 </mapper>
