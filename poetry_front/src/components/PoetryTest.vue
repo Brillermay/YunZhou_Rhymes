@@ -6,7 +6,10 @@
           <header class="test-header">
             <h1>问韵寻章</h1>
             <p>一卷诗书藏古意，半帘花影读春秋</p>
+            <!-- 新增排行榜按钮 -->
+            <button class="rank-btn" @click="handleRankClick">排行榜</button>
           </header>
+
 
           <!-- 弹窗 -->
           <div v-if="isModalVisible" class="modal-overlay">
@@ -14,9 +17,10 @@
               <img src="../assets/image/imgtest/WechatIMG538.png" alt="Image" class="left-image" />
 
               <template v-if="showResultsFlag">
-                <h2 v-if="correctCount <=0.5*selectedQuestionCount">诗词萌新</h2>
-                <h2 v-else-if="correctCount<=0.8*selectedQuestionCount">诗词小达人</h2>
+                <h2 v-if="correctCount <= 0.5 * selectedQuestionCount">诗词萌新</h2>
+                <h2 v-else-if="correctCount <= 0.8 * selectedQuestionCount">诗词小达人</h2>
                 <h2 v-else>诗词通关王</h2>
+                <p v-if="isNewRecord" style="color:#d4af37;font-size:22px;margin:10px 0;">🎉 恭喜！你打破了历史最高分！</p>
                 <p>你答对了 {{ correctCount }} 道题！</p>
                 <div class="result-btn-group">
                   <button @click="confirm(); handleProgressClick()">再来一遍</button>
@@ -74,23 +78,21 @@
                 <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
                 <div class="duiju-answer-box">
                   <span v-for="(char, idx) in duijuUserAnswer" :key="idx" class="duiju-answer-char">{{ char }}</span>
-                  <span v-for="i in duijuAnswerLength - duijuUserAnswer.length" :key="'empty'+i" class="duiju-answer-char empty"></span>
+                  <span v-for="i in duijuAnswerLength - duijuUserAnswer.length" :key="'empty' + i"
+                    class="duiju-answer-char empty"></span>
                 </div>
                 <div class="duiju-options">
                   <div class="duiju-row" v-for="row in 2" :key="row">
-                    <button
-                      v-for="col in 8"
-                      :key="(row-1)*8 + (col-1)"
-                      :disabled="duijuSelectedIdx.includes((row-1)*8 + (col-1))"
-                      @click="selectDuijuChar((row-1)*8 + (col-1))"
-                      class="duiju-option-btn"
-                    >
-                      {{ currentQuestion.duijuOptions[(row-1)*8 + (col-1)] }}
+                    <button v-for="col in 8" :key="(row - 1) * 8 + (col - 1)"
+                      :disabled="duijuSelectedIdx.includes((row - 1) * 8 + (col - 1))"
+                      @click="selectDuijuChar((row - 1) * 8 + (col - 1))" class="duiju-option-btn">
+                      {{ currentQuestion.duijuOptions[(row - 1) * 8 + (col - 1)] }}
                     </button>
                   </div>
                 </div>
                 <div class="duiju-actions">
-                  <button @click="submitDuijuAnswer" :disabled="duijuUserAnswer.length !== duijuAnswerLength">提交</button>
+                  <button @click="submitDuijuAnswer"
+                    :disabled="duijuUserAnswer.length !== duijuAnswerLength">提交</button>
                   <button @click="resetDuijuAnswer">重选</button>
                 </div>
               </template>
@@ -99,18 +101,15 @@
                 <p>{{ currentIndex + 1 }}. {{ currentQuestion.question }}</p>
                 <div class="zici-answer-box">
                   <span v-for="(char, idx) in ziciUserAnswer" :key="idx" class="zici-answer-char">{{ char }}</span>
-                  <span v-for="i in ziciAnswerLength - ziciUserAnswer.length" :key="'empty'+i" class="zici-answer-char empty"></span>
+                  <span v-for="i in ziciAnswerLength - ziciUserAnswer.length" :key="'empty' + i"
+                    class="zici-answer-char empty"></span>
                 </div>
                 <div class="zici-options">
                   <div class="zici-row" v-for="row in 2" :key="row">
-                    <button
-                      v-for="col in 6"
-                      :key="(row-1)*6 + (col-1)"
-                      :disabled="ziciSelectedIdx.includes((row-1)*6 + (col-1))"
-                      @click="selectZiciChar((row-1)*6 + (col-1))"
-                      class="zici-option-btn"
-                    >
-                      {{ currentQuestion.ziciOptions[(row-1)*6 + (col-1)] }}
+                    <button v-for="col in 6" :key="(row - 1) * 6 + (col - 1)"
+                      :disabled="ziciSelectedIdx.includes((row - 1) * 6 + (col - 1))"
+                      @click="selectZiciChar((row - 1) * 6 + (col - 1))" class="zici-option-btn">
+                      {{ currentQuestion.ziciOptions[(row - 1) * 6 + (col - 1)] }}
                     </button>
                   </div>
                 </div>
@@ -158,36 +157,32 @@
               {{ idx + 1 }}. {{ record.question }}
             </div>
             <div class="detail-options">
-  <template v-if="record.type === 'duiju'">
-    <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
-      你的答案：{{ record.userAnswer }}
-    </span>
-    <span class="detail-opt correct">
-      正确答案：{{ record.correctAnswer }}
-    </span>
-  </template>
-  <template v-else-if="record.type === 'zici'">
-    <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
-      你的答案：{{ record.userAnswer }}
-    </span>
-    <span class="detail-opt correct">
-      正确答案：{{ record.correctAnswer }}
-    </span>
-  </template>
-  <template v-else>
-    <span
-      v-for="(text, key) in record.options"
-      :key="key"
-      :class="[
-        'detail-opt',
-        key === record.correctAnswer ? 'correct' : '',
-        key === record.userAnswer ? (record.isCorrect ? 'user-correct' : 'user-wrong') : ''
-      ]"
-    >
-      {{ optLabel(key) }}.{{ text }}
-    </span>
-  </template>
-</div>
+              <template v-if="record.type === 'duiju'">
+                <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
+                  你的答案：{{ record.userAnswer }}
+                </span>
+                <span class="detail-opt correct">
+                  正确答案：{{ record.correctAnswer }}
+                </span>
+              </template>
+              <template v-else-if="record.type === 'zici'">
+                <span class="detail-opt" :class="record.isCorrect ? 'user-correct' : 'user-wrong'">
+                  你的答案：{{ record.userAnswer }}
+                </span>
+                <span class="detail-opt correct">
+                  正确答案：{{ record.correctAnswer }}
+                </span>
+              </template>
+              <template v-else>
+                <span v-for="(text, key) in record.options" :key="key" :class="[
+                  'detail-opt',
+                  key === record.correctAnswer ? 'correct' : '',
+                  key === record.userAnswer ? (record.isCorrect ? 'user-correct' : 'user-wrong') : ''
+                ]">
+                  {{ optLabel(key) }}.{{ text }}
+                </span>
+              </template>
+            </div>
             <div class="detail-result">
               <span v-if="record.isCorrect" style="color: #2ecc40;">✔ 答对</span>
               <span v-else style="color: #e74c3c;">✘ 答错</span>
@@ -197,21 +192,68 @@
         <button @click="showDetailModal = false" style="margin-top: 20px;">关闭</button>
       </div>
     </div>
+
+    <!-- 新增排行榜弹窗 -->
+    <div v-if="showRankModal" class="modal-overlay">
+      <div class="modal rank-modal">
+        <h2>🏆排行榜<br>（{{ difficultyLabel(selectedDifficulty) }}，{{ selectedQuestionCount }}题）</h2>
+        <div v-if="rankLoading" style="margin: 20px;">加载中...</div>
+        <div v-else>
+          <table class="rank-table">
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>用户名</th>
+                <th>答题时间</th>
+                <th>最高分</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in rankList" :key="item.UID"
+                :class="['rank-row', { 'first': idx === 0, 'second': idx === 1, 'third': idx === 2 }]">
+                <td>
+                  <span v-if="idx === 0">🏅</span>
+                  <span v-else-if="idx === 1">🥈</span>
+                  <span v-else-if="idx === 2">🥉</span>
+                  <span v-else>{{ idx + 1 }}</span>
+                </td>
+                <td>{{ item.UserName }}</td>
+                <td>{{ formatTime(item.Mintime) }}</td>
+                <td>{{ item.Max }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="rankList.length === 0" style="margin: 20px;">暂无数据</div>
+          <!-- 底部显示当前用户排名 -->
+          <div v-if="myRankInfo" class="my-rank-info">
+            <span>我的排名：</span>
+            <span class="my-rank">{{ myRankInfo.rank }}</span>
+            <span class="my-name">{{ myRankInfo.UserName }}</span>
+            <span class="my-time" v-if="myRankInfo.Mintime">{{ formatTime(myRankInfo.Mintime) }}</span>
+            <span class="my-score">{{ myRankInfo.Max }}</span>
+          </div>
+        </div>
+        <button @click="showRankModal = false" style="margin-top: 20px;">关闭</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
 export default {
   name: "mtApp",
   data() {
     return {
       showStartScreen: true,
-      selectedDifficulty: 'easy',
+      // 修改：默认难度为数字
+      selectedDifficulty: 1,
       selectedQuestionCount: 10,
+      // 修改：难度选项为数字
       difficultyOptions: [
-        { label: '简单', value: 'easy' },
-        { label: '普通', value: 'normal' },
-        { label: '困难', value: 'hard' }
+        { label: '简单', value: 1 },
+        { label: '普通', value: 2 },
+        { label: '困难', value: 3 }
       ],
       questionCountOptions: [10, 15, 20],
       buttonStates: {},
@@ -236,6 +278,14 @@ export default {
       duijuSelectedIdx: [],
       ziciUserAnswer: [],
       ziciSelectedIdx: [],
+      showRankModal: false,
+      rankList: [],
+      rankLoading: false,
+      myRankInfo: null, // 新增：我的排名信息
+      isNewRecord: false, // 新增：是否破纪录
+      timer: null,         // 计时器对象
+      startTime: null,     // 开始时间
+      elapsedSeconds: 0,   // 已用秒数
     };
   },
 
@@ -275,6 +325,7 @@ export default {
         }
       });
   },
+
   methods: {
     shuffleArray(array) {
       let shuffled = array.slice();
@@ -342,6 +393,8 @@ export default {
         this.showResultsFlag = true;
         this.isResultsVisible = true;
         this.isModalVisible = true;
+        if (this.timer) clearInterval(this.timer);
+        this.submitRecordToBackend();
       }
     },
     changeScore(btnId1, btnId2, btnId3, btnId4) {
@@ -357,6 +410,7 @@ export default {
     },
     confirm() {
       this.isModalVisible = false;
+      this.showStartScreen = true; // 新增：返回选择界面
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
     handleProgressClick() {
@@ -416,22 +470,30 @@ export default {
       this.showStartScreen = false;
       const count = this.selectedQuestionCount;
 
+      this.elapsedSeconds = 0;
+      this.startTime = Date.now();
+      if (this.timer) clearInterval(this.timer);
+      this.timer = setInterval(() => {
+        this.elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000);
+      }, 1000);
+
       // 单独筛选对句题和字词题
       const duijuQuestions = this.allQuestions.filter(q => q.type === 'duiju');
       const ziciQuestions = this.allQuestions.filter(q => q.type === 'zici');
       const nonDuijuZiciQuestions = this.allQuestions.filter(q => !q.type || (q.type !== 'duiju' && q.type !== 'zici'));
 
-      // 随机抽取1~4个对句题
-      let duijuCount = Math.min(duijuQuestions.length, Math.max(1, Math.floor(Math.random() * 4) + 1));
+      // 随机抽取1~3个对句题
+      let duijuCount = Math.min(duijuQuestions.length, Math.max(1, Math.floor(Math.random() * 3) + 1));
       duijuCount = Math.min(duijuCount, count);
 
       // 字词题数量
       let ziciCount = 0;
-      if (this.selectedDifficulty === 'easy') {
+      // 修改：难度判断为数字
+      if (this.selectedDifficulty === 1) {
         ziciCount = 0;
-      } else if (this.selectedDifficulty === 'normal') {
+      } else if (this.selectedDifficulty === 2) {
         ziciCount = Math.min(ziciQuestions.length, Math.floor(Math.random() * 2) + 1); // 1~2题
-      } else if (this.selectedDifficulty === 'hard') {
+      } else if (this.selectedDifficulty === 3) {
         ziciCount = Math.min(ziciQuestions.length, Math.floor(Math.random() * 2) + 1); // 1~2题
       }
       ziciCount = Math.min(ziciCount, count - duijuCount);
@@ -442,18 +504,23 @@ export default {
       // 其余题目按难度筛选
       let selectedOthers = [];
       const remainCount = count - duijuCount - ziciCount;
-      const easyQuestions = nonDuijuZiciQuestions.filter(q => q.id < 50);
-      const hardQuestions = nonDuijuZiciQuestions.filter(q => q.id >= 50);
+      // 只选没有 type 字段的选择题
+      const choiceQuestions = nonDuijuZiciQuestions.filter(q => !q.type);
 
-      if (this.selectedDifficulty === 'easy') {
+      // 这里如果你想用 id 判断难度，可以这样（假设 0001~0049 为简单，0050 及以上为困难）
+      const easyQuestions = choiceQuestions.filter(q => q.id < "0050");
+      const hardQuestions = choiceQuestions.filter(q => q.id >= "0050");
+
+      // 修改：难度判断为数字
+      if (this.selectedDifficulty === 1) {
         selectedOthers = this.shuffleArray(easyQuestions).slice(0, remainCount);
-      } else if (this.selectedDifficulty === 'normal') {
+      } else if (this.selectedDifficulty === 2) {
         const half = Math.floor(remainCount / 2);
         const normalEasyPart = this.shuffleArray(easyQuestions).slice(0, half);
         const normalHardPart = this.shuffleArray(hardQuestions).slice(0, remainCount - half);
         selectedOthers = [...normalEasyPart, ...normalHardPart];
         selectedOthers = this.shuffleArray(selectedOthers);
-      } else if (this.selectedDifficulty === 'hard') {
+      } else if (this.selectedDifficulty === 3) {
         selectedOthers = this.shuffleArray(hardQuestions).slice(0, remainCount);
       }
 
@@ -496,38 +563,38 @@ export default {
       this.duijuUserAnswer = [];
       this.duijuSelectedIdx = [];
     },
-submitDuijuAnswer() {
-  const userStr = this.duijuUserAnswer.join('');
-  const correctStr = this.currentQuestion.duijuAnswer;
-  const isCorrect = userStr === correctStr;
+    submitDuijuAnswer() {
+      const userStr = this.duijuUserAnswer.join('');
+      const correctStr = this.currentQuestion.duijuAnswer;
+      const isCorrect = userStr === correctStr;
 
-  // 记录作答
-  this.answerRecords.push({
-    question: this.currentQuestion.question,
-    options: {}, // 对句题无选项
-    userAnswer: userStr,
-    correctAnswer: correctStr,
-    isCorrect,
-    type: 'duiju'
-  });
+      // 记录作答
+      this.answerRecords.push({
+        question: this.currentQuestion.question,
+        options: {}, // 对句题无选项
+        userAnswer: userStr,
+        correctAnswer: correctStr,
+        isCorrect,
+        type: 'duiju'
+      });
 
 
-  if (isCorrect) {
-    this.correctCount++;
-    this.isAnswered = true;
-    setTimeout(() => {
-      this.nextQuestion();
-      this.resetDuijuAnswer();
-    }, 800);
-  } else {
-    this.modalContent = {
-      title: "答错啦",
-      message: `正确对句是：${correctStr}`,
-      explanation: ''
-    };
-    this.isModalVisible = true;
-  }
-},
+      if (isCorrect) {
+        this.correctCount++;
+        this.isAnswered = true;
+        setTimeout(() => {
+          this.nextQuestion();
+          this.resetDuijuAnswer();
+        }, 800);
+      } else {
+        this.modalContent = {
+          title: "答错啦",
+          message: `正确对句是：${correctStr}`,
+          explanation: ''
+        };
+        this.isModalVisible = true;
+      }
+    },
     // 字词识诗题相关
     selectZiciChar(idx) {
       if (
@@ -574,10 +641,169 @@ submitDuijuAnswer() {
         this.isModalVisible = true;
       }
     },
-  },
-};
-</script>
+    async getUserName(uid) {
+      try {
+        const response = await fetch(`http://127.0.0.1:8081/user/loginName/${uid}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        if (response.ok) {
+          const name = await response.text();
+          return name;
+        }
+        return null;
+      } catch (error) {
+        console.error('获取用户名失败:', error);
+        return null;
+      }
+    },
+    async handleRankClick() {
+      const username = localStorage.getItem('username');
+      if (!username) {
+        alert('请先登录才能查看排行榜！');
+        return;
+      }
+      this.showRankModal = true;
+      this.rankLoading = true;
+      this.rankList = [];
+      this.myRankInfo = null; // 重置
+      try {
+        // 获取当前难度和题数
+        const difficulty = this.selectedDifficulty;
+        const sum = this.selectedQuestionCount;
+        // 获取当前用户UID
+        let uid = null;
+        try {
+          const res = await fetch(`http://127.0.0.1:8081/user/loginID/${username}`);
+          uid = await res.text();
+        } catch (e) {
+          uid = null;
+        }
+        // 请求排行榜
+        const resp = await fetch('http://127.0.0.1:8081/compRec/rank', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            UID: uid || 0,
+            Difficulty: difficulty,
+            Sum: sum,
+          }),
+        });
+        const data = await resp.json();
 
+        // 批量获取用户名
+        const uidList = data.map(item => item.UID);
+        const namePromises = uidList.map(uid => this.getUserName(uid));
+        const nameList = await Promise.all(namePromises);
+
+        // 合并用户名到排行榜数据
+        this.rankList = data.map((item, idx) => ({
+          ...item,
+          UserName: nameList[idx] || `UID:${item.UID}`
+        }));
+
+        // 查找我的排名
+        if (uid) {
+          let myRank = null;
+          for (let i = 0; i < this.rankList.length; i++) {
+            if (String(this.rankList[i].UID) === String(uid)) {
+              myRank = {
+                rank: i + 1,
+                ...this.rankList[i]
+              };
+              break;
+            }
+          }
+          // 如果没在榜单，显示未上榜
+          if (!myRank) {
+            // 也查一下自己的用户名
+            const myName = await this.getUserName(uid);
+            this.myRankInfo = {
+              rank: '未上榜',
+              UserName: myName || username,
+              Max: '-'
+            };
+          } else {
+            this.myRankInfo = myRank;
+          }
+        }
+      } catch (e) {
+        alert('排行榜加载失败，请稍后重试');
+      } finally {
+        this.rankLoading = false;
+      }
+    },
+    // 修改：难度数字转中文
+    difficultyLabel(val) {
+      if (val === 1) return '简单';
+      if (val === 2) return '普通';
+      if (val === 3) return '困难';
+      return val;
+    },
+    async submitRecordToBackend() {
+      const username = localStorage.getItem('username');
+      if (!username) return;
+      let uid = null;
+      try {
+        const res = await fetch(`http://127.0.0.1:8081/user/loginID/${username}`);
+        uid = await res.text();
+      } catch (e) {
+        uid = null;
+      }
+      // 查询历史最高分
+      let oldMax = 0;
+      try {
+        const resp = await fetch('http://127.0.0.1:8081/compRec/rank', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            UID: uid || 0,
+            Difficulty: this.selectedDifficulty,
+            Sum: this.selectedQuestionCount,
+          }),
+        });
+        const data = await resp.json();
+        // 找到自己
+        const my = data.find(item => String(item.UID) === String(uid));
+        if (my) oldMax = Number(my.Max);
+      } catch (e) {
+        oldMax = 0;
+      }
+      // 判断是否破纪录
+      this.isNewRecord = this.correctCount > oldMax;
+
+
+      // 提交成绩
+      const record = {
+        UID: uid || 0,
+        Difficulty: this.selectedDifficulty,
+        Sum: this.selectedQuestionCount,
+        Max: this.correctCount,
+        Mintime: this.elapsedSeconds
+      };
+      console.log(record);
+      try {
+        await fetch('http://127.0.0.1:8081/compRec/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(record)
+        });
+      } catch (e) {
+        // 可选：错误处理
+        console.error('成绩提交失败', e);
+      }
+    },
+    formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '--';
+      const min = Math.floor(seconds / 60);
+      const sec = seconds % 60;
+      return `${min}′${sec < 10 ? '0' : ''}${sec}″`;
+    },
+  }
+}
+</script>
 
 <style scoped>
 .test-header {
@@ -659,7 +885,8 @@ submitDuijuAnswer() {
   padding: 30px 40px;
   border-radius: 15px;
   text-align: center;
-  width: 350px;
+  width: 450px;
+  height: 300px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   transform: scale(0);
   animation: modalScale 0.3s ease-out forwards;
@@ -755,7 +982,7 @@ submitDuijuAnswer() {
   height: auto;
   position: absolute;
   left: 5px;
-  bottom: 60px;
+  bottom: 80px;
   animation: fadeIn 1s ease-out;
 }
 
@@ -765,7 +992,7 @@ submitDuijuAnswer() {
   height: auto;
   position: absolute;
   right: 5px;
-  bottom: 65px;
+  bottom: 85px;
   animation: fadeIn 1s ease-out;
 }
 
@@ -1251,8 +1478,10 @@ submitDuijuAnswer() {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 4px;
-  justify-content: center; /* 新增：让选项居中 */
-  width: 100%;             /* 新增：让选项区域占满父容器宽度 */
+  justify-content: center;
+  /* 新增：让选项居中 */
+  width: 100%;
+  /* 新增：让选项区域占满父容器宽度 */
 }
 
 .detail-opt {
@@ -1332,11 +1561,11 @@ submitDuijuAnswer() {
 }
 
 .detail-item {
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   margin-bottom: 18px;
   padding: 12px 10px;
-  box-shadow: 0 2px 8px rgba(31,38,135,0.08);
+  box-shadow: 0 2px 8px rgba(31, 38, 135, 0.08);
 }
 
 .detail-q {
@@ -1385,6 +1614,7 @@ submitDuijuAnswer() {
   font-size: 14px;
   font-weight: 600;
 }
+
 .detail-modal button {
   margin-top: 20px;
   font-size: 18px;
@@ -1404,6 +1634,7 @@ submitDuijuAnswer() {
   margin-bottom: 18px;
   min-height: 40px;
 }
+
 .duiju-answer-char {
   display: inline-block;
   width: 36px;
@@ -1416,44 +1647,55 @@ submitDuijuAnswer() {
   background: #fffbe8;
   border-radius: 6px;
 }
+
 .duiju-answer-char.empty {
   background: transparent;
   border-bottom: 2px dashed #c9c19e;
 }
+
 .duiju-options {
   margin: 10px 0;
 }
+
 .duiju-row {
   display: flex;
-  justify-content: flex-start; /* 或 center */
+  justify-content: flex-start;
+  /* 或 center */
   align-items: center;
-  gap: 10px !important;           /* 禁用gap */
+  gap: 10px !important;
+  /* 禁用gap */
   padding: 10px;
 }
+
 .duiju-option-btn {
   min-width: 28px;
   height: 36px;
-  margin: 15px 20px !important;      /* 强制缩小间距 */
+  margin: 15px 20px !important;
+  /* 强制缩小间距 */
   font-size: 22px !important;
   background: #f6df8e;
   border: 1.5px solid #a17f61;
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
-  padding: 0 2px !important;      /* 缩小内边距 */
+  padding: 0 2px !important;
+  /* 缩小内边距 */
   box-sizing: border-box;
   line-height: 36px;
   display: inline-block;
   vertical-align: middle;
 }
+
 .duiju-option-btn:disabled {
   background: #e0e0e0;
   color: #aaa;
   cursor: not-allowed;
 }
+
 .duiju-actions {
   margin-top: 16px;
 }
+
 .duiju-actions button {
   margin: 10px 100px;
   font-size: 16px;
@@ -1479,6 +1721,7 @@ submitDuijuAnswer() {
   margin-bottom: 18px;
   min-height: 40px;
 }
+
 .zici-answer-char {
   display: inline-block;
   width: 36px;
@@ -1491,13 +1734,16 @@ submitDuijuAnswer() {
   background: #fffbe8;
   border-radius: 6px;
 }
+
 .zici-answer-char.empty {
   background: transparent;
   border-bottom: 2px dashed #c9c19e;
 }
+
 .zici-options {
   margin: 10px 0;
 }
+
 .zici-row {
   display: flex;
   justify-content: flex-start;
@@ -1505,6 +1751,7 @@ submitDuijuAnswer() {
   gap: 10px !important;
   padding: 10px;
 }
+
 .zici-option-btn {
   min-width: 28px;
   height: 36px;
@@ -1521,14 +1768,17 @@ submitDuijuAnswer() {
   display: inline-block;
   vertical-align: middle;
 }
+
 .zici-option-btn:disabled {
   background: #e0e0e0;
   color: #aaa;
   cursor: not-allowed;
 }
+
 .zici-actions {
   margin-top: 16px;
 }
+
 .zici-actions button {
   margin: 10px 100px;
   font-size: 16px;
@@ -1539,9 +1789,169 @@ submitDuijuAnswer() {
   border-radius: 6px;
   cursor: pointer;
 }
+
 .zici-actions button:active {
   transform: scale(0.96);
   box-shadow: 0 2px 3px rgba(0, 0, 0, 0.08);
   background-color: #e0e0e0;
 }
+
+.rank-btn {
+  position: absolute;
+  top: 170px;
+  right: 30px;
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: background 0.3s;
+  z-index: 10;
+}
+
+.rank-btn:hover {
+  background: linear-gradient(to right, #a3916a, #7c6488);
+}
+
+.rank-modal {
+  width: 50vw;
+  height: 85vh;
+  padding: 40px 50px 30px 50px;
+  background: linear-gradient(60deg, #ead177 60%, #c9c19e 100%);
+  border-radius: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+  text-align: center;
+  position: relative;
+  margin: 0 auto;
+  /* 新增大气感 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.rank-table {
+  width: 40vw;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+  margin: 0px 0 10px 0;
+  background: #fffbe8;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 20px;
+  box-shadow: 0 2px 12px rgba(31, 38, 135, 0.08);
+}
+
+.rank-table th,
+.rank-table td {
+  padding: 14px 0;
+  font-size: 20px;
+  border-bottom: 1.5px solid #e0d9c7;
+  text-align: center;
+  font-weight: 600;
+}
+
+.rank-table th {
+  background: #f6df8e;
+  color: #6e5773;
+  font-weight: bold;
+  font-size: 22px;
+  border-bottom: 2.5px solid #cfae74;
+}
+
+.rank-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-row.first {
+  background: linear-gradient(90deg, #fffbe8 60%, #ffe9b3 100%);
+  color: #d4af37;
+  font-weight: bold;
+  font-size: 22px;
+  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.08);
+}
+
+.rank-row.second {
+  background: linear-gradient(90deg, #fffbe8 60%, #e6e6e6 100%);
+  color: #b4b4b4;
+  font-weight: bold;
+  font-size: 21px;
+}
+
+.rank-row.third {
+  background: linear-gradient(90deg, #fffbe8 60%, #ffd6b3 100%);
+  color: #c97a3a;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.my-rank-info {
+  margin-top: 24px;
+  padding: 12px 32px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #fffbe8 60%, #f6df8e 100%);
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.10);
+  font-size: 22px;
+  color: #6e5773;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  font-weight: 700;
+  border: 2px solid #e7d7a7;
+  position: relative;
+  min-width: 340px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.my-rank-info::before {
+  font-size: 28px;
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.85;
+}
+
+.my-rank {
+  color: #d4af37;
+  font-size: 26px;
+  margin: 0 8px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.my-name {
+  color: #6e5773;
+  font-size: 22px;
+  margin: 0 8px;
+  font-weight: 700;
+}
+
+.my-time {
+  color: #4caf50;
+  font-size: 20px;
+  margin: 0 8px;
+  font-weight: 600;
+  background: #eafbe7;
+  border-radius: 8px;
+  padding: 2px 10px;
+}
+
+.my-score {
+  color: #c97a3a;
+  font-size: 22px;
+  margin: 0 8px;
+  font-weight: 700;
+  background: #fff2e0;
+  border-radius: 8px;
+  padding: 2px 10px;
+  border: 1.5px solid #f6df8e;
+}
+/* ...existing code... */
 </style>

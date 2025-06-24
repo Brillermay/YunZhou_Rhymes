@@ -36,6 +36,7 @@
         <mapper resource="com/example/bg/Comment/CommentOpMapper.xml"/>
         <mapper resource="com/example/bg/ID/IDsGetMapper.xml"/>
         <mapper resource="com/example/bg/testMapper.xml"/>
+        <mapper resource="com/example/bg/comp/compRecOpMapper.xml"/>
     </mappers>
 
 
