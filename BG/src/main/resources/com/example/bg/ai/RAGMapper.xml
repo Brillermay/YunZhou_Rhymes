@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.ai.RAGMapper">
+    
+    <!-- 核心诗词检索 -->
+    <select id="searchPoemsByKeyword" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem 
+        WHERE title LIKE CONCAT('%', #{keyword}, '%') 
+           OR poet LIKE CONCAT('%', #{keyword}, '%')
+           OR text LIKE CONCAT('%', #{keyword}, '%')
+           OR background LIKE CONCAT('%', #{keyword}, '%')
+           OR appreciation LIKE CONCAT('%', #{keyword}, '%')
+           OR translation LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY 
+            CASE 
+                WHEN title LIKE CONCAT('%', #{keyword}, '%') THEN 1
+                WHEN poet LIKE CONCAT('%', #{keyword}, '%') THEN 2
+                WHEN text LIKE CONCAT('%', #{keyword}, '%') THEN 3
+                ELSE 4
+            END
+        LIMIT 10
+    </select>
+    
+    <select id="searchPoemsByCategory" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem 
+        WHERE category LIKE CONCAT('%', #{category}, '%')
+        LIMIT 10
+    </select>
+    
+    <select id="searchPoemsByPoet" parameterType="String" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem 
+        WHERE poet LIKE CONCAT('%', #{poet}, '%')
+        LIMIT 10
+    </select>
+    
+    <select id="getAllPoems" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem 
+        ORDER BY PID
+        LIMIT 100
+    </select>
+    
+    <select id="getRandomPoems" parameterType="int" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem 
+        ORDER BY RAND() 
+        LIMIT #{limit}
+    </select>
+    
+    <!-- 用户偏好分析（基于comment） -->
+    <select id="getUserComments" parameterType="String" resultType="com.example.bg.ai.Comment">
+        SELECT * FROM comment 
+        WHERE userId = #{userId}
+        ORDER BY commentID DESC
+        LIMIT 20
+    </select>
+    
+    <select id="getCommentsByCategory" parameterType="String" resultType="com.example.bg.ai.Comment">
+        SELECT * FROM comment 
+        WHERE category = #{category}
+        ORDER BY commentID DESC
+        LIMIT 10
+    </select>
+    
+    <!-- 用户记忆管理 -->
+    <select id="getUserHistory" parameterType="String" resultType="com.example.bg.ai.UserMemory">
+        SELECT * FROM user_memory 
+        WHERE userId = #{userId} 
+        ORDER BY createTime DESC 
+        LIMIT 10
+    </select>
+    
+    <insert id="saveUserMemory" parameterType="com.example.bg.ai.UserMemory">
+        INSERT INTO user_memory (id, userId, question, answer, relatedPoems, relatedComments, preference, createTime)
+        VALUES (#{id}, #{userId}, #{question}, #{answer}, #{relatedPoems}, #{relatedComments}, #{preference}, #{createTime})
+    </insert>
+    
+</mapper>

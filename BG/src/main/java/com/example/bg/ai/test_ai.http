@@ -1,0 +1,158 @@
+### ===========================================
+### 基于现有缓存的测试流程
+### ===========================================
+
+### 阶段1：验证现有缓存状态
+### ============================================
+
+### 1.1 检查缓存统计信息
+GET http://localhost:8081/ai/easy/cache/status
+
+### 1.2 检查数据库更新状态（应该显示无变化）
+GET http://localhost:8081/ai/easy/database/check-updates
+
+### 1.3 验证现有缓存文件完整性
+### 通过统计信息确认缓存文件数量和大小
+
+### ============================================
+### 阶段2：测试缓存加载功能
+### ============================================
+
+### 2.1 使用现有缓存初始化（应该很快）
+POST http://localhost:8081/ai/easy/initialize
+Content-Type: application/json
+
+{}
+
+### 2.2 验证初始化后状态
+GET http://localhost:8081/ai/easy/cache/status
+
+### 2.3 确认 API 调用次数为 0
+### 查看控制台日志，应该显示从缓存加载，无 API 调用
+
+### ============================================
+### 阶段3：功能验证测试
+### ============================================
+
+### 3.1 测试基本对话功能
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "请推荐几首李白的诗词"
+}
+
+### 3.2 测试检索功能
+POST http://localhost:8081/ai/easy/test-retrieve
+Content-Type: application/json
+
+{
+    "query": "春天",
+    "maxResults": 5
+}
+
+### 3.3 测试特定作者查询
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "介绍一下杜甫的代表作品"
+}
+
+### 3.4 测试主题查询
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "描写月亮的古诗有哪些？"
+}
+
+### ============================================
+### 阶段4：增量更新功能测试
+### ============================================
+
+### 4.1 执行增量更新检查（应该无变化）
+POST http://localhost:8081/ai/easy/database/incremental-update
+Content-Type: application/json
+
+{}
+
+### 4.2 再次检查更新状态
+GET http://localhost:8081/ai/easy/database/check-updates
+
+### ============================================
+### 阶段5：性能测试
+### ============================================
+
+### 5.1 连续查询测试1 - 诗人相关
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "李白和杜甫的诗歌风格有什么不同？"
+}
+
+### 5.2 连续查询测试2 - 季节主题
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "描写秋天的诗词推荐几首"
+}
+
+### 5.3 连续查询测试3 - 情感主题
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "表达思乡之情的古诗有哪些？"
+}
+
+### 5.4 连续查询测试4 - 复杂分析
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "唐诗和宋词在艺术风格上有什么区别？"
+}
+
+### ============================================
+### 阶段6：边界情况测试
+### ============================================
+
+### 6.1 测试空查询
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": ""
+}
+
+### 6.2 测试特殊字符查询
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "包含"月"字的诗句"
+}
+
+### 6.3 测试长查询
+POST http://localhost:8081/ai/easy/chat
+Content-Type: application/json
+
+{
+    "question": "请详细分析李白的《静夜思》这首诗的艺术特色、情感表达、意境营造以及在中国古典诗歌史上的地位和影响"
+}
+
+### ============================================
+### 阶段7：系统状态监控
+### ============================================
+
+### 7.1 最终状态检查
+GET http://localhost:8081/ai/easy/cache/status
+
+### 7.2 检查是否有错误或异常
+### 查看应用日志，确认无异常信息
+
+### 7.3 性能统计
+### 记录查询响应时间和系统资源使用情况

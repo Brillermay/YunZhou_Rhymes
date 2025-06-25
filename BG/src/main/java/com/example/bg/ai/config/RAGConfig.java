@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RAGConfig {
 
-    private static final String QWEN_API_KEY = "sk-9e05a08baf0142088b0de2f6dabbb730";
+    private static final String QWEN_API_KEY = "sk-8007e602891742f59f118c678a3ab7d1";
 
     @Bean
     public ChatLanguageModel chatLanguageModel() {

@@ -22,6 +22,9 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,15 +43,47 @@ public class EasyRAGService extends ConnetMySQL {
     @Autowired
     private EmbeddingStore<TextSegment> embeddingStore;
 
+    // 🆕 注入缓存管理器
     @Autowired
-    private EmbeddingCacheManager cacheManager; // 🆕 注入缓存管理器
+    private EmbeddingCacheManager cacheManager;
 
     private boolean isInitialized = false;
     private int successfullyProcessed = 0;
 
+    // 🆕 添加 getCacheManager 方法
+    public EmbeddingCacheManager getCacheManager() {
+        return cacheManager;
+    }
+
+    // 🆕 添加 getCacheStatistics 方法
+    public Map<String, Object> getCacheStatistics() {
+        return cacheManager.getCacheStatistics();
+    }
+
     /**
-     * 智能初始化 RAG 系统 - 支持缓存
+     * 🆕 检查缓存是否有效（未失败）
      */
+    private boolean isValidCache(String poemId) {
+        try {
+            File cacheFile = new File("data/embeddings/poem_" + poemId + ".json");
+            if (!cacheFile.exists()) return false;
+
+            ObjectMapper mapper = new ObjectMapper();
+            EmbeddingCacheManager.EmbeddingCache cache = mapper.readValue(cacheFile, EmbeddingCacheManager.EmbeddingCache.class);
+
+            // 🔧 检查向量是否存在（表示处理成功）
+            return cache.vector != null && cache.vector.length > 0;
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * 🔧 修复的初始化方法 - 增强调试信息
+     */
+    // 🔧 完全重写 initializeRAG 方法，集成缓存
+
     public synchronized void initializeRAG() throws Exception {
         if (isInitialized) {
             System.out.println("RAG 系统已初始化，跳过重复初始化");
@@ -69,48 +104,86 @@ public class EasyRAGService extends ConnetMySQL {
                 throw new RuntimeException("数据库中没有诗词数据");
             }
 
-            // 3. 检查更新策略
-            EmbeddingCacheManager.UpdateResult updateResult = cacheManager.checkAndUpdateCache(poems, embeddingStore);
+            // 3. 🎯 检查缓存是否有效
+            if (cacheManager.isCacheValid(poems)) {
+                System.out.println("⚡ 发现有效缓存，开始快速加载...");
 
-            switch (updateResult.type) {
-                case NO_CHANGE:
-                    // 无变化，加载现有缓存
-                    successfullyProcessed = cacheManager.loadFromCache(embeddingStore);
-                    System.out.println("✅ 缓存加载完成！API 消耗: 0 次");
-                    break;
+                // 从缓存加载
+                int loadedCount = cacheManager.loadFromCache(embeddingStore);
 
-                case INCREMENTAL:
-                    // 增量更新
-                    successfullyProcessed = cacheManager.loadFromCache(embeddingStore);
-                    System.out.println("🔄 执行增量更新...");
-
-                    cacheManager.performIncrementalUpdate(
-                            updateResult,
-                            embeddingStore,
-                            embeddingModel,
-                            this::buildPoemContent
-                    );
-
-                    successfullyProcessed += updateResult.newPoems.size() + updateResult.modifiedPoems.size();
-                    System.out.println("✅ 增量更新完成！API 消耗: " +
-                            (updateResult.newPoems.size() + updateResult.modifiedPoems.size()) + " 次");
-                    break;
-
-                case FULL_REBUILD:
-                    // 全量重建
-                    System.out.println("🔄 执行全量重建...");
-                    System.out.println("⚠️ 注意：这将消耗约 " + poems.size() + " 次 API 调用");
-
-                    cacheManager.clearCache();
-                    cacheManager.initializeCacheDirectories();
-                    processAndCachePoems(poems);
-
-                    System.out.println("✅ 全量重建完成！API 消耗: " + successfullyProcessed + " 次");
-                    break;
+                if (loadedCount > 0) {
+                    isInitialized = true;
+                    successfullyProcessed = loadedCount;
+                    System.out.println("✅ 缓存加载完成！总向量数: " + loadedCount);
+                    return;  // 🎯 直接返回，不重新处理
+                } else {
+                    System.out.println("⚠️ 缓存加载失败，转为全量构建");
+                }
+            } else {
+                System.out.println("📝 缓存无效或不存在，开始全量构建");
             }
 
+            // 4. 执行全量构建
+            System.out.println("🔄 开始全量构建向量库...");
+            successfullyProcessed = 0;
+            int failed = 0;
+
+            int batchSize = 5;
+            for (int i = 0; i < poems.size(); i += batchSize) {
+                int endIndex = Math.min(i + batchSize, poems.size());
+                List<Poem> batch = poems.subList(i, endIndex);
+
+                for (Poem poem : batch) {
+                    try {
+                        String content = buildPoemContent(poem);
+
+                        // 🔧 长度检查和截断
+                        if (content.length() > 2048) {
+                            content = content.substring(0, 2045) + "...";
+                        }
+
+                        // 创建元数据
+                        Map<String, String> metadataMap = new HashMap<>();
+                        metadataMap.put("poem_id", String.valueOf(poem.getPID()));
+                        metadataMap.put("title", poem.getTitle() != null ? poem.getTitle() : "");
+                        metadataMap.put("poet", poem.getPoet() != null ? poem.getPoet() : "");
+                        metadataMap.put("category", poem.getCategory() != null ? poem.getCategory() : "");
+
+                        Metadata metadata = Metadata.from(metadataMap);
+                        TextSegment segment = TextSegment.from(content, metadata);
+
+                        // 生成嵌入并存储
+                        Response<Embedding> response = embeddingModel.embed(segment);
+                        Embedding embedding = response.content();
+                        embeddingStore.add(embedding, segment);
+
+                        // 🆕 保存成功的缓存
+                        cacheManager.savePoemCache(poem, content, embedding.vector(), metadataMap);
+                        successfullyProcessed++;
+
+                        Thread.sleep(100);
+
+                    } catch (Exception e) {
+                        // 🆕 保存失败的缓存（空向量）
+                        cacheManager.savePoemCache(poem, buildPoemContent(poem), null, new HashMap<>());
+                        failed++;
+                        System.err.println("处理失败，ID: " + poem.getPID() + ", 错误: " + e.getMessage());
+                    }
+                }
+
+                System.out.println("⚡ 已处理: " + (successfullyProcessed + failed) + "/" + poems.size() +
+                        " (成功: " + successfullyProcessed + ", 失败: " + failed + ")");
+
+                if (endIndex < poems.size()) {
+                    Thread.sleep(1000);
+                }
+            }
+
+            // 5. 🆕 保存缓存信息
+            cacheManager.saveCacheInfo(poems, successfullyProcessed);
+
             isInitialized = true;
-            System.out.println("🎉 Easy RAG 系统初始化完成！总向量数: " + successfullyProcessed);
+            System.out.println("✅ 初始化完成！成功: " + successfullyProcessed + " 首，失败: " + failed + " 首");
 
         } catch (Exception e) {
             System.err.println("❌ RAG 系统初始化失败: " + e.getMessage());
@@ -118,174 +191,101 @@ public class EasyRAGService extends ConnetMySQL {
             throw e;
         }
     }
+
     /**
-     * 强制检查数据库更新
+     * 🆕 检查数据库更新
      */
-    public synchronized String checkDatabaseUpdates() throws Exception {
+    public String checkDatabaseUpdates() throws Exception {
         System.out.println("🔍 开始检查数据库更新...");
 
+        List<Poem> currentPoems = loadPoemsFromDatabase();
+        EmbeddingCacheManager.UpdateResult updateResult = cacheManager.checkAndUpdateCache(currentPoems, embeddingStore);
+
+        StringBuilder report = new StringBuilder();
+        switch (updateResult.type) {
+            case NO_CHANGE:
+                report.append("✅ 数据库无变化，缓存最新");
+                break;
+            case INCREMENTAL:
+                report.append("⚡ 检测到增量变化");
+                break;
+            case FULL_REBUILD:
+                report.append("⚠️ 检测到大量变化，建议全量重建");
+                break;
+        }
+        return report.toString();
+    }
+
+    /**
+     * 🔧 执行手动增量更新
+     */
+    public String performManualUpdate() throws Exception {
         try {
+            System.out.println("🔄 开始执行增量更新检查...");
+
             List<Poem> currentPoems = loadPoemsFromDatabase();
             EmbeddingCacheManager.UpdateResult updateResult = cacheManager.checkAndUpdateCache(currentPoems, embeddingStore);
-
-            StringBuilder report = new StringBuilder();
-            report.append("📊 数据库更新检查报告：\n\n");
 
             switch (updateResult.type) {
                 case NO_CHANGE:
-                    report.append("✅ 数据库无变化，缓存保持最新状态");
-                    break;
+                    System.out.println("✅ 数据库无变化，无需更新");
+                    return "✅ 数据库无变化，无需更新";
 
                 case INCREMENTAL:
-                    report.append("🔄 检测到增量变化：\n");
-                    report.append("  • 新增诗词：").append(updateResult.newPoems.size()).append(" 首\n");
-                    report.append("  • 修改诗词：").append(updateResult.modifiedPoems.size()).append(" 首\n");
-                    report.append("  • 删除诗词：").append(updateResult.deletedPoemIds.size()).append(" 首\n");
-                    report.append("\n建议执行增量更新，预计消耗 API：").append(updateResult.newPoems.size() + updateResult.modifiedPoems.size()).append(" 次");
-                    break;
+                    System.out.println("⚡ 检测到增量变化，开始处理...");
+
+                    // 🔧 使用 EmbeddingCacheManager 的增量更新功能，传入当前诗词列表
+                    cacheManager.performIncrementalUpdate(
+                            updateResult,
+                            embeddingStore,
+                            embeddingModel,
+                            this::buildPoemContent,  // 传递内容构建函数
+                            currentPoems  // 🆕 传入当前诗词列表
+                    );
+
+                    // 🔧 更新本地状态
+                    if (!updateResult.newPoems.isEmpty() || !updateResult.modifiedPoems.isEmpty()) {
+                        successfullyProcessed += updateResult.getApiCallsNeeded();
+                    }
+
+                    return String.format("✅ 增量更新完成！\n" +
+                                    "📊 处理统计：\n" +
+                                    "  • 新增: %d 首\n" +
+                                    "  • 修改: %d 首\n" +
+                                    "  • 删除: %d 首\n" +
+                                    "  • API 调用: %d 次",
+                            updateResult.newPoems.size(),
+                            updateResult.modifiedPoems.size(),
+                            updateResult.deletedPoemIds.size(),
+                            updateResult.getApiCallsNeeded());
 
                 case FULL_REBUILD:
-                    report.append("⚠️ 检测到大量变化，建议全量重建\n");
-                    report.append("预计消耗 API：").append(currentPoems.size()).append(" 次");
-                    break;
-            }
+                    System.out.println("⚠️ 检测到大量变化，需要全量重建");
+                    return "⚠️ 检测到大量变化（超过30%），建议使用全量重建功能";
 
-            return report.toString();
+                default:
+                    return "❌ 未知的更新类型: " + updateResult.type;
+            }
 
         } catch (Exception e) {
-            throw new RuntimeException("检查数据库更新失败: " + e.getMessage());
+            String errorMsg = "增量更新失败: " + e.getMessage();
+            System.err.println("❌ " + errorMsg);
+            e.printStackTrace();
+            throw new RuntimeException(errorMsg, e);
         }
     }
 
     /**
-     * 手动触发增量更新
+     * 🆕 清理缓存
      */
-    public synchronized String performManualUpdate() throws Exception {
-        System.out.println("🔄 开始手动执行数据库更新...");
-
-        try {
-            List<Poem> currentPoems = loadPoemsFromDatabase();
-            EmbeddingCacheManager.UpdateResult updateResult = cacheManager.checkAndUpdateCache(currentPoems, embeddingStore);
-
-            if (updateResult.type == EmbeddingCacheManager.UpdateType.NO_CHANGE) {
-                return "✅ 数据库无变化，无需更新";
-            }
-
-            if (updateResult.type == EmbeddingCacheManager.UpdateType.INCREMENTAL) {
-                cacheManager.performIncrementalUpdate(
-                        updateResult,
-                        embeddingStore,
-                        embeddingModel,
-                        this::buildPoemContent
-                );
-
-                return String.format("✅ 增量更新完成！新增 %d 首，修改 %d 首，删除 %d 首，API 消耗 %d 次",
-                        updateResult.newPoems.size(),
-                        updateResult.modifiedPoems.size(),
-                        updateResult.deletedPoemIds.size(),
-                        updateResult.newPoems.size() + updateResult.modifiedPoems.size());
-            }
-
-            if (updateResult.type == EmbeddingCacheManager.UpdateType.FULL_REBUILD) {
-                // 执行全量重建前，需要用户确认
-                return "⚠️ 检测到大量变化，需要全量重建。请使用 /ai/easy/force-rebuild 接口执行全量重建";
-            }
-
-            return "❓ 未知的更新类型";
-
-        } catch (Exception e) {
-            throw new RuntimeException("手动更新失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 处理诗词并保存到缓存
-     */
-    private void processAndCachePoems(List<Poem> poems) throws Exception {
-        int batchSize = 5; // 小批次处理
-        successfullyProcessed = 0;
-        int failedCount = 0;
-
-        for (int i = 0; i < poems.size(); i += batchSize) {
-            int endIndex = Math.min(i + batchSize, poems.size());
-            List<Poem> batch = poems.subList(i, endIndex);
-
-            for (Poem poem : batch) {
-                try {
-                    String content = buildPoemContent(poem);
-
-                    if (content.length() < 20) {
-                        System.out.println("⚠️ 跳过内容过短的诗词，PID: " + poem.getPID());
-                        continue;
-                    }
-
-                    // 创建元数据
-                    Map<String, String> metadataMap = new HashMap<>();
-                    metadataMap.put("poem_id", String.valueOf(poem.getPID()));
-                    metadataMap.put("title", poem.getTitle() != null ? poem.getTitle() : "");
-                    metadataMap.put("poet", poem.getPoet() != null ? poem.getPoet() : "");
-                    metadataMap.put("category", poem.getCategory() != null ? poem.getCategory() : "");
-
-                    Metadata metadata = Metadata.from(metadataMap);
-                    TextSegment segment = TextSegment.from(content, metadata);
-
-                    // 🔴 API 调用点 - 生成嵌入
-                    Response<Embedding> response = embeddingModel.embed(segment);
-                    Embedding embedding = response.content();
-                    embeddingStore.add(embedding, segment);
-
-                    // 💾 保存到缓存
-                    cacheManager.savePoemCache(poem, content, embedding.vector(), metadataMap);
-
-                    successfullyProcessed++;
-
-                    // API 限制延迟
-                    Thread.sleep(100);
-
-                } catch (Exception e) {
-                    failedCount++;
-                    System.err.println("❌ 处理诗词失败，ID: " + poem.getPID() + ", 错误: " + e.getMessage());
-
-                    // 如果失败太多，暂停一下
-                    if (failedCount % 10 == 0) {
-                        System.out.println("⚠️ 失败次数较多，暂停5秒...");
-                        Thread.sleep(5000);
-                    }
-                }
-            }
-
-            // 显示进度
-            double progress = (double) (i + batch.size()) / poems.size() * 100;
-            System.out.printf("⚡ 处理进度: %d/%d (%.1f%%) - 成功: %d, 失败: %d, API已消耗: %d\n",
-                    i + batch.size(), poems.size(), progress,
-                    successfullyProcessed, failedCount, successfullyProcessed);
-
-            // 批次间延迟
-            if (endIndex < poems.size()) {
-                Thread.sleep(1000);
-            }
-        }
-    }
-
-    /**
-     * 获取缓存统计信息
-     */
-    public Map<String, Object> getCacheStatistics() {
-        return cacheManager.getCacheStatistics();
-    }
-
-    /**
-     * 清理缓存
-     */
-    public void clearCache() {
+    public void clearCache() throws Exception {
         cacheManager.clearCache();
         isInitialized = false;
         successfullyProcessed = 0;
-        System.out.println("🗑️ 缓存已清理，需要重新初始化");
+        System.out.println("🗑️ 缓存已清理，系统需要重新初始化");
     }
 
-    // ...existing methods...
-    // (保留你现有的所有方法，如 chat、testDatabaseConnection 等)
+
 
     /**
      * 测试数据库连接 - 公开方法
@@ -339,20 +339,30 @@ public class EasyRAGService extends ConnetMySQL {
             // 2. 搜索相关内容 - 使用新的 API
             EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                     .queryEmbedding(queryEmbedding)
-                    .maxResults(3)
+                    .maxResults(5) // 🔧 增加搜索数量，因为可能有失败的
                     .minScore(0.6)
                     .build();
 
             EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
             List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
 
-            // 3. 构建上下文
+// 3. 🆕 过滤掉失败的缓存文件对应的结果
+            List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+            for (EmbeddingMatch<TextSegment> match : matches) {
+                String poemId = match.embedded().metadata().getString("poem_id");
+                if (poemId != null && isValidCache(poemId)) {
+                    validMatches.add(match);
+                    if (validMatches.size() >= 3) break; // 只要3个有效结果
+                }
+            }
+
+// 4. 构建上下文
             StringBuilder context = new StringBuilder();
-            if (!matches.isEmpty()) {
+            if (!validMatches.isEmpty()) {
                 context.append("相关诗词资料：\n\n");
 
-                for (int i = 0; i < matches.size(); i++) {
-                    TextSegment segment = matches.get(i).embedded();
+                for (int i = 0; i < validMatches.size(); i++) {
+                    TextSegment segment = validMatches.get(i).embedded();
                     context.append("【资料").append(i + 1).append("】\n");
                     context.append(segment.text()).append("\n\n");
                 }
@@ -360,10 +370,10 @@ public class EasyRAGService extends ConnetMySQL {
                 context.append("未找到直接相关的诗词资料。");
             }
 
-            // 4. 构建完整提示
+            // 5. 构建完整提示
             String prompt = buildPrompt(userMessage, context.toString());
 
-            // 5. 调用千问模型生成回答
+            // 6. 调用千问模型生成回答
             String response = chatLanguageModel.generate(prompt);
 
             System.out.println("✅ Easy RAG 响应生成完成");
@@ -431,7 +441,7 @@ public class EasyRAGService extends ConnetMySQL {
     /**
      * 构建诗词内容
      */
-    private String buildPoemContent(Poem poem) {
+    public String buildPoemContent(Poem poem) {
         StringBuilder content = new StringBuilder();
 
         content.append("标题：").append(poem.getTitle() != null ? poem.getTitle() : "无标题").append("\n");
@@ -488,7 +498,7 @@ public class EasyRAGService extends ConnetMySQL {
             PoemGetMapper mapper = session.getMapper(PoemGetMapper.class);
 
             // 获取总数
-            int totalCount = mapper.countAllPoems();
+            int totalCount = mapper.countAllPoems(); // 你需要在 Mapper 中添加这个方法
             System.out.println("📊 数据库中诗词总数: " + totalCount);
 
             // 获取所有诗词
@@ -553,4 +563,9 @@ public class EasyRAGService extends ConnetMySQL {
             throw new RuntimeException("聊天 API 测试失败: " + e.getMessage());
         }
     }
+
+    /**
+     * 🆕 保存诗词缓存（包含失败状态）
+     */
+
 }
