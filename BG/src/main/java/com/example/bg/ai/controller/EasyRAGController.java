@@ -401,5 +401,23 @@ public class EasyRAGController extends ConnetMySQL {
         }
     }
 
+    @GetMapping("/cache/debug")
+    @Operation(summary = "调试缓存状态")
+    public ResponseEntity<Map<String, Object>> debugCache() {
+        Map<String, Object> response = new HashMap<>();
 
+        try {
+            // 调用调试方法
+            easyRAGService.getCacheManager().debugCacheStatus();
+
+            response.put("success", true);
+            response.put("message", "调试信息已输出到控制台");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
 }

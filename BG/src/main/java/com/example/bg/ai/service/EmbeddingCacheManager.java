@@ -168,123 +168,9 @@ public class EmbeddingCacheManager {
         System.out.println("📁 缓存目录初始化完成: " + new File(CACHE_BASE_DIR).getAbsolutePath());
     }
 
-    /**
-     * 检查缓存是否有效
-     */
-    public boolean isCacheValid(List<Poem> currentPoems) {
-        try {
-            CacheInfo cacheInfo = loadCacheInfo();
-            if (cacheInfo == null) {
-                System.out.println("📝 无缓存信息文件");
-                return false;
-            }
 
-            String currentDataHash = calculateDataHash(currentPoems);
 
-            // 检查诗词数量
-            if (cacheInfo.totalPoems != currentPoems.size()) {
-                System.out.println("📊 诗词数量变化：缓存 " + cacheInfo.totalPoems +
-                        " 首，当前 " + currentPoems.size() + " 首");
-                return false;
-            }
 
-            // 检查数据哈希
-            if (!currentDataHash.equals(cacheInfo.dataHash)) {
-                System.out.println("🔄 数据内容发生变化");
-                return false;
-            }
-
-            // 检查缓存文件完整性
-            File embeddingsDir = new File(EMBEDDINGS_DIR);
-            if (!embeddingsDir.exists()) {
-                System.out.println("📁 缓存目录不存在");
-                return false;
-            }
-
-            File[] cacheFiles = embeddingsDir.listFiles((dir, name) -> name.endsWith(".json"));
-            if (cacheFiles == null || cacheFiles.length == 0) {
-                System.out.println("📄 缓存文件为空");
-                return false;
-            }
-
-            if (cacheFiles.length < cacheInfo.processedCount) {
-                System.out.println("📉 缓存文件数量不匹配：期望 " + cacheInfo.processedCount +
-                        "，实际 " + cacheFiles.length);
-                return false;
-            }
-
-            System.out.println("✅ 缓存有效，可以使用");
-            return true;
-
-        } catch (Exception e) {
-            System.err.println("❌ 缓存有效性检查失败: " + e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 检查数据库更新并执行增量处理 - 修复版本
-     */
-    public UpdateResult checkAndUpdateCache(List<Poem> currentPoems, EmbeddingStore<TextSegment> embeddingStore) {
-        try {
-            CacheInfo cacheInfo = loadCacheInfo();
-
-            if (cacheInfo == null) {
-                System.out.println("🆕 无缓存信息，需要全量处理");
-                return UpdateResult.forFullRebuild(currentPoems);
-            }
-
-            // 1. 分析数据库变化
-            Set<Integer> currentPoemIds = new HashSet<>();
-
-            for (Poem poem : currentPoems) {
-                currentPoemIds.add(poem.getPID());
-            }
-
-            // 2. 找出新增的诗词
-            List<Poem> newPoems = new ArrayList<>();
-            for (Poem poem : currentPoems) {
-                if (!cacheInfo.cachedPoemIds.contains(poem.getPID())) {
-                    newPoems.add(poem);
-                }
-            }
-
-            // 3. 找出删除的诗词
-            List<Integer> deletedPoemIds = new ArrayList<>();
-            for (Integer cachedId : cacheInfo.cachedPoemIds) {
-                if (!currentPoemIds.contains(cachedId)) {
-                    deletedPoemIds.add(cachedId);
-                }
-            }
-
-            // 4. 检查修改的诗词（简单版本：暂时跳过）
-            List<Poem> modifiedPoems = new ArrayList<>();
-
-            // 5. 决定更新策略
-            if (newPoems.isEmpty() && deletedPoemIds.isEmpty() && modifiedPoems.isEmpty()) {
-                System.out.println("✅ 数据库无变化，使用现有缓存");
-                return UpdateResult.forNoChange();
-            }
-
-            // 6. 如果变化太大，执行全量重建
-            double changeRatio = (double)(newPoems.size() + deletedPoemIds.size() + modifiedPoems.size()) / cacheInfo.totalPoems;
-            if (changeRatio > 0.3) { // 变化超过30%
-                System.out.println("🔄 数据变化较大(" + String.format("%.1f", changeRatio * 100) + "%)，执行全量重建");
-                return UpdateResult.forFullRebuild(currentPoems);
-            }
-
-            // 7. 执行增量更新
-            System.out.println("⚡ 检测到增量变化：新增 " + newPoems.size() +
-                    " 首，删除 " + deletedPoemIds.size() +
-                    " 首，修改 " + modifiedPoems.size() + " 首");
-
-            return UpdateResult.forIncremental(newPoems, modifiedPoems, deletedPoemIds);
-
-        } catch (Exception e) {
-            System.err.println("❌ 缓存更新检查失败: " + e.getMessage());
-            return UpdateResult.forFullRebuild(currentPoems);
-        }
-    }
 
     /**
      * 执行增量缓存更新 - 修复版本
@@ -292,7 +178,8 @@ public class EmbeddingCacheManager {
     public void performIncrementalUpdate(UpdateResult updateResult,
                                          EmbeddingStore<TextSegment> embeddingStore,
                                          EmbeddingModel embeddingModel,
-                                         java.util.function.Function<Poem, String> contentBuilder) throws Exception {
+                                         java.util.function.Function<Poem, String> contentBuilder,
+                                         List<Poem> currentPoems) throws Exception { // 🆕 添加当前诗词列表参数
 
         if (updateResult.type != UpdateType.INCREMENTAL) {
             throw new IllegalArgumentException("只能对增量更新类型执行此操作，当前类型: " + updateResult.type);
@@ -304,6 +191,8 @@ public class EmbeddingCacheManager {
         }
 
         int apiCallsUsed = 0;
+        int successfullyProcessed = 0;
+        int failed = 0;
 
         System.out.println("🔄 开始执行增量更新...");
         System.out.println("📊 变化统计：" + updateResult.toString());
@@ -320,8 +209,18 @@ public class EmbeddingCacheManager {
         for (Poem newPoem : updateResult.newPoems) {
             try {
                 String content = contentBuilder.apply(newPoem);
+
+                // 🔧 长度检查和截断
+                if (content.length() > 2048) {
+                    content = content.substring(0, 2045) + "...";
+                }
+
                 if (content.length() < 20) {
                     System.out.println("⚠️ 跳过内容过短的诗词，PID: " + newPoem.getPID());
+                    // 🔧 仍然保存失败状态的缓存
+                    savePoemCache(newPoem, content, null, new HashMap<>());
+                    cacheInfo.cachedPoemIds.add(newPoem.getPID());
+                    failed++;
                     continue;
                 }
 
@@ -335,10 +234,11 @@ public class EmbeddingCacheManager {
                 Embedding embedding = response.content();
                 embeddingStore.add(embedding, segment);
 
-                // 保存到缓存
+                // 保存成功的缓存
                 savePoemCache(newPoem, content, embedding.vector(), metadataMap);
                 cacheInfo.cachedPoemIds.add(newPoem.getPID());
                 apiCallsUsed++;
+                successfullyProcessed++;
 
                 System.out.println("➕ 新增缓存：《" + (newPoem.getTitle() != null ? newPoem.getTitle() : "无标题") + "》");
 
@@ -346,6 +246,10 @@ public class EmbeddingCacheManager {
                 Thread.sleep(100);
 
             } catch (Exception e) {
+                // 🔧 保存失败状态的缓存
+                savePoemCache(newPoem, contentBuilder.apply(newPoem), null, new HashMap<>());
+                cacheInfo.cachedPoemIds.add(newPoem.getPID());
+                failed++;
                 System.err.println("❌ 处理新增诗词失败，ID: " + newPoem.getPID() + ", 错误: " + e.getMessage());
             }
         }
@@ -355,11 +259,19 @@ public class EmbeddingCacheManager {
             try {
                 // 删除旧缓存
                 deleteCacheFile(modifiedPoem.getPID());
-                cacheInfo.cachedPoemIds.remove(modifiedPoem.getPID());
 
                 String content = contentBuilder.apply(modifiedPoem);
+
+                // 🔧 长度检查和截断
+                if (content.length() > 2048) {
+                    content = content.substring(0, 2045) + "...";
+                }
+
                 if (content.length() < 20) {
                     System.out.println("⚠️ 跳过内容过短的修改诗词，PID: " + modifiedPoem.getPID());
+                    // 🔧 保存失败状态的缓存
+                    savePoemCache(modifiedPoem, content, null, new HashMap<>());
+                    failed++;
                     continue;
                 }
 
@@ -373,38 +285,46 @@ public class EmbeddingCacheManager {
                 Embedding embedding = response.content();
                 embeddingStore.add(embedding, segment);
 
-                // 保存到缓存
+                // 保存成功的缓存
                 savePoemCache(modifiedPoem, content, embedding.vector(), metadataMap);
-                cacheInfo.cachedPoemIds.add(modifiedPoem.getPID());
 
                 apiCallsUsed++;
+                successfullyProcessed++;
                 System.out.println("🔄 更新缓存：《" + (modifiedPoem.getTitle() != null ? modifiedPoem.getTitle() : "无标题") + "》");
 
                 Thread.sleep(100);
 
             } catch (Exception e) {
+                // 🔧 保存失败状态的缓存
+                savePoemCache(modifiedPoem, contentBuilder.apply(modifiedPoem), null, new HashMap<>());
+                failed++;
                 System.err.println("❌ 处理修改诗词失败，ID: " + modifiedPoem.getPID() + ", 错误: " + e.getMessage());
             }
         }
 
-        // 4. 更新缓存信息
-        cacheInfo.processedCount = cacheInfo.cachedPoemIds.size();
+        // 4. 🔧 完整更新缓存信息
         cacheInfo.lastUpdateTime = System.currentTimeMillis();
         cacheInfo.lastDatabaseCheckTime = System.currentTimeMillis();
 
-        // 重新计算总数（考虑删除的情况）
-        // 这里简化处理，实际应该重新查询数据库
-        cacheInfo.totalPoems = cacheInfo.processedCount;
+// 🔧 修复：确保统计信息与数据库同步
+        cacheInfo.totalPoems = currentPoems.size();           // 数据库当前总数
+        cacheInfo.processedCount = currentPoems.size();       // 设为总数（包含失败的）
+        cacheInfo.dataHash = calculateDataHash(currentPoems); // 重新计算哈希
 
         saveCacheInfo(cacheInfo);
 
         System.out.println("✅ 增量更新完成！");
         System.out.println("📊 最终统计：");
         System.out.println("  • API 调用次数: " + apiCallsUsed);
+        System.out.println("  • 成功处理: " + successfullyProcessed + " 首");
+        System.out.println("  • 失败处理: " + failed + " 首");
         System.out.println("  • 新增处理: " + updateResult.newPoems.size() + " 首");
         System.out.println("  • 修改处理: " + updateResult.modifiedPoems.size() + " 首");
         System.out.println("  • 删除处理: " + updateResult.deletedPoemIds.size() + " 首");
-        System.out.println("  • 当前缓存总数: " + cacheInfo.cachedPoemIds.size() + " 首");
+        System.out.println("  • 🔧 数据库总数: " + currentPoems.size() + " 首");
+        System.out.println("  • 🔧 缓存记录总数: " + cacheInfo.totalPoems + " 首");
+        System.out.println("  • 🔧 处理计数: " + cacheInfo.processedCount + " 首");
+        System.out.println("  • 当前缓存ID数: " + cacheInfo.cachedPoemIds.size() + " 首");
     }
 
     /**
@@ -461,7 +381,7 @@ public class EmbeddingCacheManager {
     }
 
     /**
-     * 保存单个诗词的向量到缓存
+     * 保存单个诗词的向量到缓存（支持失败状态）
      */
     public void savePoemCache(Poem poem, String content, float[] vector, Map<String, String> metadata) {
         try {
@@ -469,13 +389,17 @@ public class EmbeddingCacheManager {
                     poem.getPID(),
                     poem.getTitle(),
                     poem.getPoet(),
-                    vector,
+                    vector,  // 🔧 如果失败，vector 为 null
                     content,
                     metadata
             );
 
             String fileName = EMBEDDINGS_DIR + "/poem_" + poem.getPID() + ".json";
             objectMapper.writeValue(new File(fileName), cache);
+
+            if (vector == null) {
+                System.out.println("⚠️ 保存失败状态缓存: PID " + poem.getPID());
+            }
 
         } catch (Exception e) {
             System.err.println("❌ 保存诗词缓存失败, PID: " + poem.getPID() + ", 错误: " + e.getMessage());
@@ -510,17 +434,41 @@ public class EmbeddingCacheManager {
     }
 
     /**
-     * 加载缓存信息
+     * 🔧 修复版：加载缓存信息
      */
     public CacheInfo loadCacheInfo() {
         try {
             File file = new File(CACHE_INFO_FILE);
+            System.out.println("🔍 尝试加载缓存信息文件: " + file.getAbsolutePath());
+
             if (!file.exists()) {
+                System.out.println("📝 缓存信息文件不存在: " + file.getAbsolutePath());
                 return null;
             }
-            return objectMapper.readValue(file, CacheInfo.class);
+
+            if (file.length() == 0) {
+                System.out.println("📝 缓存信息文件为空: " + file.getAbsolutePath());
+                return null;
+            }
+
+            System.out.println("📄 缓存信息文件存在，大小: " + file.length() + " 字节");
+
+            CacheInfo cacheInfo = objectMapper.readValue(file, CacheInfo.class);
+
+            // 🆕 验证加载的数据
+            if (cacheInfo != null) {
+                System.out.println("✅ 缓存信息加载成功:");
+                System.out.println("  • 总诗词数: " + cacheInfo.totalPoems);
+                System.out.println("  • 已处理数: " + cacheInfo.processedCount);
+                System.out.println("  • 缓存ID数量: " + (cacheInfo.cachedPoemIds != null ? cacheInfo.cachedPoemIds.size() : 0));
+                System.out.println("  • 最后更新: " + new java.util.Date(cacheInfo.lastUpdateTime));
+            }
+
+            return cacheInfo;
+
         } catch (Exception e) {
             System.err.println("❌ 缓存信息加载失败: " + e.getMessage());
+            e.printStackTrace(); // 🆕 添加详细错误信息
             return null;
         }
     }
@@ -540,28 +488,55 @@ public class EmbeddingCacheManager {
     }
 
     /**
-     * 保存缓存信息（重载方法）
+     * 🔧 修复版：保存缓存信息（重载方法）
+     */
+    /**
+     * 🔧 修复版：保存缓存信息（包含失败的诗词）
+     */
+    /**
+     * 🔧 修复版：保存缓存信息（确保与数据库同步）
      */
     public void saveCacheInfo(List<Poem> poems, int processedCount) {
         try {
+            System.out.println("🔧 开始保存缓存信息...");
+            System.out.println("  • 数据库诗词总数: " + poems.size());
+            System.out.println("  • 实际成功处理数: " + processedCount);
+
             String dataHash = calculateDataHash(poems);
             CacheInfo cacheInfo = new CacheInfo(
-                    poems.size(),
+                    poems.size(),        // totalPoems = 数据库总数
                     System.currentTimeMillis(),
                     dataHash,
-                    processedCount
+                    poems.size()         // 🔧 processedCount = 数据库总数（这样缓存检查不会失败）
             );
 
-            // 添加已处理的诗词ID
-            for (int i = 0; i < Math.min(processedCount, poems.size()); i++) {
-                cacheInfo.cachedPoemIds.add(poems.get(i).getPID());
+            // 添加所有诗词ID
+            cacheInfo.cachedPoemIds.clear();
+            for (Poem poem : poems) {
+                cacheInfo.cachedPoemIds.add(poem.getPID());
             }
 
-            objectMapper.writeValue(new File(CACHE_INFO_FILE), cacheInfo);
-            System.out.println("💾 缓存信息已保存 - 总数: " + poems.size() + ", 已处理: " + processedCount);
+            System.out.println("  • 🔧 totalPoems: " + cacheInfo.totalPoems);
+            System.out.println("  • 🔧 processedCount: " + cacheInfo.processedCount);
+            System.out.println("  • 缓存ID数量: " + cacheInfo.cachedPoemIds.size());
+            System.out.println("  • 数据哈希: " + dataHash);
+
+            // 确保目录存在
+            Files.createDirectories(Paths.get(CACHE_BASE_DIR));
+
+            File cacheFile = new File(CACHE_INFO_FILE);
+            objectMapper.writeValue(cacheFile, cacheInfo);
+
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                System.out.println("✅ 缓存信息文件保存成功！文件大小: " + cacheFile.length() + " 字节");
+                System.out.println("📊 记录全部 " + poems.size() + " 首诗词");
+            } else {
+                System.err.println("❌ 缓存信息文件保存失败或文件为空！");
+            }
 
         } catch (Exception e) {
             System.err.println("❌ 缓存信息保存失败: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -629,9 +604,43 @@ public class EmbeddingCacheManager {
     }
 
     /**
+     * 🆕 调试方法：检查缓存文件状态
+     */
+    public void debugCacheStatus() {
+        System.out.println("\n🔍 === 缓存状态诊断 ===");
+
+        // 检查基础目录
+        File baseDir = new File(CACHE_BASE_DIR);
+        System.out.println("📁 基础目录: " + baseDir.getAbsolutePath());
+        System.out.println("   存在: " + baseDir.exists());
+        System.out.println("   可读: " + baseDir.canRead());
+        System.out.println("   可写: " + baseDir.canWrite());
+
+        // 检查嵌入目录
+        File embeddingsDir = new File(EMBEDDINGS_DIR);
+        System.out.println("📁 嵌入目录: " + embeddingsDir.getAbsolutePath());
+        System.out.println("   存在: " + embeddingsDir.exists());
+        if (embeddingsDir.exists()) {
+            File[] files = embeddingsDir.listFiles((dir, name) -> name.endsWith(".json"));
+            System.out.println("   JSON文件数: " + (files != null ? files.length : 0));
+        }
+
+        // 检查缓存信息文件
+        File cacheInfoFile = new File(CACHE_INFO_FILE);
+        System.out.println("📄 缓存信息文件: " + cacheInfoFile.getAbsolutePath());
+        System.out.println("   存在: " + cacheInfoFile.exists());
+        if (cacheInfoFile.exists()) {
+            System.out.println("   大小: " + cacheInfoFile.length() + " 字节");
+            System.out.println("   最后修改: " + new java.util.Date(cacheInfoFile.lastModified()));
+        }
+
+        System.out.println("=== 诊断结束 ===\n");
+    }
+
+    /**
      * 计算数据哈希值（用于检测数据变化）
      */
-    private String calculateDataHash(List<Poem> poems) {
+    public String calculateDataHash(List<Poem> poems) {
         try {
             StringBuilder sb = new StringBuilder();
 
@@ -665,4 +674,126 @@ public class EmbeddingCacheManager {
             return "unknown_" + System.currentTimeMillis();
         }
     }
+
+    /**
+     * 🎯 简化的缓存检查：确保不会误判
+     */
+    public boolean isCacheValid(List<Poem> currentPoems) {
+        try {
+            CacheInfo cacheInfo = loadCacheInfo();
+            if (cacheInfo == null) {
+                System.out.println("📝 无缓存信息文件");
+                return false;
+            }
+
+            // 🔧 只检查总数是否匹配
+            if (cacheInfo.totalPoems != currentPoems.size()) {
+                System.out.println("📊 诗词数量变化：缓存 " + cacheInfo.totalPoems +
+                        " 首，当前 " + currentPoems.size() + " 首");
+                return false;
+            }
+
+            // 🔧 只检查ID集合是否匹配
+            Set<Integer> currentIds = new HashSet<>();
+            for (Poem poem : currentPoems) {
+                currentIds.add(poem.getPID());
+            }
+
+            if (!currentIds.equals(cacheInfo.cachedPoemIds)) {
+                System.out.println("🔄 诗词ID集合发生变化");
+                return false;
+            }
+
+            // 检查缓存目录是否存在
+            File embeddingsDir = new File(EMBEDDINGS_DIR);
+            if (!embeddingsDir.exists()) {
+                System.out.println("📁 缓存目录不存在");
+                return false;
+            }
+
+            File[] cacheFiles = embeddingsDir.listFiles((dir, name) -> name.endsWith(".json"));
+            if (cacheFiles == null || cacheFiles.length == 0) {
+                System.out.println("📄 缓存文件为空");
+                return false;
+            }
+
+            // 🔧 宽松检查：只要文件数量大于总数的80%就认为有效
+            if (cacheFiles.length < currentPoems.size() * 0.8) {
+                System.out.println("📉 缓存文件数量太少：期望约 " + currentPoems.size() +
+                        "，实际 " + cacheFiles.length);
+                return false;
+            }
+
+            System.out.println("✅ 缓存有效，可以使用");
+            return true;
+
+        } catch (Exception e) {
+            System.err.println("❌ 缓存有效性检查失败: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 🎯 简化的更新检查：只比较ID集合
+     */
+    public UpdateResult checkAndUpdateCache(List<Poem> currentPoems, EmbeddingStore<TextSegment> embeddingStore) {
+        try {
+            CacheInfo cacheInfo = loadCacheInfo();
+
+            if (cacheInfo == null) {
+                System.out.println("🆕 无缓存信息，需要全量处理");
+                return UpdateResult.forFullRebuild(currentPoems);
+            }
+
+            // 🎯 只比较ID集合，忽略其他变化
+            Set<Integer> currentPoemIds = new HashSet<>();
+            for (Poem poem : currentPoems) {
+                currentPoemIds.add(poem.getPID());
+            }
+
+            // 检查是否完全相同
+            if (currentPoemIds.equals(cacheInfo.cachedPoemIds) && currentPoems.size() == cacheInfo.totalPoems) {
+                System.out.println("✅ 诗词ID集合无变化，使用现有缓存");
+                return UpdateResult.forNoChange();
+            }
+
+            // 找出新增的诗词
+            List<Poem> newPoems = new ArrayList<>();
+            for (Poem poem : currentPoems) {
+                if (!cacheInfo.cachedPoemIds.contains(poem.getPID())) {
+                    newPoems.add(poem);
+                }
+            }
+
+            // 找出删除的诗词
+            List<Integer> deletedPoemIds = new ArrayList<>();
+            for (Integer cachedId : cacheInfo.cachedPoemIds) {
+                if (!currentPoemIds.contains(cachedId)) {
+                    deletedPoemIds.add(cachedId);
+                }
+            }
+
+            // 决定更新策略
+            if (newPoems.isEmpty() && deletedPoemIds.isEmpty()) {
+                return UpdateResult.forNoChange();
+            }
+
+            // 如果变化太大，执行全量重建
+            double changeRatio = (double)(newPoems.size() + deletedPoemIds.size()) / Math.max(cacheInfo.totalPoems, 1);
+            if (changeRatio > 0.3) {
+                System.out.println("🔄 数据变化较大(" + String.format("%.1f", changeRatio * 100) + "%)，执行全量重建");
+                return UpdateResult.forFullRebuild(currentPoems);
+            }
+
+            // 执行增量更新
+            System.out.println("⚡ 检测到增量变化：新增 " + newPoems.size() + " 首，删除 " + deletedPoemIds.size() + " 首");
+            return UpdateResult.forIncremental(newPoems, new ArrayList<>(), deletedPoemIds);
+
+        } catch (Exception e) {
+            System.err.println("❌ 缓存更新检查失败: " + e.getMessage());
+            return UpdateResult.forFullRebuild(currentPoems);
+        }
+    }
+
+
 }
