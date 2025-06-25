@@ -2,11 +2,12 @@ package com.example.bg.Comment;
 
 import com.example.bg.ConnetMySQL;
 import com.example.bg.ID.IDsGetMapper;
+import com.example.bg.RedisService.RedisCommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
-import org.springframework.boot.actuate.autoconfigure.tracing.OpenTelemetryEventPublisherBeansTestExecutionListener;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -33,25 +34,25 @@ import java.util.stream.Collectors;
 )
 @RestController
 @RequestMapping(value = "/comment")
-public class CommentOp extends ConnetMySQL {
+public class CommentController extends ConnetMySQL {
+    @Autowired
+    private RedisCommentService redisCommentService;
     @GetMapping("/init")
     @Operation(summary = "初始化，返回所有评论树的根节点对象")
     public List<Comment>Init()
     {
-        List<Comment>ans;
-        try {
-            List<Integer>tmp;
-            InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
-            SqlSession session=getSession(in);
-            CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
-            tmp=commentOpMapper.Init();
-            ans=commentOpMapper.getComment(tmp);
-            in.close();
-            session.close();
+        List<Comment> cachedRoots = redisCommentService.getCachedRoots();
+        if (cachedRoots != null) return cachedRoots;
+        try (InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
+             SqlSession session = getSession(in)) {
+            CommentOpMapper commentOpMapper = session.getMapper(CommentOpMapper.class);
+            List<Integer> tmp = commentOpMapper.Init();
+            List<Comment> ans = commentOpMapper.getComment(tmp);
+
+            redisCommentService.cacheRootComments(ans);
             return ans;
-        }catch (Exception e){
-            e.printStackTrace();
-            throw new RuntimeException("error:"+e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException("error:" + e.getMessage());
         }
     }
     public List<Integer> getAllChild(int CID){
@@ -86,6 +87,8 @@ public class CommentOp extends ConnetMySQL {
             commentOpMapper.delComment(tmp);
             commentOpMapper.delCommentAbout(tmp);
             session.commit();
+            redisCommentService.evictTreeCache(cid);
+            redisCommentService.evictRootCache();
             in.close();
             session.close();
         }catch (Exception e){
@@ -96,19 +99,18 @@ public class CommentOp extends ConnetMySQL {
     @GetMapping("/open_comment/{cid}")
     @Operation(summary = "返回这个评论树id")
     public List<Comment> getCommentTree(@PathVariable int cid)throws IOException{
-        try {
-            List<Comment>ans;
-            InputStream in= Resources.getResourceAsStream("SqlMapConfig.xml");//这里都一样的
-            SqlSession session=getSession(in);
-            CommentOpMapper commentOpMapper=session.getMapper(CommentOpMapper.class);
-            ans=commentOpMapper.getComment(getAllChild(cid));
-            in.close();
-            session.close();
-            ans=ans.subList(1,ans.size());
-            return ans;
-        }catch (Exception e){
-            e.printStackTrace();
-            throw new RuntimeException("error:"+e.getMessage());
+        List<Comment> cachedTree = redisCommentService.getCachedTree(cid);
+        if (cachedTree != null) return cachedTree.subList(1,  cachedTree.size());
+
+        try (InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
+             SqlSession session = getSession(in)) {
+            CommentOpMapper commentOpMapper = session.getMapper(CommentOpMapper.class);
+            List<Comment> ans = commentOpMapper.getComment(getAllChild(cid));
+
+            redisCommentService.cacheCommentTree(cid,  ans);
+            return ans.subList(1,  ans.size());
+        } catch (Exception e) {
+            throw new RuntimeException("error:" + e.getMessage());
         }
     }
     @PostMapping("/addComment")
@@ -164,7 +166,11 @@ public class CommentOp extends ConnetMySQL {
 
             // 4.3 提交事务
             session.commit();
-
+            if (comment.parentID  == 0) {
+                redisCommentService.evictRootCache();
+            } else {
+                redisCommentService.evictTreeCache(comment.parentID);
+            }
             session.close();
             in.close();
             // ===== 5. 构建响应 =====

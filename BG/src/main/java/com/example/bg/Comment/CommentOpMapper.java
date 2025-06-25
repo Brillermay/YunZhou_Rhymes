@@ -1,6 +1,8 @@
 package com.example.bg.Comment;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
@@ -8,7 +10,8 @@ import java.util.List;
 //初始化时调用getComment(Init())，渲染所有贴子
 //然后查找时调用getComment(OpenComment(id))，比如传入某一个的回帖id
 
-
+@Mapper
+@Repository
 public interface CommentOpMapper {
     List<Comment> getComment(List<Integer> CIDs);//传入CIDs返回Comment类的列表
     void delComment(List<Integer> CIDs);

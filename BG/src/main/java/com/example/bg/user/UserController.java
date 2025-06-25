@@ -24,7 +24,7 @@ import java.util.UUID;
 )
 @RestController
 @RequestMapping("/user")
-public class UserAdd {
+public class UserController {
 
     @Autowired
     private UserMapper userMapper;
@@ -58,7 +58,7 @@ public class UserAdd {
         String password = request.get("PassWord");
         // 创建Token时必须传递username
         UsernamePasswordToken token = new UsernamePasswordToken(username, password);
-        System.out.println("Controller 层收到用户名：" + username);
+        //System.out.println("Controller 层收到用户名：" + username);
         try {
             subject.login(token);
             return "登录成功";

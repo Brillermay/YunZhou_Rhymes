@@ -43,7 +43,7 @@ public class ShiroConfig {
     public RedisManager redisManager() {
         RedisManager manager = new RedisManager();
         manager.setHost(redisHost  + ":" + redisPort);
-//        manager.setPassword(redisPassword);
+//      manager.setPassword(redisPassword);
         manager.setTimeout(2000);
         return manager;
     }
@@ -117,12 +117,4 @@ public class ShiroConfig {
 
         return filter;
     }
-//    @Bean
-//    @DependsOn("securityManager")
-//    public MethodInvokingFactoryBean methodInvokingFactoryBean(SecurityManager securityManager) {
-//        MethodInvokingFactoryBean factoryBean = new MethodInvokingFactoryBean();
-//        factoryBean.setStaticMethod("org.apache.shiro.SecurityUtils.setSecurityManager");
-//        factoryBean.setArguments(new  Object[]{securityManager});
-//        return factoryBean;
-//    }
 }
