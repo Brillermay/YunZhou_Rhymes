@@ -3,6 +3,8 @@ package com.example.bg.ai.config;
 import dev.langchain4j.community.model.dashscope.QwenChatModel;
 import dev.langchain4j.community.model.dashscope.QwenEmbeddingModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.community.model.dashscope.QwenStreamingChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
@@ -34,5 +36,13 @@ public class RAGConfig {
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
         return new InMemoryEmbeddingStore<>();
+    }
+
+    @Bean
+    public StreamingChatLanguageModel streamingChatLanguageModel() {
+        return QwenStreamingChatModel.builder()
+                .apiKey(QWEN_API_KEY)
+                .modelName("qwen-plus")
+                .build();
     }
 }

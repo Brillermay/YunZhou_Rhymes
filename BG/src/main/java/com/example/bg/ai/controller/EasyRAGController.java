@@ -6,8 +6,10 @@ import com.example.bg.poem.Poem;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -262,8 +264,6 @@ public class EasyRAGController extends ConnetMySQL {
         return ResponseEntity.ok(response);
     }
 
-    // ...existing code...
-
     @GetMapping("/test-api")
     @Operation(summary = "测试 API 连接")
     public ResponseEntity<Map<String, Object>> testAPI() {
@@ -290,8 +290,6 @@ public class EasyRAGController extends ConnetMySQL {
             return ResponseEntity.status(500).body(response);
         }
     }
-
-    // ...existing code... 在你现有的 Controller 中添加以下方法：
 
     @GetMapping("/cache/status")
     @Operation(summary = "获取缓存状态")
@@ -419,5 +417,26 @@ public class EasyRAGController extends ConnetMySQL {
             response.put("error", e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
+    }
+
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "Easy RAG 流式对话（SSE）")
+    public SseEmitter chatStream(@RequestBody Map<String, String> request) {
+        SseEmitter emitter = new SseEmitter(0L); // 永不超时
+        try {
+            String question = request.get("question");
+            if (question == null || question.trim().isEmpty()) {
+                emitter.send(SseEmitter.event().data("问题不能为空"));
+                emitter.complete();
+                return emitter;
+            }
+            easyRAGService.chatStream(question, emitter);
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().data("流式对话失败：" + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
     }
 }

@@ -31,6 +31,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 @Service
 public class EasyRAGService extends ConnetMySQL {
 
@@ -46,6 +50,9 @@ public class EasyRAGService extends ConnetMySQL {
     // 🆕 注入缓存管理器
     @Autowired
     private EmbeddingCacheManager cacheManager;
+
+    @Autowired
+    private StreamingChatLanguageModel streamingChatLanguageModel;
 
     private boolean isInitialized = false;
     private int successfullyProcessed = 0;
@@ -567,5 +574,72 @@ public class EasyRAGService extends ConnetMySQL {
     /**
      * 🆕 保存诗词缓存（包含失败状态）
      */
+    public void chatStream(String userMessage, SseEmitter emitter) throws Exception {
+        if (!isInitialized) {
+            initializeRAG();
+        }
 
+        // 构建上下文和 prompt，和 chat 方法一致
+        Response<Embedding> embeddingResponse = embeddingModel.embed(userMessage);
+        Embedding queryEmbedding = embeddingResponse.content();
+
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+        List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+
+        List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            String poemId = match.embedded().metadata().getString("poem_id");
+            if (poemId != null && isValidCache(poemId)) {
+                validMatches.add(match);
+                if (validMatches.size() >= 3) break;
+            }
+        }
+
+        StringBuilder context = new StringBuilder();
+        if (!validMatches.isEmpty()) {
+            context.append("相关诗词资料：\n\n");
+            for (int i = 0; i < validMatches.size(); i++) {
+                TextSegment segment = validMatches.get(i).embedded();
+                context.append("【资料").append(i + 1).append("】\n");
+                context.append(segment.text()).append("\n\n");
+            }
+        } else {
+            context.append("未找到直接相关的诗词资料。");
+        }
+
+        String prompt = buildPrompt(userMessage, context.toString());
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                }
+            }
+
+
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+            }
+        });
+    }
 }
