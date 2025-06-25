@@ -7,7 +7,7 @@
 
 
 <!--这里记得改，namespace就是文件夹名字-->
-<mapper namespace="com.example.bg.ID.IDsGetMapper">
+<mapper namespace="com.example.bg.comp.compRecOpMapper">
     <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
     <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
     <!--    <select id="findAll" resultType="com.example.demo.User">-->
@@ -25,4 +25,27 @@
     <!--        delete from user where id=#{id}-->
     <!--    </delete>-->
     <!--    这里就是函数的主功能，看下应该也能看懂-->
+
+<select id="getHistory" resultType="com.example.bg.comp.compRec">
+select * from record
+where UID = #{UID} AND Difficulty = #{Difficulty} AND Sum = #{Sum}
+</select>
+
+<update id="updateHistory">
+update record
+set Max=#{Max}, Mintime=#{Mintime}
+where UID = #{UID} AND Difficulty = #{Difficulty} AND Sum = #{Sum}
+</update>
+
+<insert id="addHistory">
+insert into record (UID, Difficulty, Sum, Max, Mintime)
+values (#{UID}, #{Difficulty}, #{Sum}, #{Max}, #{Mintime})
+</insert>
+
+<select id="getRank" resultType="com.example.bg.comp.compRec">
+select * from record
+where Difficulty = #{Difficulty} AND Sum = #{Sum}
+order by Max desc,Mintime asc
+</select>
+
 </mapper>
