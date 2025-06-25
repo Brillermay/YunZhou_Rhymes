@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.user.UserMapper">
+    <insert id="UserAdd" parameterType="com.example.bg.user.User">
+        INSERT INTO user (name, pwd,salt,status)
+        VALUES (#{name}, #{pwd},#{salt},#{status})
+    </insert>
+    <delete id="delUser" parameterType="int">
+        DELETE FROM user WHERE UID = #{UID}
+    </delete>
+
+    <select id="getName" resultType="java.lang.String">
+        select name from user where UID = #{UID}
+    </select>
+    <select id="getID" resultType="java.lang.Integer">
+        select UID
+        from user where name =#{name};
+    </select>
+    <select id="findByUsername" resultType="com.example.bg.user.User">
+        SELECT name, pwd, salt, status
+        FROM user WHERE name = #{name}
+    </select>
+</mapper>

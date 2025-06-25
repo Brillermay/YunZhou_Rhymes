@@ -30,9 +30,8 @@
 <!--        <mapper resource="com/example/demoapplication/GetClimateMapper.xml"/>-->
         <mapper resource="com/example/bg/poem/PoemGetMapper.xml"/>
         <mapper resource="com/example/bg/poem/PoetGetMapper.xml"/>
-        <mapper resource="com/example/bg/user/UserAddMapper.xml"/>
-        <mapper resource="com/example/bg/user/UserDelMapper.xml"/>
-        <mapper resource="com/example/bg/user/UserLoginMapper.xml"/>
+        <mapper resource="com/example/bg/user/UserMapper.xml"/>
+
         <mapper resource="com/example/bg/Comment/CommentOpMapper.xml"/>
         <mapper resource="com/example/bg/ID/IDsGetMapper.xml"/>
         <mapper resource="com/example/bg/testMapper.xml"/>

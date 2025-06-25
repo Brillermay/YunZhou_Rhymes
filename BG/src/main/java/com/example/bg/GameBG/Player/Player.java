@@ -8,11 +8,11 @@ import lombok.Data;
  * 考虑到一卡多用和卡组有多张卡片
  * 设计用户编号对应卡牌的列联表，包含
  *
- * UID       CID     NUM
+ * PID       CID     NUM
  * 用户ID    卡牌ID   数量
  *
  * 三项关键元素
- *
+ * 这里的PID既是存档名也是玩家ID
  * */
 
 
