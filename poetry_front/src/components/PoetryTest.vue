@@ -133,8 +133,10 @@
           </transition>
         </div>
 
-
         <div class="progress-container" v-if="!showStartScreen">
+          <div class="timer-box">
+            ⏱️ 用时：{{ formatTime(elapsedSeconds) }}
+          </div>
           <div class="progress-bar-bg">
             <div class="progress-bar-fg" :style="{ width: progressPercentage + '%' }"></div>
             <img src="../assets/image/imgtest/brush.png" alt="毛笔" class="brush"
@@ -199,30 +201,32 @@
         <h2>🏆排行榜<br>（{{ difficultyLabel(selectedDifficulty) }}，{{ selectedQuestionCount }}题）</h2>
         <div v-if="rankLoading" style="margin: 20px;">加载中...</div>
         <div v-else>
-          <table class="rank-table">
-            <thead>
-              <tr>
-                <th>排名</th>
-                <th>用户名</th>
-                <th>答题时间</th>
-                <th>最高分</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, idx) in rankList" :key="item.UID"
-                :class="['rank-row', { 'first': idx === 0, 'second': idx === 1, 'third': idx === 2 }]">
-                <td>
-                  <span v-if="idx === 0">🏅</span>
-                  <span v-else-if="idx === 1">🥈</span>
-                  <span v-else-if="idx === 2">🥉</span>
-                  <span v-else>{{ idx + 1 }}</span>
-                </td>
-                <td>{{ item.UserName }}</td>
-                <td>{{ formatTime(item.Mintime) }}</td>
-                <td>{{ item.Max }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="rank-table-scroll">
+            <table class="rank-table">
+              <thead>
+                <tr>
+                  <th>排名</th>
+                  <th>用户名</th>
+                  <th>答题时间</th>
+                  <th>最高分</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in rankList" :key="item.UID"
+                  :class="['rank-row', { 'first': idx === 0, 'second': idx === 1, 'third': idx === 2 }]">
+                  <td>
+                    <span v-if="idx === 0">🏅</span>
+                    <span v-else-if="idx === 1">🥈</span>
+                    <span v-else-if="idx === 2">🥉</span>
+                    <span v-else>{{ idx + 1 }}</span>
+                  </td>
+                  <td>{{ item.UserName }}</td>
+                  <td>{{ formatTime(item.Mintime) }}</td>
+                  <td>{{ item.Max }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           <div v-if="rankList.length === 0" style="margin: 20px;">暂无数据</div>
           <!-- 底部显示当前用户排名 -->
           <div v-if="myRankInfo" class="my-rank-info">
@@ -1183,7 +1187,6 @@ export default {
   position: fixed;
   width: 10em;
   height: 10em;
-  margin: 20px auto;
   z-index: 99;
   left: 1em;
 
@@ -1216,6 +1219,7 @@ export default {
     font-size: 20px;
     font-weight: bold;
     white-space: nowrap;
+    margin-top: 30px;
   }
 }
 
@@ -1259,7 +1263,7 @@ export default {
 
 .progress-container {
   text-align: center;
-  margin: 50px auto;
+  margin: 0px auto;
   width: 80%;
   position: relative;
 }
@@ -1270,6 +1274,7 @@ export default {
   border-radius: 15px;
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
   position: relative;
+  margin: 17px 0px;
 }
 
 .progress-bar-fg {
@@ -1953,5 +1958,23 @@ export default {
   padding: 2px 10px;
   border: 1.5px solid #f6df8e;
 }
-/* ...existing code... */
+
+.timer-box {
+  margin-top: 10px;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.7);
+  color: #6e5773;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 16px;
+  padding: 6px 22px;
+  box-shadow: 0 2px 8px rgba(31, 38, 135, 0.08);
+  letter-spacing: 1px;
+}
+.rank-table-scroll {
+  max-height: 560px; /* 7行，每行约60px，可根据实际行高微调 */
+  overflow-y: auto;
+  width: 100%;
+  margin-bottom: 10px;
+}
 </style>
