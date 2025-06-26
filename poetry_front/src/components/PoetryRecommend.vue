@@ -1,9 +1,11 @@
 <template>
   <div class="poetry-layout">
-    <!-- 标题部分不变 -->
+    <!-- 标题部分 - 添加overflow hidden容器 -->
     <header class="poetry-header">
-      <h1>瑶池集萃</h1>
-      <p class="subtitle">"翻阅古韵今朝读，妙句良篇入眼来"</p>
+      <div class="title-container">
+        <h1 ref="titleRef">瑶池集萃</h1>
+        <p ref="subtitleRef" class="subtitle">"翻阅古韵今朝读，妙句良篇入眼来"</p>
+      </div>
     </header>
     
     <main class="poetry-container">
@@ -47,15 +49,11 @@
                   <div class="poem-placeholder">敬请期待</div>
                 </template>
               </div>
-              <!-- 添加诗词背景和赏析信息 -->
+              <!-- 添加诗词背景信息 -->
               <div v-if="poem?.background" class="poem-info">
                 <h4>背景</h4>
                 <p>{{ poem.background }}</p>
               </div>
-<!--              <div v-if="poem?.appreciation" class="poem-info">-->
-<!--                <h4>赏析</h4>-->
-<!--                <p>{{ poem.appreciation }}</p>-->
-<!--              </div>-->
             </div>
           </div>
         </div>
@@ -84,14 +82,64 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
+import gsap from 'gsap';
 
-const MAX_POEMS = 10; // 改为10首
-const API_BASE_URL = 'http://localhost:8081/poem'; // 后端API地址
+// DOM 引用
+const titleRef = ref(null);
+const subtitleRef = ref(null);
+
+const MAX_POEMS = 10;
+const API_BASE_URL = 'http://localhost:8081/poem';
 const allPoems = reactive([]);
 const currentIndex = ref(0);
 const loading = ref(false);
 const error = ref('');
+
+// 标题下落动画
+const animateTitleDrop = () => {
+  const tl = gsap.timeline();
+  
+  // 初始状态：将标题和副标题移到容器上方（不可见区域）
+  gsap.set(titleRef.value, { 
+    y: -120, // 移到上方120px（完全看不见）
+    opacity: 0,
+    rotationX: -90 // 添加3D旋转效果
+  });
+  
+  gsap.set(subtitleRef.value, { 
+    y: -80,
+    opacity: 0,
+    scale: 0.8
+  });
+  
+  // 标题下落动画
+  tl.to(titleRef.value, {
+    y: 0,
+    opacity: 1,
+    rotationX: 0,
+    duration: 1.2,
+    ease: "bounce.out",
+    delay: 0.5
+  })
+  // 副标题跟随动画
+  .to(subtitleRef.value, {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    duration: 0.8,
+    ease: "back.out(1.7)"
+  }, "-=0.6"); // 在主标题动画进行到一半时开始
+  
+  // 添加一个轻微的浮动效果
+  tl.to([titleRef.value, subtitleRef.value], {
+    y: "+=5",
+    duration: 2,
+    ease: "power1.inOut",
+    yoyo: true,
+    repeat: -1
+  });
+};
 
 // 生成随机不重复的ID数组
 const generateRandomIds = (max, count) => {
@@ -102,25 +150,40 @@ const generateRandomIds = (max, count) => {
   return Array.from(ids);
 };
 
-// 格式化诗词文本（将长文本按句号、逗号等分行）
+// 格式化诗词文本
 const formatPoemText = (text) => {
   if (!text) return [];
-  // 按照诗词的标点符号分行
   return text.split(/[。！？；]/).filter(line => line.trim()).map(line => line.trim() + (line.includes('，') ? '' : ''));
 };
 
-// 从后端API获取诗词
+// 调用Spring Boot API获取单首诗词
 const fetchPoemById = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/${id}`);
+    console.log(`正在获取诗词ID: ${id}`);
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.error(`API请求失败，状态码: ${response.status}`);
+      return null;
     }
+    
     const data = await response.json();
+    console.log(`成功获取诗词ID ${id}:`, data);
+    
+    // 验证返回的数据是否完整
+    if (!data || !data.title || !data.text) {
+      console.warn(`诗词ID ${id} 数据不完整:`, data);
+      return null;
+    }
+    
     return data;
   } catch (err) {
-    console.error(`Failed to fetch poem with id ${id}:`, err);
+    console.error(`获取诗词ID ${id} 失败:`, err);
     return null;
   }
 };
@@ -132,53 +195,60 @@ const loadPoems = async () => {
   allPoems.splice(0, allPoems.length);
   
   try {
-    // 生成10个随机不重复的ID（范围1-500）
-    const randomIds = generateRandomIds(500, MAX_POEMS);
+    console.log('开始加载诗词数据...');
     
-    // 并发请求所有诗词
-    const promises = randomIds.map(id => fetchPoemById(id));
-    const results = await Promise.all(promises);
+    // 生成随机ID数组，范围根据你的数据库实际情况调整
+    const randomIds = generateRandomIds(1000, MAX_POEMS * 2);
+    console.log('生成的随机ID:', randomIds);
     
-    // 过滤掉失败的请求，添加成功的诗词
-    const validPoems = results.filter(poem => poem !== null);
+    // 逐个请求诗词（避免并发过多导致服务器压力）
+    const validPoems = [];
+    let requestCount = 0;
+    
+    for (const id of randomIds) {
+      if (validPoems.length >= MAX_POEMS) break;
+      
+      requestCount++;
+      const poem = await fetchPoemById(id);
+      
+      if (poem) {
+        // 为诗词添加背景图
+        validPoems.push({
+          ...poem,
+          backgroundImage: '/poetry_bg_1.jpg'
+        });
+        console.log(`成功添加诗词: ${poem.title}`);
+      }
+      
+      // 添加小延迟，避免请求过于频繁
+      if (requestCount % 3 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    console.log(`最终获取到 ${validPoems.length} 首有效诗词`);
     
     if (validPoems.length === 0) {
-      throw new Error('未能获取到任何诗词数据');
+      throw new Error('未能获取到任何有效的诗词数据，请检查后端服务是否正常');
     }
     
-    // 为诗词添加背景图
-    const poemsWithBg = validPoems.map(poem => ({
-      ...poem,
-      backgroundImage: '/poetry_bg_1.jpg'
-    }));
+    // 添加获取到的诗词
+    allPoems.push(...validPoems);
     
-    allPoems.push(...poemsWithBg);
-    
-    // 如果获取的诗词少于10首，用占位符补充
-    const remaining = MAX_POEMS - allPoems.length;
-    for (let i = 0; i < remaining; i++) {
-      allPoems.push({
-        pid: `placeholder-${i}`,
-        title: `敬请期待 ${i + 1}`,
-        category: '未来',
-        poet: '诗词爱好者',
-        text: '',
-        backgroundImage: '/poetry_bg_1.jpg'
-      });
-    }
+    console.log(`成功加载 ${allPoems.length} 首诗词`);
     
     // 重置当前索引
     currentIndex.value = 0;
     
   } catch (err) {
-    console.error('Error loading poems:', err);
-    error.value = '加载诗词失败，请检查网络连接或稍后重试';
+    console.error('加载诗词时发生错误:', err);
+    error.value = err.message || '加载诗词失败，请检查网络连接或稍后重试';
   } finally {
     loading.value = false;
   }
 };
 
-// 修改 getCardBackgroundStyle 函数
+// 获取卡片背景样式
 const getCardBackgroundStyle = (poem) => {
   const imagePath = '/poetry_bg_1.jpg';
   return {
@@ -196,7 +266,10 @@ const getCircularDistance = (index1, index2, length) => {
   return Math.abs(direct) < Math.abs(wrap) ? direct : wrap;
 };
 
+// 切换卡片
 const moveCards = (direction) => {
+  if (allPoems.length === 0) return;
+  
   if (direction === 'next') {
     currentIndex.value = (currentIndex.value + 1) % allPoems.length;
   } else {
@@ -204,58 +277,80 @@ const moveCards = (direction) => {
   }
 };
 
+// 跳转到指定诗词
 const goToPoem = (index) => {
-  currentIndex.value = index;
+  if (index >= 0 && index < allPoems.length) {
+    currentIndex.value = index;
+  }
 };
 
-onMounted(() => {
-  loadPoems();
+onMounted(async () => {
+  console.log('组件已挂载，开始标题动画');
+  
+  // 等待DOM更新
+  await nextTick();
+  
+  // 播放标题下落动画
+  animateTitleDrop();
+  
+  // 延迟加载诗词，让用户先看到标题动画
+  setTimeout(() => {
+    loadPoems();
+  }, 1000);
 });
 </script>
 
 <style scoped>
+/* 基础布局 */
 .poetry-layout {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #f5efe6;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5efe6 0%, #faf8f3 100%);
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   overflow: hidden;
 }
 
+/* 头部区域 */
 .poetry-header {
   text-align: center;
-  padding: 1.2rem 0 0.5rem 0;
-  background: linear-gradient(to right, #8c7853, #6e5773);
+  padding: 2rem 0 1rem 0;
+  background: linear-gradient(135deg, #8c7853 0%, #6e5773 100%);
   color: white;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.title-container {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .poetry-header h1 {
   margin: 0;
-  font-size: 2rem;
-  font-weight: normal;
-  color: #e5e5e5;
-  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
-  animation: float 3s ease-in-out infinite;
+  font-size: 2.5rem;
+  font-weight: 300;
+  color: white;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  letter-spacing: 0.1em;
 }
 
 .poetry-header .subtitle {
-  margin: 0.5rem 0 0;
-  font-size: 0.9rem;
+  margin: 1rem 0 0;
+  font-size: 1rem;
   font-style: italic;
   opacity: 0.9;
-  animation: float 3s ease-in-out infinite;
+  transform-origin: center center;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-@keyframes float {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-  100% { transform: translateY(0); }
-}
-
-/* 新的内容容器 */
+/* 主容器 */
 .poetry-container {
   flex: 1;
   display: flex;
@@ -263,27 +358,42 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 20px 0;
+  padding: 2rem 1rem;
+  position: relative;
 }
 
-/* 加载和错误状态样式 */
-.loading-container, .error-container {
+/* 加载和错误状态 */
+.loading-container, 
+.error-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 400px;
   color: #8c7853;
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(140, 120, 83, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.loading-container:hover,
+.error-container:hover {
+  border-color: rgba(140, 120, 83, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(140, 120, 83, 0.15);
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(140, 120, 83, 0.1);
   border-top: 4px solid #8c7853;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 @keyframes spin {
@@ -291,143 +401,246 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-.retry-btn, .refresh-btn {
-  background: linear-gradient(135deg, #8c7853, #6e5773);
-  color: white;
-  border: none;
-  padding: 0.8rem 1.5rem;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-  margin-top: 1rem;
+.loading-container p,
+.error-container p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
 }
 
-.retry-btn:hover, .refresh-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+/* 按钮基础样式 */
+.retry-btn, 
+.refresh-btn {
+  background: linear-gradient(135deg, #8c7853, #6e5773);
+  color: white;
+  border: 2px solid transparent;
+  padding: 0.8rem 2rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-top: 1.5rem;
+  box-shadow: 0 4px 15px rgba(140, 120, 83, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.retry-btn:hover, 
+.refresh-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(140, 120, 83, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.retry-btn:active, 
+.refresh-btn:active {
+  transform: translateY(-1px);
 }
 
 .refresh-container {
-  margin-top: 1rem;
+  margin-top: 2rem;
+  text-align: center;
 }
 
-/* 轮播区域 */
+/* 轮播容器 */
 .carousel {
   position: relative;
   width: 100%;
   max-width: 1400px;
-  height: 600px; /* 稍微减小高度 */
+  height: 650px;
   display: flex;
   align-items: center;
   justify-content: center;
+  perspective: 1000px;
 }
 
 /* 诗词卡片 */
 .poem-card {
   position: absolute;
-  transition: all 0.5s cubic-bezier(.4,2,.6,1);
-  will-change: transform, opacity;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform, opacity, filter;
+  transform-style: preserve-3d;
 }
 
 .poem-card.active {
-  transform: translateX(0) scale(1);
-  z-index: 5;
+  transform: translateX(0) translateZ(0) scale(1);
+  z-index: 10;
   opacity: 1;
+  filter: blur(0px);
 }
 
 .poem-card.prev {
-  transform: translateX(-260px) scale(0.85);
-  z-index: 4;
-  opacity: 0.8;
+  transform: translateX(-280px) translateZ(-100px) scale(0.85) rotateY(15deg);
+  z-index: 5;
+  opacity: 0.7;
+  filter: blur(1px);
 }
 
 .poem-card.next {
-  transform: translateX(260px) scale(0.85);
-  z-index: 4;
-  opacity: 0.8;
+  transform: translateX(280px) translateZ(-100px) scale(0.85) rotateY(-15deg);
+  z-index: 5;
+  opacity: 0.7;
+  filter: blur(1px);
 }
 
 .poem-card.hidden {
   opacity: 0;
-  transform: translateX(0) scale(0.7);
+  transform: translateX(0) translateZ(-200px) scale(0.6);
   pointer-events: none;
   z-index: 1;
+  filter: blur(3px);
 }
 
+/* 卡片内容 */
 .card-inner {
   border-radius: 24px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  width: 520px;
-  height: 600px; /* 调整卡片高度 */
-  transition: all 0.3s;
+  width: 550px;
+  height: 650px;
   position: relative;
+  background: white;
+  
+  /* 添加边框效果 */
+  border: 3px solid transparent;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  
+  /* 添加背景渐变边框 */
+  background-clip: padding-box;
 }
 
-/* 半透明覆盖层，确保文字可读性 */
-.card-inner::before {
+/* 卡片背景遮罩 */
+/*.card-inner::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   z-index: 1;
   pointer-events: none;
+  transition: all 0.3s ease;
+  border-radius: 21px;
+}
+*/
+
+
+
+
+/* 悬停效果 */
+.poem-card.active .card-inner:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: #8c7853;
+  box-shadow: 0 20px 60px rgba(140, 120, 83, 0.25);
 }
 
-/* 内容在覆盖层之上 */
-.card-header, .card-body {
+
+
+/*.poem-card.active .card-inner:hover::before {
+  background: rgba(255, 255, 255, 0.15);
+}
+*/
+/* 侧边卡片悬停效果 */
+.poem-card.prev .card-inner:hover,
+.poem-card.next .card-inner:hover {
+  transform: scale(0.88);
+  border-color: rgba(140, 120, 83, 0.6);
+  box-shadow: 0 15px 45px rgba(140, 120, 83, 0.2);
+}
+
+/* 卡片头部和内容 */
+.card-header, 
+.card-body {
   position: relative;
   z-index: 2;
+  transition: transform 0.3s ease;
+}
+
+.poem-card.active .card-inner:hover .card-header {
+  transform: translateY(-3px);
+}
+
+.poem-card.active .card-inner:hover .card-body {
+  transform: translateY(-2px);
 }
 
 .card-header {
-  padding: 1.5rem;
-  border-bottom: 1px dashed #d6cab4;
+  padding: 2rem 2rem 1.5rem;
+  border-bottom: 2px dashed rgba(140, 120, 83, 0.3);
   text-align: center;
+  /*background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 244, 237, 0.9));*/
+  /*backdrop-filter: blur(10px);*/
 }
 
 .card-header h3 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   color: #8c7853;
-  font-family: '宋体', serif;
+  font-family: 'SimSun', '宋体', serif;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.poem-card.active .card-inner:hover .card-header h3 {
+  color: #6e5773;
+  transform: scale(1.05);
 }
 
 .author {
-  margin-top: 0.5rem;
-  font-size: 1rem;
+  margin-top: 0.8rem;
+  font-size: 1.1rem;
   color: #5a4634;
   font-style: italic;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  opacity: 0.9;
 }
 
+.poem-card.active .card-inner:hover .author {
+  color: #4a3624;
+  opacity: 1;
+}
+
+/* 卡片主体 */
 .card-body {
   flex: 1;
-  padding: 1rem;
+  padding: 1.5rem 2rem 2rem;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  /*background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(5px);*/
 }
 
 .poem-content {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  flex: 1;
 }
 
 .poem-line {
   text-align: center;
-  margin: 0.3rem 0;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: #3e2723;
-  font-family: '楷体', cursive;
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #2d1810;
+  font-family: 'KaiTi', '楷体', 'STKaiti', serif;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.poem-card.active .card-inner:hover .poem-line {
+  color: #1a0e08;
+  transform: translateX(2px);
 }
 
 .poem-placeholder {
@@ -435,80 +648,316 @@ onMounted(() => {
   color: #8c7853;
   opacity: 0.7;
   font-style: italic;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  padding: 2rem;
 }
 
+/* 诗词信息 */
 .poem-info {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(140, 120, 83, 0.1), rgba(110, 87, 115, 0.1));
+  border-radius: 12px;
+  border: 1px solid rgba(140, 120, 83, 0.2);
+  transition: all 0.3s ease;
+}
+
+.poem-card.active .card-inner:hover .poem-info {
+  background: linear-gradient(135deg, rgba(140, 120, 83, 0.15), rgba(110, 87, 115, 0.15));
+  border-color: rgba(140, 120, 83, 0.3);
 }
 
 .poem-info h4 {
-  margin: 0 0 0.3rem 0;
-  font-size: 0.8rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
   color: #8c7853;
-  font-weight: bold;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .poem-info p {
   margin: 0;
-  font-size: 0.7rem;
-  line-height: 1.4;
+  font-size: 0.85rem;
+  line-height: 1.5;
   color: #5a4634;
-  max-height: 3em;
+  max-height: 4em;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+/* 导航按钮 */
 .nav-button {
-  background: rgba(255, 255, 255, 0.7);
-  border: none;
-  width: 40px;
-  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid transparent;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   z-index: 100;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  color: #8c7853;
+  font-weight: bold;
+  backdrop-filter: blur(10px);
 }
 
 .nav-button:hover {
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 25px rgba(140, 120, 83, 0.3);
+  border-color: #8c7853;
+  transform: translateY(-50%) scale(1.15);
+  color: #6e5773;
 }
 
-.prev-button { left: 20px; }
-.next-button { right: 20px; }
+.nav-button:active {
+  transform: translateY(-50%) scale(1.05);
+}
 
+.prev-button { 
+  left: 30px; 
+}
+
+.next-button { 
+  right: 30px; 
+}
+
+/* 指示器 */
 .carousel-indicators {
   display: flex;
   justify-content: center;
-  margin: 1rem 0 0;
-  gap: 0.5rem;
+  margin: 2rem 0 0;
+  gap: 0.8rem;
   flex-wrap: wrap;
   padding: 0 1rem;
 }
 
 .indicator {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #d6cab4;
+  background: rgba(140, 120, 83, 0.3);
   cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.indicator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, #8c7853, #6e5773);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
   transition: all 0.3s ease;
+}
+
+.indicator:hover {
+  background: rgba(140, 120, 83, 0.5);
+  transform: scale(1.3);
+  border-color: rgba(140, 120, 83, 0.4);
+  box-shadow: 0 2px 8px rgba(140, 120, 83, 0.3);
+}
+
+.indicator:hover::before {
+  width: 100%;
+  height: 100%;
 }
 
 .indicator.active {
   background: #8c7853;
-  transform: scale(1.2);
+  transform: scale(1.4);
+  border-color: #6e5773;
+  box-shadow: 0 3px 12px rgba(140, 120, 83, 0.4);
+}
+
+.indicator.active::before {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #6e5773, #8c7853);
+}
+
+.indicator.active:hover {
+  transform: scale(1.6);
+  box-shadow: 0 4px 16px rgba(140, 120, 83, 0.5);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .carousel {
+    max-width: 1000px;
+  }
+  
+  .card-inner {
+    width: 480px;
+    height: 580px;
+  }
+  
+  .poem-card.prev {
+    transform: translateX(-240px) translateZ(-100px) scale(0.8) rotateY(10deg);
+  }
+  
+  .poem-card.next {
+    transform: translateX(240px) translateZ(-100px) scale(0.8) rotateY(-10deg);
+  }
+}
+
+@media (max-width: 768px) {
+  .poetry-header h1 {
+    font-size: 2rem;
+  }
+  
+  .poetry-header .subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .poetry-container {
+    padding: 1rem;
+  }
+  
+  .carousel {
+    height: 550px;
+  }
+  
+  .card-inner {
+    width: 320px;
+    height: 500px;
+  }
+  
+  .poem-card.prev {
+    transform: translateX(-160px) translateZ(-50px) scale(0.75);
+  }
+  
+  .poem-card.next {
+    transform: translateX(160px) translateZ(-50px) scale(0.75);
+  }
+  
+  .card-header {
+    padding: 1.5rem 1.5rem 1rem;
+  }
+  
+  .card-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .card-body {
+    padding: 1rem 1.5rem 1.5rem;
+  }
+  
+  .poem-line {
+    font-size: 1rem;
+    margin: 0.3rem 0;
+  }
+  
+  .nav-button {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+  
+  .prev-button { 
+    left: 15px; 
+  }
+  
+  .next-button { 
+    right: 15px; 
+  }
+}
+
+@media (max-width: 480px) {
+  .card-inner {
+    width: 280px;
+    height: 450px;
+  }
+  
+  .poem-card.prev,
+  .poem-card.next {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  
+  .poem-card.prev {
+    transform: translateX(-140px) scale(0.7);
+  }
+  
+  .poem-card.next {
+    transform: translateX(140px) scale(0.7);
+  }
+  
+  .card-header {
+    padding: 1rem;
+  }
+  
+  .card-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .author {
+    font-size: 1rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .poem-line {
+    font-size: 0.95rem;
+  }
+  
+  .nav-button {
+    width: 35px;
+    height: 35px;
+    font-size: 14px;
+  }
+  
+  .prev-button { 
+    left: 10px; 
+  }
+  
+  .next-button { 
+    right: 10px; 
+  }
+}
+
+/* 平滑滚动 */
+* {
+  scroll-behavior: smooth;
+}
+
+/* 选择文本样式 */
+::selection {
+  background: rgba(140, 120, 83, 0.2);
+  color: #2d1810;
+}
+
+/* 自定义滚动条 */
+.card-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card-body::-webkit-scrollbar-track {
+  background: rgba(140, 120, 83, 0.1);
+  border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb {
+  background: rgba(140, 120, 83, 0.3);
+  border-radius: 3px;
+}
+
+.card-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(140, 120, 83, 0.5);
 }
 </style>
