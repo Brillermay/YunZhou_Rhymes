@@ -624,8 +624,7 @@ public class EasyRAGService extends ConnetMySQL {
                     emitter.completeWithError(e);
                 }
             }
-
-
+            
             public void onComplete() {
                 try {
                     emitter.send(SseEmitter.event().data("[END]"));
@@ -642,4 +641,127 @@ public class EasyRAGService extends ConnetMySQL {
             }
         });
     }
+
+    /**
+     * 🆕 保存诗词缓存（包含失败状态）并支持历史记录
+     */
+    public void chatStreamWithHistory(String userMessage, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        if (!isInitialized) {
+            initializeRAG();
+        }
+
+        System.out.println("💬 处理用户提问: " + userMessage);
+
+        // 构建上下文（同原 chatStream）
+        Response<Embedding> embeddingResponse = embeddingModel.embed(userMessage);
+        Embedding queryEmbedding = embeddingResponse.content();
+
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+        List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+
+        List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            String poemId = match.embedded().metadata().getString("poem_id");
+            if (poemId != null && isValidCache(poemId)) {
+                validMatches.add(match);
+                if (validMatches.size() >= 3) break;
+            }
+        }
+
+        StringBuilder context = new StringBuilder();
+        if (!validMatches.isEmpty()) {
+            context.append("相关诗词资料：\n\n");
+            for (int i = 0; i < validMatches.size(); i++) {
+                TextSegment segment = validMatches.get(i).embedded();
+                context.append("【资料").append(i + 1).append("】\n");
+                context.append(segment.text()).append("\n\n");
+            }
+        } else {
+            context.append("未找到直接相关的诗词资料。");
+        }
+
+        // 拼接历史对话
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null) {
+            for (Map<String, String> turn : history) {
+                String role = turn.get("role");
+                String content = turn.get("content");
+                if ("user".equals(role)) {
+                    historyPrompt.append("用户：").append(content).append("\n");
+                } else if ("assistant".equals(role)) {
+                    historyPrompt.append("助手：").append(content).append("\n");
+                }
+            }
+        }
+
+        // 构建最终 prompt
+        String prompt = """
+            你是一位专业的古典诗词专家。请基于以下资料和历史对话回答用户问题：
+
+            %s
+
+            历史对话：
+            %s
+
+            当前用户问题：%s
+
+            请根据资料和历史对话，给出专业、详细的回答。
+            """.formatted(context, historyPrompt, userMessage);
+
+    final long[] lastTokenTime = {System.currentTimeMillis()};
+    final boolean[] completed = {false};
+
+    // 定时任务线程，超时自动结束
+    Thread timeoutThread = new Thread(() -> {
+        try {
+            while (!completed[0]) {
+                Thread.sleep(2000); // 检查间隔
+                if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                    emitter.complete();
+                    completed[0] = true;
+                    System.out.println("超时自动结束");
+                }
+            }
+        } catch (Exception ignored) {}
+    });
+    timeoutThread.start();
+
+    streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+        @Override
+        public void onNext(String token) {
+            lastTokenTime[0] = System.currentTimeMillis();
+            try {
+                emitter.send(SseEmitter.event().data(token));
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+                completed[0] = true;
+            }
+        }
+
+        public void onComplete() {
+            try {
+                emitter.send(SseEmitter.event().data("[END]"));
+            } catch (Exception ignored) {}
+            emitter.complete();
+            completed[0] = true;
+            System.out.println("onComplete 被调用");
+        }
+        @Override
+        public void onError(Throwable error) {
+            try {
+                emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(error);
+            completed[0] = true;
+            System.out.println("onError 被调用");
+        }
+    });
+}
 }
