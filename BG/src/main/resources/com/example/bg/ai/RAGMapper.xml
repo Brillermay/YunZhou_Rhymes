@@ -3,7 +3,7 @@
 
 <mapper namespace="com.example.bg.ai.RAGMapper">
     
-    <!-- 核心诗词检索 -->
+
     <select id="searchPoemsByKeyword" parameterType="String" resultType="com.example.bg.poem.Poem">
         SELECT * FROM poem 
         WHERE title LIKE CONCAT('%', #{keyword}, '%') 
@@ -45,33 +45,6 @@
         ORDER BY RAND() 
         LIMIT #{limit}
     </select>
-    
-    <!-- 用户偏好分析（基于comment） -->
-    <select id="getUserComments" parameterType="String" resultType="com.example.bg.ai.Comment">
-        SELECT * FROM comment 
-        WHERE userId = #{userId}
-        ORDER BY commentID DESC
-        LIMIT 20
-    </select>
-    
-    <select id="getCommentsByCategory" parameterType="String" resultType="com.example.bg.ai.Comment">
-        SELECT * FROM comment 
-        WHERE category = #{category}
-        ORDER BY commentID DESC
-        LIMIT 10
-    </select>
-    
-    <!-- 用户记忆管理 -->
-    <select id="getUserHistory" parameterType="String" resultType="com.example.bg.ai.UserMemory">
-        SELECT * FROM user_memory 
-        WHERE userId = #{userId} 
-        ORDER BY createTime DESC 
-        LIMIT 10
-    </select>
-    
-    <insert id="saveUserMemory" parameterType="com.example.bg.ai.UserMemory">
-        INSERT INTO user_memory (id, userId, question, answer, relatedPoems, relatedComments, preference, createTime)
-        VALUES (#{id}, #{userId}, #{question}, #{answer}, #{relatedPoems}, #{relatedComments}, #{preference}, #{createTime})
-    </insert>
+
     
 </mapper>

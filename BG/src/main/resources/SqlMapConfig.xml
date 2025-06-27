@@ -31,11 +31,14 @@
         <mapper resource="com/example/bg/poem/PoemGetMapper.xml"/>
         <mapper resource="com/example/bg/poem/PoetGetMapper.xml"/>
         <mapper resource="com/example/bg/user/UserMapper.xml"/>
-
+        <mapper resource="com/example/bg/ai/RAGMapper.xml"/>
+        <mapper resource="com/example/bg/admin/AdminCommentMapper.xml"/>
+        <mapper resource="com/example/bg/admin/AdminPoemMapper.xml"/>
         <mapper resource="com/example/bg/Comment/CommentOpMapper.xml"/>
         <mapper resource="com/example/bg/ID/IDsGetMapper.xml"/>
         <mapper resource="com/example/bg/testMapper.xml"/>
         <mapper resource="com/example/bg/comp/compRecOpMapper.xml"/>
+        <mapper resource="com/example/bg/admin/SensitiveWordMapper.xml"/>
     </mappers>
 
 
