@@ -460,12 +460,6 @@ onMounted(() => {
       .setDepth(100)
       .setStrokeStyle(2, 0x8c7853) // 使用渐变色的深色部分
       .setInteractive()
-      .on('pointerover', () => {
-        topBar.setFillStyle(0xb39c73) // 悬停时更亮的棕色
-      })
-      .on('pointerout', () => {
-        topBar.setFillStyle(0xa3916a) // 原始棕色
-      });
 
     // 创建出售槽
     const sellSlot = this.add.rectangle(padding, padding, 100, 140, 0x8c7853) // 使用主题色
@@ -797,48 +791,8 @@ onMounted(() => {
       this.cards.push(card)
     }
 
-    // 拖拽开始事件
-    this.input.on('dragstart', (pointer, gameObject) => {
-      gameObject.setDepth(10)
-      gameObject.setAlpha(0.8)
-      gameObject.body.moves = false
-
-      // 查找卡片所在的堆叠组
-      const stackIndex = this.cardStacks.findIndex(s => s.includes(gameObject))
-      if (stackIndex !== -1) {
-        const stack = this.cardStacks[stackIndex]
-        const cardIndex = stack.indexOf(gameObject)
-        
-        // 从原堆叠组中移除当前卡片及其上方的所有卡片
-        const removedCards = stack.splice(cardIndex)
-        
-        // 如果原堆叠组只剩一张卡，移除该堆叠组
-        if (stack.length === 1) {
-          this.cardStacks.splice(stackIndex, 1)
-        }
-        
-        // 为移除的卡片创建新的堆叠组
-        if (removedCards.length > 1) {
-          this.cardStacks.push(removedCards)
-        }
-        
-        // 设置拖动卡片组的层级
-        removedCards.forEach((card, index) => {
-          card.setDepth(11 + index)
-        })
-      }
-    })
-
-    // 拖拽中事件
-    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-      const minY = topBarHeight
-      gameObject.x = dragX
-      gameObject.y = Math.max(minY, dragY)
-    })
-
-
     // 设置游戏区域边界
-    this.physics.world.setBounds(0, topBarHeight, this.scale.width, this.scale.height - topBarHeight)
+    this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height)
 
     // 添加堆叠相关属性
     this.cardStacks = [] // 用于存储卡牌堆叠组
@@ -1051,9 +1005,34 @@ onMounted(() => {
 
     // 修改拖拽开始事件
     this.input.on('dragstart', (pointer, gameObject) => {
-      gameObject.setDepth(10)
+      gameObject.setDepth(150)
       gameObject.setAlpha(0.8)
       gameObject.body.moves = false
+
+      // 查找卡片所在的堆叠组
+      const stackIndex = this.cardStacks.findIndex(s => s.includes(gameObject))
+      if (stackIndex !== -1) {
+        const stack = this.cardStacks[stackIndex]
+        const cardIndex = stack.indexOf(gameObject)
+        
+        // 从原堆叠组中移除当前卡片及其上方的所有卡片
+        const removedCards = stack.splice(cardIndex)
+        
+        // 如果原堆叠组只剩一张卡，移除该堆叠组
+        if (stack.length === 1) {
+          this.cardStacks.splice(stackIndex, 1)
+        }
+        
+        // 为移除的卡片创建新的堆叠组
+        if (removedCards.length > 1) {
+          this.cardStacks.push(removedCards)
+        }
+        
+        // 设置拖动卡片组的层级
+        removedCards.forEach((card, index) => {
+          card.setDepth(150 + index)
+        })
+      }
 
       // 查找卡片所在的堆叠组
       const stack = this.cardStacks.find(s => s.includes(gameObject))
@@ -1061,17 +1040,17 @@ onMounted(() => {
         const cardIndex = stack.indexOf(gameObject)
         // 将当前卡片及其上方的卡片提升层级
         for (let i = cardIndex; i < stack.length; i++) {
-          stack[i].setDepth(11 + i - cardIndex)
+          stack[i].setDepth(150 + i - cardIndex)
         }
       }
     })
 
     // 修改拖拽中事件
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-      const minY = topBarHeight
-      const newY = Math.max(minY, dragY)
+      // const minY = topBarHeight
+      // const newY = Math.max(minY, dragY)
       gameObject.x = dragX
-      gameObject.y = newY
+      gameObject.y = dragY
 
       // 更新堆叠组中跟随的卡片位置
       const stack = this.cardStacks.find(s => s.includes(gameObject))
@@ -1080,7 +1059,8 @@ onMounted(() => {
         // 移动当前卡片上方的所有卡片
         for (let i = cardIndex + 1; i < stack.length; i++) {
           stack[i].x = dragX
-          stack[i].y = newY + (i - cardIndex) * STACK_OFFSET_Y
+          stack[i].y = dragY + (i - cardIndex) * STACK_OFFSET_Y
+          stack[i].setDepth(150 + i - cardIndex)
         }
       }
     })
@@ -1098,13 +1078,13 @@ onMounted(() => {
             y: baseY + (index * STACK_OFFSET_Y),
             duration: STACK_SNAP_DURATION,
             ease: 'Power2',
-            onComplete: () => card.setDepth(1 + index)
+            onComplete: () => card.setDepth(150 + index)
           })
         } else {
           // 直接更新位置
           card.x = baseX
           card.y = baseY + (index * STACK_OFFSET_Y)
-          card.setDepth(1 + index)
+          card.setDepth(150 + index)
         }
       })
     }
