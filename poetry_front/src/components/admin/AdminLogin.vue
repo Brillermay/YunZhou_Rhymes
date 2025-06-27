@@ -10,6 +10,13 @@
           <p class="subtitle">系统管理员登录</p>
         </div>
 
+        <!-- 默认账号提示 -->
+        <div class="demo-info">
+          <p>🔧 开发模式 - 默认登录信息：</p>
+          <p><strong>账号：</strong> admin</p>
+          <p><strong>密码：</strong> admin123</p>
+        </div>
+
         <!-- 登录表单 -->
         <form @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
@@ -57,11 +64,25 @@
           >
             {{ loginLoading ? '登录中...' : '登录' }}
           </button>
+
+          <!-- 快速登录按钮 -->
+          <button
+              type="button"
+              @click="quickLogin"
+              class="quick-login-btn"
+          >
+            🚀 一键登录
+          </button>
         </form>
 
         <!-- 错误提示 -->
         <div v-if="loginError" class="error-message">
           {{ loginError }}
+        </div>
+
+        <!-- 成功提示 -->
+        <div v-if="loginSuccess" class="success-message">
+          {{ loginSuccess }}
         </div>
 
         <!-- 安全提示 -->
@@ -87,6 +108,12 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
+// 默认账号配置
+const DEFAULT_CREDENTIALS = {
+  username: 'admin',
+  password: 'admin123'
+};
+
 // 响应式数据
 const loginForm = reactive({
   username: '',
@@ -96,9 +123,10 @@ const loginForm = reactive({
 
 const loginLoading = ref(false);
 const loginError = ref('');
+const loginSuccess = ref('');
 const captchaCode = ref('');
 
-// API基础URL
+// API基础URL (暂时不使用)
 const API_BASE_URL = 'http://localhost:8081';
 
 // 生成验证码
@@ -116,8 +144,82 @@ const refreshCaptcha = () => {
   captchaCode.value = generateCaptcha();
 };
 
-// 登录处理
+// 快速登录（自动填入默认账号密码）
+const quickLogin = () => {
+  loginForm.username = DEFAULT_CREDENTIALS.username;
+  loginForm.password = DEFAULT_CREDENTIALS.password;
+  loginForm.captcha = captchaCode.value;
+  
+  // 自动提交
+  handleLogin();
+};
+
+// 登录处理（使用默认验证，不调用接口）
 const handleLogin = async () => {
+  loginError.value = '';
+  loginSuccess.value = '';
+
+  // 验证码检查
+  if (loginForm.captcha.toUpperCase() !== captchaCode.value) {
+    loginError.value = '验证码错误';
+    refreshCaptcha();
+    return;
+  }
+
+  // 账号密码验证（本地验证）
+  if (loginForm.username !== DEFAULT_CREDENTIALS.username) {
+    loginError.value = '管理员账号错误';
+    refreshCaptcha();
+    return;
+  }
+
+  if (loginForm.password !== DEFAULT_CREDENTIALS.password) {
+    loginError.value = '密码错误';
+    refreshCaptcha();
+    return;
+  }
+
+  loginLoading.value = true;
+
+  try {
+    // 模拟登录加载时间
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // 模拟登录成功，保存管理员信息
+    const adminInfo = {
+      id: 1,
+      username: 'admin',
+      role: 'super_admin',
+      permissions: ['all'],
+      loginTime: new Date().toISOString()
+    };
+
+    // 生成模拟token
+    const token = 'admin_token_' + Date.now();
+
+    // 保存到localStorage
+    localStorage.setItem('adminToken', token);
+    localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
+
+    loginSuccess.value = '登录成功，正在跳转...';
+
+    // 延迟跳转，显示成功信息
+    setTimeout(() => {
+      router.push('/admin/dashboard');
+    }, 1000);
+
+  } catch (error) {
+    console.error('登录模拟失败:', error);
+    loginError.value = '登录处理异常，请重试';
+    refreshCaptcha();
+  } finally {
+    loginLoading.value = false;
+  }
+};
+
+// 真实接口登录（暂时注释）
+const handleRealLogin = async () => {
+  /*
   loginError.value = '';
 
   // 验证码检查
@@ -162,6 +264,7 @@ const handleLogin = async () => {
   } finally {
     loginLoading.value = false;
   }
+  */
 };
 
 // 生命周期
@@ -173,6 +276,12 @@ onMounted(() => {
   if (token) {
     router.push('/admin/dashboard');
   }
+
+  // 开发模式提示
+  console.log('🔧 开发模式 - 默认登录信息:');
+  console.log('账号: admin');
+  console.log('密码: admin123');
+  console.log('或者直接点击"一键登录"按钮');
 });
 </script>
 
@@ -225,6 +334,27 @@ onMounted(() => {
   margin: 0;
   color: #666;
   font-size: 0.9rem;
+}
+
+/* 新增：开发模式提示 */
+.demo-info {
+  background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+  border: 1px solid #4caf50;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.demo-info p {
+  margin: 0.3rem 0;
+  color: #2e7d32;
+  font-size: 0.85rem;
+}
+
+.demo-info p:first-child {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
 }
 
 .login-form {
@@ -295,6 +425,7 @@ onMounted(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-bottom: 1rem;
 }
 
 .login-btn:hover:not(:disabled) {
@@ -308,6 +439,26 @@ onMounted(() => {
   transform: none;
 }
 
+/* 新增：快速登录按钮 */
+.quick-login-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-login-btn:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+}
+
 .error-message {
   background: #ffe6e6;
   color: #d32f2f;
@@ -316,6 +467,18 @@ onMounted(() => {
   margin-bottom: 1rem;
   text-align: center;
   font-size: 0.9rem;
+}
+
+/* 新增：成功提示 */
+.success-message {
+  background: #e8f5e8;
+  color: #2e7d32;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  border: 1px solid #4caf50;
 }
 
 .security-notice {
@@ -368,6 +531,10 @@ onMounted(() => {
 
   .captcha-code {
     width: 100%;
+  }
+
+  .demo-info {
+    font-size: 0.8rem;
   }
 }
 </style>

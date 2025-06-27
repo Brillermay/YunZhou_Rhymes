@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.admin.SensitiveWordMapper">
+
+    <!-- 获取所有启用的敏感词 -->
+    <select id="getActiveSensitiveWords" resultType="com.example.bg.admin.SensitiveWord">
+        SELECT id, word, created_time as createdTime, is_active as isActive
+        FROM sensitive_words
+        WHERE is_active = 1
+        ORDER BY word
+    </select>
+
+    <!-- 获取所有敏感词 -->
+    <select id="getAllSensitiveWords" resultType="com.example.bg.admin.SensitiveWord">
+        SELECT id, word, created_time as createdTime, is_active as isActive
+        FROM sensitive_words
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 根据ID获取敏感词 -->
+    <select id="getSensitiveWordById" resultType="com.example.bg.admin.SensitiveWord">
+        SELECT id, word, created_time as createdTime, is_active as isActive
+        FROM sensitive_words
+        WHERE id = #{id}
+    </select>
+
+    <!-- 添加敏感词 -->
+    <insert id="insertSensitiveWord" parameterType="com.example.bg.admin.SensitiveWord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sensitive_words (word, created_time, is_active)
+        VALUES (#{word}, NOW(), #{isActive})
+    </insert>
+
+    <!-- 删除敏感词 -->
+    <delete id="deleteSensitiveWord">
+        DELETE FROM sensitive_words WHERE id = #{id}
+    </delete>
+
+    <!-- 更新敏感词状态 -->
+    <update id="updateSensitiveWordStatus">
+        UPDATE sensitive_words
+        SET is_active = #{isActive}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
