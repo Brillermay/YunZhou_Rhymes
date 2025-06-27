@@ -11,15 +11,23 @@
       <aside class="ai-sidebar">
         <div class="sidebar-title">AI功能区</div>
         <ul class="sidebar-list">
-          <li class="sidebar-item active">
+          <li
+            class="sidebar-item"
+            :class="{active: chatMode==='normal'}"
+            @click="switchMode('normal')"
+          >
             <div class="sidebar-icon">🤖</div>
             <div class="sidebar-texts">
               <div class="sidebar-main">AI对话</div>
               <div class="sidebar-desc">与AI畅聊诗词、答疑解惑</div>
             </div>
           </li>
-          <li class="sidebar-item">
-            <div class="sidebar-icon">👴</div>
+          <li
+            class="sidebar-item"
+            :class="{active: chatMode==='ancient'}"
+            @click="switchMode('ancient')"
+          >
+            <div class="sidebar-icon">🪶</div>
             <div class="sidebar-texts">
               <div class="sidebar-main">模拟古人对话</div>
               <div class="sidebar-desc">与古人虚拟对话，感受历史风采</div>
@@ -39,6 +47,17 @@
               <div class="sidebar-desc">与诗友畅谈诗意人生</div>
             </div>
           </li>
+          <li
+            class="sidebar-item"
+            :class="{active: chatMode==='soul'}"
+            @click="switchMode('soul')"
+          >
+            <div class="sidebar-icon">🧙</div>
+            <div class="sidebar-texts">
+              <div class="sidebar-main">前世诗魂配对</div>
+              <div class="sidebar-desc">测测你是哪位诗魂</div>
+            </div>
+          </li>
           <li class="sidebar-item">
             <div class="sidebar-icon">✨</div>
             <div class="sidebar-texts">
@@ -50,21 +69,88 @@
       </aside>
       <!-- 右侧AI对话区 -->
       <section class="ai-chat-area">
+        <div v-if="showRoleSelect" class="role-select-modal">
+          <div class="role-select-content">
+            <h3>千年烟雨，一纸诗心。你步入词境之馆，几位古人正在等候与君执言共赏，静待你的拣选……</h3>
+            <div class="poet-card-list">
+              <div
+                v-for="poet in ancientPoets"
+                :key="poet.name"
+                class="poet-card"
+                @click="chooseRole(poet.name)"
+              >
+                <img :src="poet.avatar" :alt="poet.name" class="poet-card-avatar" />
+                <div class="poet-card-info">
+                  <div class="poet-card-name">{{ poet.name }}</div>
+                  <div class="poet-card-intro">{{ poet.intro }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="chat-history" ref="chatHistory">
           <div
             v-for="(msg, idx) in chatList"
             :key="idx"
             :class="['chat-msg', msg.role === 'user' ? 'user-msg' : 'ai-msg']"
           >
-            <div class="msg-avatar">
-              <span v-if="msg.role === 'user'">🧑</span>
-              <span v-else>🤖</span>
+            <div
+              class="msg-avatar"
+              :class="{'avatar-hoverable': msg.role === 'ai' && chatMode !== 'ancient'}"
+              :title="msg.role === 'ai' && chatMode !== 'ancient' ? '点我切换AI形象' : ''"
+              @click="msg.role === 'ai' && chatMode !== 'ancient' && toggleAiAvatar()"
+            >
+              <!-- AI头像逻辑 -->
+              <template v-if="msg.role === 'ai'">
+                <img
+                  v-if="chatMode === 'ancient' && selectedRole && poetAvatarMap[selectedRole]"
+                  :src="poetAvatarMap[selectedRole]"
+                  alt="AI头像"
+                  class="poet-avatar"
+                />
+                <img
+                  v-else
+                  :src="aiAvatarMap[aiAvatarType]"
+                  alt="AI默认头像"
+                  class="poet-avatar"
+                />
+                <span
+                  v-if="chatMode !== 'ancient'"
+                  class="avatar-tip"
+                >点我切换形象哦</span>
+              </template>
+              <!-- 用户头像逻辑 -->
+              <template v-else>
+                <span style="font-size: 2rem;">🧑</span>
+              </template>
             </div>
             <div class="msg-content" v-html="msg.html"></div>
           </div>
           <div v-if="isStreaming" class="chat-msg ai-msg">
-            <div class="msg-avatar">🤖</div>
-            <div class="msg-content" v-html="streamingOutput"></div>
+            <div
+              class="msg-avatar"
+              :class="{'avatar-hoverable': chatMode !== 'ancient'}"
+              :title="chatMode !== 'ancient' ? '点我切换AI形象' : ''"
+              @click="chatMode !== 'ancient' && toggleAiAvatar()"
+            >
+              <img
+                v-if="chatMode === 'ancient' && selectedRole && poetAvatarMap[selectedRole]"
+                :src="poetAvatarMap[selectedRole]"
+                alt="AI头像"
+                class="poet-avatar"
+              />
+              <img
+                v-else
+                :src="aiAvatarMap[aiAvatarType]"
+                alt="AI默认头像"
+                class="poet-avatar"
+              />
+              <span
+                v-if="chatMode !== 'ancient'"
+                class="avatar-tip"
+              >点我切换形象哦</span>
+            </div>
+            <div class="msg-content typing-cursor" v-html="streamingOutput"></div>
           </div>
         </div>
         <div class="chat-input-row">
@@ -85,10 +171,60 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 
+// 1. 引入古人头像
+import libaiImg from '@/assets/poets/libai.png'
+import lindaiyuImg from '@/assets/poets/lindaiyu.png'
+import sushiImg from '@/assets/poets/sushi.png'
+import xinqijiImg from '@/assets/poets/xinqiji.png'
+import taoyuanmingImg from '@/assets/poets/taoyuanming.png'
+import aiboyImg from '@/assets/poets/aiboy.jpg'
+import aigirlImg from '@/assets/poets/aigirl.jpg'
+
+// 2. 头像映射
+const poetAvatarMap = {
+  '李白': libaiImg,
+  '林黛玉': lindaiyuImg,
+  '苏轼': sushiImg,
+  '辛弃疾': xinqijiImg,
+  '陶渊明': taoyuanmingImg
+}
+
 const input = ref('')
 const chatList = ref([]) // 多轮对话历史
 const isStreaming = ref(false)
 const streamingOutputRaw = ref('')
+const chatMode = ref('normal') // 'normal' | 'ancient' | 'soul'
+const selectedRole = ref('')
+const showRoleSelect = ref(false)
+const ancientRoles = ['李白', '林黛玉', '苏轼', '辛弃疾', '陶渊明']
+
+const ancientPoets = [
+  {
+    name: '李白',
+    avatar: libaiImg,
+    intro: '诗仙，豪放不羁，诗酒趁年华，纵情山水。'
+  },
+  {
+    name: '林黛玉',
+    avatar: lindaiyuImg,
+    intro: '寄情诗词，感怀人生，才情与柔情并存。'
+  },
+  {
+    name: '苏轼',
+    avatar: sushiImg,
+    intro: '东坡居士，旷达乐观，诗文书画皆精。'
+  },
+  {
+    name: '辛弃疾',
+    avatar: xinqijiImg,
+    intro: '稼轩词人，豪情壮志，词笔纵横。'
+  },
+  {
+    name: '陶渊明',
+    avatar: taoyuanmingImg,
+    intro: '五柳先生，归隐田园，淡泊明志，爱菊饮酒。'
+  }
+]
 
 // 格式化输出
 function formatOutput(raw) {
@@ -129,21 +265,33 @@ async function startChat() {
   await nextTick()
   scrollToBottom()
 
+  // 构造历史
   const history = chatList.value
-    .slice(0, -1)
     .map(msg => ({
-      role: msg.role,
+      role: msg.role === 'ai' ? 'ai' : 'user',
       content: msg.content || msg.html.replace(/<[^>]+>/g, '')
     }))
 
   try {
-    const response = await fetch('http://localhost:8081/ai/easy/chat/stream', {
+    let url = 'http://localhost:8081/ai/easy/chat/stream'
+    let body = {
+      question: input.value,
+      history: history.slice(0, -1) // 默认
+    }
+    if (chatMode.value === 'ancient') {
+      url = 'http://localhost:8081/ai/easy/chat/stream/role'
+      body.role = selectedRole.value
+    }
+    if (chatMode.value === 'soul') {
+      url = 'http://localhost:8081/ai/easy/soul-matcher/stream'
+      body = {
+        history: history // 只传history，不传question
+      }
+    }
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        question: input.value,
-        history
-      }),
+      body: JSON.stringify(body),
     })
     input.value = ''
     if (!response.body) {
@@ -179,18 +327,19 @@ async function startChat() {
     chatList.value.push({
       role: 'ai',
       html: streamingOutput.value,
-      content: streamingOutput.value.replace(/<[^>]+>/g, '')
+      content: streamingOutput.value.replace(/<[^>]+>/g, ''),
+      avatar: selectedRole.value ? poetAvatarMap[selectedRole.value] : undefined
     })
     streamingOutputRaw.value = ''
     await nextTick()
     scrollToBottom()
   } catch (e) {
     streamingOutputRaw.value = 'AI接口异常，请稍后重试'
-    // 新增：异常也加入聊天列表
     chatList.value.push({
       role: 'ai',
       html: formatOutput(streamingOutputRaw.value),
-      content: streamingOutputRaw.value
+      content: streamingOutputRaw.value,
+      avatar: chatMode.value === 'ancient' ? poetAvatarMap[selectedRole.value] : undefined
     })
     streamingOutputRaw.value = ''
     await nextTick()
@@ -215,7 +364,73 @@ onMounted(() => {
     )
   })
 })
+
+function switchMode(mode) {
+  if (chatMode.value === mode) return
+  chatMode.value = mode
+  chatList.value = []
+  input.value = ''
+  streamingOutputRaw.value = ''
+  if (mode === 'ancient') {
+    showRoleSelect.value = true
+  } else if (mode === 'soul') {
+    showRoleSelect.value = false
+    chatList.value.push({
+      role: 'ai',
+      html: formatOutput(
+        '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
+      ),
+      content: '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
+    })
+  } else {
+    showRoleSelect.value = false
+    chatList.value.push({
+      role: 'ai',
+      html: formatOutput(
+        '您好，我是墨卿AI，你的智能诗友，可以与您交流诗词、点评创作、模拟古人对话等。请问有什么想聊的？'
+      ),
+      content: '您好，我是墨卿AI，你的智能诗友，可以与您交流诗词、点评创作、模拟古人对话等。请问有什么想聊的？'
+    })
+  }
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+const roleIntroMap = {
+  '李白': '仆乃青莲居士李白，诗酒趁年华，愿与君共赏风月，畅谈人生。',
+  '林黛玉': '小女子林黛玉，寄情诗词，感怀人生，愿与君共诉心曲。',
+  '苏轼': '东坡居士苏轼在此，谈笑风生，诗酒自得，愿与君共论世事。',
+  '辛弃疾': '稼轩辛弃疾，胸怀壮志，词笔纵横，愿与君共抒豪情。',
+  '陶渊明': '五柳先生陶渊明，爱菊饮酒，归隐田园，愿与君共话清欢。'
+}
+
+function chooseRole(role) {
+  selectedRole.value = role
+  showRoleSelect.value = false
+  // 推送该古人自我介绍，带头像
+  chatList.value.push({
+    role: 'ai',
+    html: formatOutput(roleIntroMap[role]),
+    content: roleIntroMap[role],
+    avatar: poetAvatarMap[role]
+  })
+  nextTick(() => {
+    scrollToBottom()
+  })
+}
+
+const aiAvatarType = ref('girl') // 'girl' | 'boy'
+const aiAvatarMap = {
+  girl: aigirlImg,
+  boy: aiboyImg
+}
+
+function toggleAiAvatar() {
+  aiAvatarType.value = aiAvatarType.value === 'girl' ? 'boy' : 'girl'
+}
 </script>
+
 <style scoped>
 .ai-main-layout {
   display: flex;
@@ -341,6 +556,48 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(140,120,83,0.04);
 }
 
+.role-select-modal {
+  position: absolute;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.role-select-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  box-shadow: 0 4px 16px rgba(140,120,83,0.13);
+  text-align: center;
+}
+.role-select-content h3 {
+  margin-bottom: 1.2rem;
+  color: #8c7853;
+}
+.role-select-content ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+.role-select-content button {
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(to right, #f3f0eb, #e7e0d0);
+  color: #6e5773;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.role-select-content button:hover {
+  background: linear-gradient(to right, #8c7853, #6e5773);
+  color: #fff;
+}
+
 .chat-header {
   display: none;
 }
@@ -361,13 +618,9 @@ onMounted(() => {
   align-items: flex-start;
   margin-bottom: 1.2rem;
   gap: 1rem;
-  opacity: 0;
-  animation: fadeInUp 0.6s ease forwards;
+  opacity: 1;
 }
-@keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(12px);}
-  100% { opacity: 1; transform: translateY(0);}
-}
+
 
 .user-msg {
   flex-direction: row-reverse;
@@ -422,13 +675,7 @@ onMounted(() => {
   background: #fff;
   color: #8c7853;
 }
-.typing-cursor::after {
-  content: '|';
-  animation: blinkCursor 1s infinite;
-  font-weight: bold;
-  margin-left: 4px;
-  color: #8c7853;
-}
+
 @keyframes blinkCursor {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.1; }
@@ -458,8 +705,7 @@ onMounted(() => {
   box-sizing: border-box;
   line-height: 1.8;
   transition: border 0.3s, box-shadow 0.3s;
-  overflow-y: hidden;
-  transition: height 0.2s ease;
+ 
 }
 .chat-input:focus {
   border-color: #8c7853;
@@ -488,6 +734,126 @@ onMounted(() => {
 .send-btn:active {
   transform: scale(0.97);
   box-shadow: 0 2px 4px rgba(140, 120, 83, 0.3);
+}
+
+.poet-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(140,120,83,0.08);
+}
+
+.poet-card-list {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.poet-card {
+  background: linear-gradient(135deg, #f9f6f1 70%, #e7e0d0 100%);
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(140,120,83,0.10);
+  padding: 1.2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 170px;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s;
+  border: 2px solid transparent;
+}
+
+.poet-card:hover {
+  transform: translateY(-6px) scale(1.04);
+  box-shadow: 0 6px 24px rgba(140,120,83,0.18);
+  border-color: #8c7853;
+  background: linear-gradient(135deg, #f3f0eb 60%, #e7e0d0 100%);
+}
+
+.poet-card-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 8px rgba(140,120,83,0.10);
+}
+
+.poet-card-info {
+  text-align: center;
+}
+
+.poet-card-name {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: #6e5773;
+  margin-bottom: 0.5rem;
+}
+
+.poet-card-intro {
+  font-size: 0.98rem;
+  color: #8c7853;
+}
+
+.avatar-hoverable {
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.avatar-hoverable:hover {
+  box-shadow: 0 0 16px #a3916a88, 0 2px 8px rgba(140,120,83,0.18);
+  transform: scale(1.12) rotate(-6deg);
+}
+.avatar-tip {
+  position: absolute;
+  left: 50%;
+  top: 105%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #a3916a;
+  background: #fffbe9;
+  border-radius: 8px;
+  padding: 2px 8px;
+  box-shadow: 0 2px 8px rgba(140,120,83,0.07);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+.avatar-hoverable:hover .avatar-tip {
+  opacity: 1;
+  font-size: 10px;
+}
+.avatar-hoverable:hover .poet-avatar {
+  animation: avatar-shake 0.4s;
+}
+@keyframes avatar-shake {
+  0% { transform: rotate(0deg);}
+  20% { transform: rotate(-8deg);}
+  40% { transform: rotate(8deg);}
+  60% { transform: rotate(-6deg);}
+  80% { transform: rotate(6deg);}
+  100% { transform: rotate(0deg);}
+}
+.avatar-hoverable:active .poet-avatar {
+  animation: avatar-bounce 0.25s;
+}
+@keyframes avatar-bounce {
+  0% { transform: scale(1);}
+  50% { transform: scale(1.18);}
+  100% { transform: scale(1);}
+}
+@keyframes avatar-shake {
+  0% { transform: rotate(0deg);}
+  20% { transform: rotate(-8deg);}
+  40% { transform: rotate(8deg);}
+  60% { transform: rotate(-6deg);}
+  80% { transform: rotate(6deg);}
+  100% { transform: rotate(0deg);}
 }
 
 @media (max-width: 900px) {
