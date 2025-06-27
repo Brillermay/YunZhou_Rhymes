@@ -441,4 +441,55 @@ public class EasyRAGController extends ConnetMySQL {
         }
         return emitter;
     }
+
+    @PostMapping(value = "/chat/stream/role", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+@Operation(summary = "古人角色扮演流式对话（SSE，多轮）")
+public SseEmitter chatStreamWithRole(@RequestBody Map<String, Object> request) {
+    SseEmitter emitter = new SseEmitter(0L);
+    try {
+        String question = (String) request.get("question");
+        String role = (String) request.get("role");
+        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+
+        if (question == null || question.trim().isEmpty()) {
+            emitter.send(SseEmitter.event().data("问题不能为空"));
+            emitter.complete();
+            return emitter;
+        }
+        if (role == null || role.trim().isEmpty()) {
+            emitter.send(SseEmitter.event().data("角色不能为空"));
+            emitter.complete();
+            return emitter;
+        }
+        // 只允许五个角色
+        if (!com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles().contains(role)) {
+            emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles()));
+            emitter.complete();
+            return emitter;
+        }
+        easyRAGService.chatStreamWithRole(question, role, history, emitter);
+    } catch (Exception e) {
+        try {
+            emitter.send(SseEmitter.event().data("流式对话失败：" + e.getMessage()));
+        } catch (Exception ignored) {}
+        emitter.completeWithError(e);
+    }
+    return emitter;
+}
+
+@PostMapping(value = "/soul-matcher/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+@Operation(summary = "前世今生·灵魂碎片配对器（AI主动提问+分析，流式）")
+public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
+    SseEmitter emitter = new SseEmitter(0L);
+    try {
+        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+        easyRAGService.soulMatcherStream(history, emitter);
+    } catch (Exception e) {
+        try {
+            emitter.send(SseEmitter.event().data("配对器流式对话失败：" + e.getMessage()));
+        } catch (Exception ignored) {}
+        emitter.completeWithError(e);
+    }
+    return emitter;
+}
 }
