@@ -79,7 +79,7 @@ export default {
         { text: '交流论坛', path: '/forum',icon:"M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4l-4 4-4-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"},
         {text: '诗词游戏',path:'/play',icon: "M5 3h14v14H5V3zm2 2v2h2V5H7zm8 0v2h2V5h-2zm-4 4v2h2V9h-2zm4 4v2h2v-2h-2z"},
         { text: '个人中心', path: '/userinfo', icon: "M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1h2v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1z"},
-        { text: 'AI智能诗友', path: '/QwenLLM', icon: "M9 9h6v6H9V9zm-4 3h2v2H5v-2zm12 0h2v2h-2v-2zm-6-6h2v2h-2V5zm0 12h2v2h-2v-2z" }
+        { text: 'AI智能诗友', path: '/qwenllm', icon: "M9 9h6v6H9V9zm-4 3h2v2H5v-2zm12 0h2v2h-2v-2zm-6-6h2v2h-2V5zm0 12h2v2h-2v-2z" }
       ],
       isExpanded: false,
       isDragging: false,
