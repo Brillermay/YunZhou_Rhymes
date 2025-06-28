@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.admin.AdminCommentMapper">
+
+    <!-- 获取评论列表 -->
+    <select id="getCommentList" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+        parentID, LikeCounts, CommentCounts,
+        IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        <where>
+            <if test="search != null and search != ''">
+                AND (Title LIKE CONCAT('%', #{search}, '%')
+                OR Content LIKE CONCAT('%', #{search}, '%'))
+            </if>
+            <if test="category != null and category != ''">
+                AND Category = #{category}
+            </if>
+            <if test="hasTitle != null">
+                AND hasTitle = #{hasTitle}
+            </if>
+        </where>
+        ORDER BY CommentID DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 获取评论总数 -->
+    <select id="getCommentCount" resultType="int">
+        SELECT COUNT(*) FROM comment
+        <where>
+            <if test="search != null and search != ''">
+                AND (Title LIKE CONCAT('%', #{search}, '%')
+                OR Content LIKE CONCAT('%', #{search}, '%'))
+            </if>
+            <if test="category != null and category != ''">
+                AND Category = #{category}
+            </if>
+            <if test="hasTitle != null">
+                AND hasTitle = #{hasTitle}
+            </if>
+        </where>
+    </select>
+
+    <!-- 获取主题帖列表 -->
+    <select id="getTopicList" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+        parentID, LikeCounts, CommentCounts,
+        IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        WHERE hasTitle = 1
+        <if test="search != null and search != ''">
+            AND (Title LIKE CONCAT('%', #{search}, '%')
+            OR Content LIKE CONCAT('%', #{search}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND Category = #{category}
+        </if>
+        ORDER BY CommentID DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 获取主题帖总数 -->
+    <select id="getTopicCount" resultType="int">
+        SELECT COUNT(*) FROM comment
+        WHERE hasTitle = 1
+        <if test="search != null and search != ''">
+            AND (Title LIKE CONCAT('%', #{search}, '%')
+            OR Content LIKE CONCAT('%', #{search}, '%'))
+        </if>
+        <if test="category != null and category != ''">
+            AND Category = #{category}
+        </if>
+    </select>
+
+    <!-- 根据ID获取评论 -->
+    <select id="getCommentById" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+            parentID, LikeCounts, CommentCounts,
+            IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        WHERE CommentID = #{commentId}
+    </select>
+
+    <!-- 搜索评论 -->
+    <select id="searchComments" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+            parentID, LikeCounts, CommentCounts,
+            IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        WHERE Title LIKE CONCAT('%', #{keyword}, '%')
+           OR Content LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY CommentID DESC
+            LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 获取搜索结果总数 -->
+    <select id="getSearchCount" resultType="int">
+        SELECT COUNT(*) FROM comment
+        WHERE Title LIKE CONCAT('%', #{keyword}, '%')
+           OR Content LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <!-- 获取评论总数 -->
+    <select id="getTotalCommentCount" resultType="int">
+        SELECT COUNT(*) FROM comment
+    </select>
+
+    <!-- 获取主题帖总数 -->
+    <select id="getTotalTopicCount" resultType="int">
+        SELECT COUNT(*) FROM comment WHERE hasTitle = 1
+    </select>
+
+    <!-- 获取今日评论数 -->
+    <select id="getTodayCommentCount" resultType="int">
+        SELECT COUNT(*) FROM comment
+        WHERE DATE(Timestamp) = CURDATE()
+    </select>
+
+    <!-- 获取分类统计 -->
+    <select id="getCategoryStats" resultType="Map">
+        SELECT
+            Category as category,
+            COUNT(*) as count
+        FROM comment
+        WHERE Category IS NOT NULL AND Category != ''
+        GROUP BY Category
+        ORDER BY count DESC
+    </select>
+
+    <!-- 获取每日评论统计 -->
+    <select id="getDailyCommentStats" resultType="Map">
+        SELECT
+            DATE(Timestamp) as date,
+            COUNT(*) as count
+        FROM comment
+        WHERE DATE(Timestamp) >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY DATE(Timestamp)
+        ORDER BY date DESC
+    </select>
+
+    <!-- ======== 审核相关查询 ======== -->
+
+    <!-- 获取所有评论 -->
+    <select id="getAllComments" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+            parentID, LikeCounts, CommentCounts,
+            IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        ORDER BY CommentID DESC
+    </select>
+
+    <!-- 更新评论审核状态 -->
+    <update id="updateCommentReviewStatus">
+        UPDATE comment
+        SET review_status = #{reviewStatus}
+        WHERE CommentID = #{commentId}
+    </update>
+
+    <!-- 获取包含敏感词的评论 -->
+    <select id="getSensitiveComments" resultType="com.example.bg.Comment.Comment">
+        SELECT CommentID, PersonID, Timestamp, Category, Title, Content, hasTitle, isAdmin,
+            parentID, LikeCounts, CommentCounts,
+            IFNULL(review_status, 0) as reviewStatus
+        FROM comment
+        WHERE review_status = 2
+        ORDER BY CommentID DESC
+            LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 获取包含敏感词的评论总数 -->
+    <select id="getSensitiveCommentCount" resultType="int">
+        SELECT COUNT(*) FROM comment WHERE review_status = 2
+    </select>
+
+    <!-- 获取包含敏感词的评论ID列表 -->
+    <select id="getSensitiveCommentIds" resultType="int">
+        SELECT CommentID FROM comment WHERE review_status = 2
+    </select>
+
+</mapper>

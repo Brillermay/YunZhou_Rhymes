@@ -31,6 +31,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import com.example.bg.ai.util.RoleProfileUtil;
+
 @Service
 public class EasyRAGService extends ConnetMySQL {
 
@@ -46,6 +52,9 @@ public class EasyRAGService extends ConnetMySQL {
     // 🆕 注入缓存管理器
     @Autowired
     private EmbeddingCacheManager cacheManager;
+
+    @Autowired
+    private StreamingChatLanguageModel streamingChatLanguageModel;
 
     private boolean isInitialized = false;
     private int successfullyProcessed = 0;
@@ -567,5 +576,406 @@ public class EasyRAGService extends ConnetMySQL {
     /**
      * 🆕 保存诗词缓存（包含失败状态）
      */
+    public void chatStream(String userMessage, SseEmitter emitter) throws Exception {
+        if (!isInitialized) {
+            initializeRAG();
+        }
 
+        // 构建上下文和 prompt，和 chat 方法一致
+        Response<Embedding> embeddingResponse = embeddingModel.embed(userMessage);
+        Embedding queryEmbedding = embeddingResponse.content();
+
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+        List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+
+        List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            String poemId = match.embedded().metadata().getString("poem_id");
+            if (poemId != null && isValidCache(poemId)) {
+                validMatches.add(match);
+                if (validMatches.size() >= 3) break;
+            }
+        }
+
+        StringBuilder context = new StringBuilder();
+        if (!validMatches.isEmpty()) {
+            context.append("相关诗词资料：\n\n");
+            for (int i = 0; i < validMatches.size(); i++) {
+                TextSegment segment = validMatches.get(i).embedded();
+                context.append("【资料").append(i + 1).append("】\n");
+                context.append(segment.text()).append("\n\n");
+            }
+        } else {
+            context.append("未找到直接相关的诗词资料。");
+        }
+
+        String prompt = buildPrompt(userMessage, context.toString());
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                }
+            }
+            
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+            }
+        });
+    }
+
+    /**
+     * 🆕 保存诗词缓存（包含失败状态）并支持历史记录
+     */
+    public void chatStreamWithHistory(String userMessage, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        if (!isInitialized) {
+            initializeRAG();
+        }
+
+        System.out.println("💬 处理用户提问: " + userMessage);
+
+        // 构建上下文（同原 chatStream）
+        Response<Embedding> embeddingResponse = embeddingModel.embed(userMessage);
+        Embedding queryEmbedding = embeddingResponse.content();
+
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+        List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+
+        List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            String poemId = match.embedded().metadata().getString("poem_id");
+            if (poemId != null && isValidCache(poemId)) {
+                validMatches.add(match);
+                if (validMatches.size() >= 3) break;
+            }
+        }
+
+        StringBuilder context = new StringBuilder();
+        if (!validMatches.isEmpty()) {
+            context.append("相关诗词资料：\n\n");
+            for (int i = 0; i < validMatches.size(); i++) {
+                TextSegment segment = validMatches.get(i).embedded();
+                context.append("【资料").append(i + 1).append("】\n");
+                context.append(segment.text()).append("\n\n");
+            }
+        } else {
+            context.append("未找到直接相关的诗词资料。");
+        }
+
+        // 拼接历史对话
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null) {
+            for (Map<String, String> turn : history) {
+                String role = turn.get("role");
+                String content = turn.get("content");
+                if ("user".equals(role)) {
+                    historyPrompt.append("用户：").append(content).append("\n");
+                } else if ("assistant".equals(role)) {
+                    historyPrompt.append("助手：").append(content).append("\n");
+                }
+            }
+        }
+
+        // 构建最终 prompt
+        String prompt = """
+            你是一位专业的古典诗词专家。请基于以下资料和历史对话回答用户问题：
+
+            %s
+
+            历史对话：
+            %s
+
+            当前用户问题：%s
+
+            请根据资料和历史对话，给出专业、详细的回答。
+            """.formatted(context, historyPrompt, userMessage);
+
+    final long[] lastTokenTime = {System.currentTimeMillis()};
+    final boolean[] completed = {false};
+
+    // 定时任务线程，超时自动结束
+    Thread timeoutThread = new Thread(() -> {
+        try {
+            while (!completed[0]) {
+                Thread.sleep(2000); // 检查间隔
+                if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                    emitter.complete();
+                    completed[0] = true;
+                    System.out.println("超时自动结束");
+                }
+            }
+        } catch (Exception ignored) {}
+    });
+    timeoutThread.start();
+
+    streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+        @Override
+        public void onNext(String token) {
+            lastTokenTime[0] = System.currentTimeMillis();
+            try {
+                emitter.send(SseEmitter.event().data(token));
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+                completed[0] = true;
+            }
+        }
+
+        public void onComplete() {
+            try {
+                emitter.send(SseEmitter.event().data("[END]"));
+            } catch (Exception ignored) {}
+            emitter.complete();
+            completed[0] = true;
+            System.out.println("onComplete 被调用");
+        }
+        @Override
+        public void onError(Throwable error) {
+            try {
+                emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(error);
+            completed[0] = true;
+            System.out.println("onError 被调用");
+        }
+    });
+}
+
+    /**
+     * 🆕 保存诗词缓存（包含失败状态）并支持角色扮演
+     */
+    public void chatStreamWithRole(String userMessage, String role, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        if (!RoleProfileUtil.getSupportedRoles().contains(role)) {
+            emitter.send(SseEmitter.event().data("不支持的角色：" + role));
+            emitter.complete();
+            return;
+        }
+        if (!isInitialized) {
+            initializeRAG();
+        }
+
+        // 检索相关诗词资料（同 chatStreamWithHistory）
+        Response<Embedding> embeddingResponse = embeddingModel.embed(userMessage);
+        Embedding queryEmbedding = embeddingResponse.content();
+
+        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                .queryEmbedding(queryEmbedding)
+                .maxResults(5)
+                .minScore(0.6)
+                .build();
+
+        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+        List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+
+        List<EmbeddingMatch<TextSegment>> validMatches = new ArrayList<>();
+        for (EmbeddingMatch<TextSegment> match : matches) {
+            String poemId = match.embedded().metadata().getString("poem_id");
+            if (poemId != null && isValidCache(poemId)) {
+                validMatches.add(match);
+                if (validMatches.size() >= 3) break;
+            }
+        }
+
+        StringBuilder context = new StringBuilder();
+        if (!validMatches.isEmpty()) {
+            context.append("相关诗词资料：\n\n");
+            for (int i = 0; i < validMatches.size(); i++) {
+                TextSegment segment = validMatches.get(i).embedded();
+                context.append("【资料").append(i + 1).append("】\n");
+                context.append(segment.text()).append("\n\n");
+            }
+        } else {
+            context.append("未找到直接相关的诗词资料。");
+        }
+
+        // 拼接历史对话
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null) {
+            for (Map<String, String> turn : history) {
+                String turnRole = turn.get("role");
+                String content = turn.get("content");
+                if ("user".equals(turnRole)) {
+                    historyPrompt.append("用户：").append(content).append("\n");
+                } else if ("assistant".equals(turnRole)) {
+                    historyPrompt.append(role).append("：").append(content).append("\n");
+                }
+            }
+        }
+
+        // 读取角色信息
+        String roleProfile = RoleProfileUtil.getProfile(role);
+
+        // 构建角色扮演 prompt
+        String prompt = """
+            你现在是一位古代著名文人【%s】，以下是你的详细资料：
+            %s
+
+            请以他的身份与用户对话，风格、语气、知识储备都要贴合该人物。
+            你可以结合下列诗词资料和历史对话，专业、风趣、真实地回答用户问题。
+
+            %s
+
+            历史对话：
+            %s
+
+            当前用户问题：%s
+
+            回答要求：
+            - 以“%s”的身份作答，风格贴合其历史形象
+            - 语言优美、符合古人气质，可适当引用诗句
+            - 如资料不足，可结合常识和想象补充
+            """.formatted(role, roleProfile, context, historyPrompt, userMessage, role);
+
+    final long[] lastTokenTime = {System.currentTimeMillis()};
+    final boolean[] completed = {false};
+
+    Thread timeoutThread = new Thread(() -> {
+        try {
+            while (!completed[0]) {
+                Thread.sleep(2000);
+                if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                    emitter.complete();
+                    completed[0] = true;
+                }
+            }
+        } catch (Exception ignored) {}
+    });
+    timeoutThread.start();
+
+    streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+        @Override
+        public void onNext(String token) {
+            lastTokenTime[0] = System.currentTimeMillis();
+            try {
+                emitter.send(SseEmitter.event().data(token));
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+                completed[0] = true;
+            }
+        }
+
+        public void onComplete() {
+            try {
+                emitter.send(SseEmitter.event().data("[END]"));
+            } catch (Exception ignored) {}
+            emitter.complete();
+            completed[0] = true;
+        }
+        @Override
+        public void onError(Throwable error) {
+            try {
+                emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(error);
+            completed[0] = true;
+        }
+    });
+}
+
+    /**
+     * 前世今生·灵魂碎片配对器（AI主动提问+分析，流式）
+     */
+    public void soulMatcherStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        // 构建灵魂配对专用 prompt
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null && !history.isEmpty()) {
+            for (Map<String, String> turn : history) {
+                String role = turn.get("role");
+                String content = turn.get("content");
+                if ("ai".equals(role)) {
+                    historyPrompt.append("AI提问：").append(content).append("\n");
+                } else if ("user".equals(role)) {
+                    historyPrompt.append("用户回答：").append(content).append("\n");
+                }
+            }
+        }
+
+        String prompt = """
+            你是“前世今生·灵魂碎片配对器”，请以心理测试专家和古诗词鉴赏家的身份，和用户进行一场“前世今生”灵魂配对互动。
+            规则如下：
+            1. 你会主动提出性格、情绪、偏好等问题（每次只问一个），引导用户作答。
+            2. 用户说“开始”，就开始测试。
+            3. 用户回答一个测试题后，可以给出一定的情绪价值的回复，再进行下一题。
+            4. 当你觉得信息足够时（5道题），输出最终配对结果：告诉用户“你的前世是哪个古人/哪句诗”，并给出一段AI评语和推荐诗词。
+            5. 互动风格温暖有趣，适合社交分享。
+            6. 把自己当成心理测试专家和古诗词鉴赏家，提问要有趣、引人思考，回答要专业、富有情感。
+            7. 对于诗句和选项的输出，都是每行一句诗，每行一个选项。
+            8. 历史对话如下（AI提问和用户回答）：
+            %s
+            如果还没问完，请继续提问；如果可以分析，请直接输出配对结果和解析。
+            """.formatted(historyPrompt);
+
+        final long[] lastTokenTime = {System.currentTimeMillis()};
+        final boolean[] completed = {false};
+
+        Thread timeoutThread = new Thread(() -> {
+            try {
+                while (!completed[0]) {
+                    Thread.sleep(2000);
+                    if (System.currentTimeMillis() - lastTokenTime[0] > 2000 && !completed[0]) {
+                        emitter.send(SseEmitter.event().data("[END]"));
+                        emitter.complete();
+                        completed[0] = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+        timeoutThread.start();
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                lastTokenTime[0] = System.currentTimeMillis();
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                    completed[0] = true;
+                }
+            }
+
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
+                completed[0] = true;
+            }
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+                completed[0] = true;
+            }
+        });
+    }
 }

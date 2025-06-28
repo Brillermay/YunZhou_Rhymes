@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.admin.AdminPoemMapper">
+
+    <!-- 获取诗词列表 -->
+    <select id="getPoemList" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem
+        <where>
+            <if test="search != null and search != ''">
+                AND (title LIKE CONCAT('%', #{search}, '%')
+                OR poet LIKE CONCAT('%', #{search}, '%')
+                OR text LIKE CONCAT('%', #{search}, '%'))
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+        </where>
+        ORDER BY PID DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 获取诗词总数 -->
+    <select id="getPoemCount" resultType="int">
+        SELECT COUNT(*) FROM poem
+        <where>
+            <if test="search != null and search != ''">
+                AND (title LIKE CONCAT('%', #{search}, '%')
+                OR poet LIKE CONCAT('%', #{search}, '%')
+                OR text LIKE CONCAT('%', #{search}, '%'))
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID获取诗词 -->
+    <select id="getPoemById" resultType="com.example.bg.poem.Poem">
+        SELECT * FROM poem WHERE PID = #{pid}
+    </select>
+
+    <!-- 添加诗词 -->
+    <insert id="insertPoem" parameterType="com.example.bg.poem.Poem" useGeneratedKeys="true" keyProperty="PID">
+        INSERT INTO poem (title, poet, text, category, background, appreciation, translation)
+        VALUES (#{title}, #{poet}, #{text}, #{category}, #{background}, #{appreciation}, #{translation})
+    </insert>
+
+    <!-- 更新诗词 -->
+    <update id="updatePoem" parameterType="com.example.bg.poem.Poem">
+        UPDATE poem
+        SET title = #{title},
+            poet = #{poet},
+            text = #{text},
+            category = #{category},
+            background = #{background},
+            appreciation = #{appreciation},
+            translation = #{translation}
+        WHERE PID = #{PID}
+    </update>
+
+    <!-- 删除诗词 -->
+    <delete id="deletePoem">
+        DELETE FROM poem WHERE PID = #{pid}
+    </delete>
+
+    <!-- 批量删除诗词 -->
+    <delete id="batchDeletePoems">
+        DELETE FROM poem WHERE PID IN
+        <foreach item="pid" index="index" collection="pids" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+    </delete>
+
+    <!-- 获取所有分类 -->
+    <select id="getAllCategories" resultType="String">
+        SELECT DISTINCT category FROM poem WHERE category IS NOT NULL AND category != '' ORDER BY category
+    </select>
+
+</mapper>
