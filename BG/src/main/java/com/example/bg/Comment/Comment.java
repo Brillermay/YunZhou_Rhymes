@@ -12,4 +12,6 @@ public class Comment implements Serializable {
     public int CommentID, LikeCounts, CommentCounts, PersonID, parentID;
     public String Timestamp, Category, Title, Content;
     public boolean hasTitle, isAdmin;
+    //add
+    public boolean review_status;
 }

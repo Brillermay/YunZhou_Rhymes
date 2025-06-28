@@ -40,5 +40,8 @@
     "last 2 versions",
     "not dead",
     "not ie 11"
-  ]
+  ],
+  "overrides": {
+    "strip-ansi": "5.2.0"
+  }
 }
