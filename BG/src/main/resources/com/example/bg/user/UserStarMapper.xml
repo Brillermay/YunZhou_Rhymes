@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.user.UserStarMapper">
+    <insert id="addStar">
+        INSERT IGNORE INTO starlist (UID, PID) VALUES (#{param1}, #{param2})
+    </insert>
+    <delete id="removeStar">
+        DELETE FROM starlist WHERE UID = #{param1} AND PID = #{param2}
+    </delete>
+    <select id="getStarList" resultType="com.example.bg.poem.Poem">
+        SELECT 
+        p.PID AS PID,
+        p.title AS title,
+        p.poet AS poet,
+        p.text AS text,
+        p.category AS category,
+        p.background AS background,
+        p.appreciation AS appreciation,
+        p.translation AS translation
+        FROM starlist s
+        JOIN poem p ON s.PID = p.PID
+        WHERE s.UID = #{uid}
+    </select>
+</mapper>

@@ -1,5 +1,5 @@
 <template>
-  <div class="poetry-layout">
+  <div class="poetry-layout" :style="getPageBackgroundStyle()">
     <!-- 标题部分 - 添加overflow hidden容器 -->
     <header class="poetry-header">
       <div class="title-container">
@@ -96,6 +96,20 @@ const currentIndex = ref(0);
 const loading = ref(false);
 const error = ref('');
 
+// 背景图片管理
+const availableBackgrounds = [
+  '/poetry_card_bg/poetry_bg_1.jpg',
+  '/poetry_card_bg/poetry_bg_2.jpeg',
+  '/poetry_card_bg/poetry_bg_3.jpeg',
+  '/poetry_card_bg/poetry_bg_4.jpeg',
+  '/poetry_card_bg/poetry_bg_5.jpeg',
+  '/poetry_card_bg/poetry_bg_6.jpeg',
+  '/poetry_card_bg/poetry_bg_7.jpeg'
+];
+const currentBackgroundIndex = ref(0);
+// 页面背景管理
+const pageBackgroundImage = ref('/poetry_card_bg/poetry_bg_1.jpg');
+
 // 标题下落动画
 const animateTitleDrop = () => {
   const tl = gsap.timeline();
@@ -148,6 +162,17 @@ const generateRandomIds = (max, count) => {
     ids.add(Math.floor(Math.random() * max) + 1);
   }
   return Array.from(ids);
+};
+
+// 随机选择不同的背景图片
+const getRandomBackground = () => {
+  let newIndex;
+  do {
+    newIndex = Math.floor(Math.random() * availableBackgrounds.length);
+  } while (newIndex === currentBackgroundIndex.value && availableBackgrounds.length > 1);
+  
+  currentBackgroundIndex.value = newIndex;
+  return availableBackgrounds[newIndex];
 };
 
 // 格式化诗词文本
@@ -212,12 +237,12 @@ const loadPoems = async () => {
       const poem = await fetchPoemById(id);
       
       if (poem) {
-        // 为诗词添加背景图
+        // 为诗词添加随机背景图
         validPoems.push({
           ...poem,
-          backgroundImage: '/poetry_bg_1.jpg'
+          backgroundImage: getRandomBackground()
         });
-        console.log(`成功添加诗词: ${poem.title}`);
+        console.log(`成功添加诗词: ${poem.title}，背景图片: ${poem.backgroundImage}`);
       }
       
       // 添加小延迟，避免请求过于频繁
@@ -250,12 +275,23 @@ const loadPoems = async () => {
 
 // 获取卡片背景样式
 const getCardBackgroundStyle = (poem) => {
-  const imagePath = '/poetry_bg_1.jpg';
+  const imagePath = poem?.backgroundImage || '/poetry_card_bg/poetry_bg_1.jpg';
   return {
     backgroundImage: `url(${imagePath})`,
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat'
+  };
+};
+
+// 获取页面背景样式
+const getPageBackgroundStyle = () => {
+  return {
+    backgroundImage: `url(${pageBackgroundImage.value})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed'
   };
 };
 
@@ -275,12 +311,24 @@ const moveCards = (direction) => {
   } else {
     currentIndex.value = (currentIndex.value - 1 + allPoems.length) % allPoems.length;
   }
+  
+  // 更新页面背景为当前卡片的背景
+  updatePageBackground();
 };
 
 // 跳转到指定诗词
 const goToPoem = (index) => {
   if (index >= 0 && index < allPoems.length) {
     currentIndex.value = index;
+    // 更新页面背景为当前卡片的背景
+    updatePageBackground();
+  }
+};
+
+// 更新页面背景
+const updatePageBackground = () => {
+  if (allPoems[currentIndex.value]?.backgroundImage) {
+    pageBackgroundImage.value = allPoems[currentIndex.value].backgroundImage;
   }
 };
 
@@ -294,9 +342,12 @@ onMounted(async () => {
   animateTitleDrop();
   
   // 延迟加载诗词，让用户先看到标题动画
-  setTimeout(() => {
-    loadPoems();
+  setTimeout(async () => {
+    await loadPoems();
+    // 加载完成后设置初始页面背景
+    updatePageBackground();
   }, 1000);
+
 });
 </script>
 
@@ -306,21 +357,46 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5efe6 0%, #faf8f3 100%);
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
   overflow: hidden;
+  position: relative;
+  transition: all 0.8s ease-in-out;
 }
 
+/* 页面背景遮罩层 */
+.poetry-layout::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg, 
+    rgba(245, 239, 230, 0.85) 0%,
+    rgba(250, 248, 243, 0.9) 50%,
+    rgba(245, 239, 230, 0.85) 100%
+  );
+  z-index: -1;
+  pointer-events: none;
+  backdrop-filter: blur(1px);
+}
 /* 头部区域 */
 .poetry-header {
   text-align: center;
   padding: 2rem 0 1rem 0;
-  background: linear-gradient(135deg, #8c7853 0%, #6e5773 100%);
+  background: linear-gradient(
+    135deg, 
+    rgba(140, 120, 83, 0.9) 0%, 
+    rgba(110, 87, 115, 0.9) 100%
+  );
   color: white;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   width: 100%;
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .title-container {
@@ -513,20 +589,26 @@ onMounted(async () => {
 }
 
 /* 卡片背景遮罩 */
-/*.card-inner::before {
+.card-inner::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.25);
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.241) 0%,
+    rgba(248, 244, 237, 0.276) 50%,
+    rgba(255, 255, 255, 0.326) 100%
+  );
   z-index: 1;
   pointer-events: none;
   transition: all 0.3s ease;
   border-radius: 21px;
+  backdrop-filter: blur(2px);
 }
-*/
+
 
 
 
@@ -540,10 +622,15 @@ onMounted(async () => {
 
 
 
-/*.poem-card.active .card-inner:hover::before {
-  background: rgba(255, 255, 255, 0.15);
+.poem-card.active .card-inner:hover::before {
+  background: linear-gradient(
+    135deg, 
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(248, 244, 237, 0.95) 50%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  backdrop-filter: blur(3px);
 }
-*/
 /* 侧边卡片悬停效果 */
 .poem-card.prev .card-inner:hover,
 .poem-card.next .card-inner:hover {
@@ -629,7 +716,7 @@ onMounted(async () => {
 .poem-line {
   text-align: center;
   margin: 0.5rem 0;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   line-height: 1.8;
   color: #2d1810;
   font-family: 'KaiTi', '楷体', 'STKaiti', serif;

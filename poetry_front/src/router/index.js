@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import PoetryRecommend from '@/components/PoetryRecommend.vue'
 import PoetrySearch from '@/components/PoetrySearch.vue'
-import PoemDetail from '@/components/PoemDetail.vue';
 import PoetryGame from '@/components/PoetryTest.vue'
 import Forum from '@/components/Forum.vue'
 import ForumLogin from '@/components/ForumLogin.vue'
 import FeiHua from '@/components/FeiHuaLing.vue'
 import GameAll from "../components/gameAll.vue";
 import UserInfo from "@/components/UserInfo.vue";
+import QwenLLM  from "@/components/QwenLLM.vue";
 
 // 导入管理员组件
 import AdminLogin from '../components/admin/AdminLogin.vue'
@@ -20,13 +20,13 @@ const router = createRouter({
     {path: '/', redirect: '/recommend'},
   { path: '/recommend', component: PoetryRecommend },
   { path: '/search', component: PoetrySearch },
-  { path: '/poem/:id', component: PoemDetail },
   { path: '/game', component: PoetryGame },
   { path: '/feihua', component: FeiHua },
   { path: '/forum', component: Forum },
   { path: '/forumlogin', component: ForumLogin },
   { path: '/userinfo', component: UserInfo },
   { path: '/play', component: GameAll },
+  { path: '/qwenllm', component: QwenLLM },
     // 管理员路由
     {
       path: '/admin',
