@@ -7,6 +7,7 @@ import org.apache.shiro.crypto.hash.SimpleHash;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -69,5 +70,21 @@ public class UserController {
     @Operation(summary = "返回用户名")
     public String retName(@PathVariable int uid) {
         return userService.getName(uid);
+    }
+
+    @GetMapping("/changePWD")
+    @Operation(summary = "修改密码")
+    public String changePwd(@RequestBody Map<String,String>request){
+        User user = new User();
+        String username = request.get("UserName");
+        int uid=userService.getUID(username);
+        userService.delUser(uid);
+        user.setName(username);
+        user.setSalt(UUID.randomUUID().toString());
+        user.setPwd(userService.encryptPassword(request.get("PassWord"),  user.getSalt()));
+        user.setStatus("active");
+        user.setIsadmin(0);
+        int result = userService.addUser(user);
+        return result>0?"修改成功":"修改失败";
     }
 }
