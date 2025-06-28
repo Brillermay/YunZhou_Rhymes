@@ -27,62 +27,47 @@ import java.util.UUID;
 public class UserController {
 
     @Autowired
-    private UserMapper userMapper;
-
+    private UserService userService;
     @PostMapping("/add")
     @Operation(summary = "添加用户")
     public String addUser(@RequestBody Map<String, String> request) {
         User user=new User();
         user.setName(request.get("UserName"));
         user.setSalt(UUID.randomUUID().toString());
-        user.setPwd(encryptPassword(request.get("PassWord"),  user.getSalt()));
+        user.setPwd(userService.encryptPassword(request.get("PassWord"),  user.getSalt()));
         user.setStatus("active");
-
-        User res=userMapper.findByUsername(user.getName());
-        if(res != null)return "用户名重复！";
-
-        int result = userMapper.UserAdd(user);
-        return result > 0 ? "添加成功" : "添加失败";
+        user.setIsadmin(0);
+        int result = userService.addUser(user);
+        return result > 0 ? "添加成功" : "添加失败，请修改用户名";
     }
 
-    private String encryptPassword(String password, String salt) {
-        return new SimpleHash("SHA-256", password, ByteSource.Util.bytes(salt),  1024).toHex();
-    }
+
 
     // 使用Shiro的认证机制
     @PostMapping("/login")
     @Operation(summary = "用户登录")
     public String login(@RequestBody Map<String, String> request) {
-        Subject subject = SecurityUtils.getSubject();
         String username = request.get("UserName");  // 必须与JSON键名一致
         String password = request.get("PassWord");
-        // 创建Token时必须传递username
-        UsernamePasswordToken token = new UsernamePasswordToken(username, password);
-        //System.out.println("Controller 层收到用户名：" + username);
-        try {
-            subject.login(token);
-            return "登录成功";
-        } catch (AuthenticationException e) {
-            return "登录失败: " + e.getMessage();
-        }
+        return userService.login(username,password);
+
     }
 
     @DeleteMapping("/del/{uid}")
     @Operation(summary = "根据UID删除用户")
     public String delUser(@PathVariable int uid) {
-        int result = userMapper.delUser(uid);
-        return result > 0 ? "删除成功" : "删除失败";
+        return userService.delUser(uid) > 0 ? "删除成功" : "删除失败";
     }
 
     @GetMapping("/loginID/{username}")
     @Operation(summary = "返回用户ID")
     public int retRegisID(@PathVariable String username) {
-        return userMapper.getID(username);
+        return userService.getUID(username);
     }
 
     @GetMapping("/loginName/{uid}")
     @Operation(summary = "返回用户名")
     public String retName(@PathVariable int uid) {
-        return userMapper.getName(uid);
+        return userService.getName(uid);
     }
 }

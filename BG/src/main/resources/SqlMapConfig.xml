@@ -14,13 +14,13 @@
             <dataSource type="POOLED">
                 <!--配置连接数据库的4个基本信息，注解是本机调试-->
 <!--                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>-->
-<!--                <property name="url" value="jdbc:mysql://localhost:3306/es"/>-->
+<!--                <property name="url" value="jdbc:mysql://localhost:3306/poem"/>-->
 <!--                <property name="username" value="root"/>-->
-<!--                <property name="password" value="pnpnpnpnow"/>-->
+<!--                <property name="password" value="123456"/>-->
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
                 <property name="url" value="jdbc:mysql://localhost:3306/es"/>
                 <property name="username" value="root"/>
-                <property name="password" value="pnpnpnpnow"/>
+                <property name="password" value="npnpnpnow"/>
             </dataSource>
         </environment>
     </environments>
@@ -39,6 +39,7 @@
         <mapper resource="com/example/bg/testMapper.xml"/>
         <mapper resource="com/example/bg/comp/compRecOpMapper.xml"/>
         <mapper resource="com/example/bg/admin/SensitiveWordMapper.xml"/>
+        <mapper resource="com/example/bg/GameBG/Player/PlayerOpMapper.xml"/>
     </mappers>
 
 

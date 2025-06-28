@@ -10,4 +10,6 @@ public class User {
     // 新增字段
     public String salt; // 密码盐值
     public String status; // 账户状态
+
+    public int isadmin;
 }

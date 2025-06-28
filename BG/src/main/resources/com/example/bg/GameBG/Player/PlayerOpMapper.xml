@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.bg.GameBG.Player.PlayerOpMapper">
+    <!--    &lt;!&ndash;配置查询所有&ndash;&gt;-->
+    <!--    &lt;!&ndash;id为方法名称&ndash;&gt;-->
+    <!--    <select id="findAll" resultType="com.example.demo.User">-->
+    <!--        select * from user-->
+    <!--    </select>-->
+    <!--    &lt;!&ndash; XML 映射文件 &ndash;&gt;-->
+    <!--    <insert id="insertUser">-->
+    <!--        INSERT INTO user (id, age, name)-->
+    <!--        VALUES (#{id}, #{age}, #{name})-->
+    <!--    </insert>-->
+    <!--    <select id="find" resultType="com.example.demo.User">-->
+    <!--        select * from user where id=#{id}-->
+    <!--    </select>-->
+    <!--    <delete id="del">-->
+    <!--        delete from user where id=#{id}-->
+    <!--    </delete>-->
+    <!--    这里就是函数的主功能，看下应该也能看懂-->
+    <insert id="PlayerAdd">
+        insert into cache (LastPlayTime,UID,gold,achievements)
+        values (#{LastPlayTime},#{UID},#{gold},#{achievements})
+    </insert>
+    <delete id="PlayerDel">
+        delete from cache where PID=#{PID} and UID=#{UID}
+    </delete>
+    <select id="PlayerFind" resultType="com.example.bg.GameBG.Player.Player">
+        select * from cache where UID=#{UID}
+    </select>
+    <select id="CardsFind" resultType="com.example.bg.GameBG.Player.Card">
+        select *
+        from cardscache where PID=#{PID};
+    </select>
+    <select id="PlayerFindByCondition" resultType="com.example.bg.GameBG.Player.Player">
+        SELECT * FROM cache
+        WHERE UID = #{UID}
+        <if test="PID != -1">
+            AND PID = #{PID}
+        </if>
+    </select>
+    <update id="updatePlayerBase">
+        UPDATE cache
+        SET
+            LastPlayTime = #{LastPlayTime},
+            achievements = #{achievements},
+            gold = #{gold}
+        WHERE PID = #{PID} AND UID = #{UID}
+    </update>
+
+    <!-- 删除指定玩家的所有卡牌 -->
+    <delete id="deleteCardsByPID">
+        DELETE FROM cardscache WHERE PID = #{PID}
+    </delete>
+
+    <!-- 批量插入卡牌数据 -->
+    <insert id="batchInsertCards">
+        INSERT INTO cardscache (PID, CardType, CardNum)
+        VALUES
+        <foreach collection="cardList" item="card" separator=",">
+            (#{pid}, #{card.cardType}, #{card.cardNum})
+        </foreach>
+    </insert>
+</mapper>
