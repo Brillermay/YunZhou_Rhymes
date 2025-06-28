@@ -109,6 +109,7 @@ const cardImages = [
   { key: 'card8', src: new URL('../assets/cards/card8.png', import.meta.url).href },
   { key: 'card9', src: new URL('../assets/cards/card9.png', import.meta.url).href },
   { key: 'card10', src: new URL('../assets/cards/card10.png', import.meta.url).href },
+  { key: 'card_li', src: new URL('../assets/cards/李白.png', import.meta.url).href },
 ]
 
 // 合成配方映射
@@ -119,12 +120,25 @@ const recipeMapping = {
   'cardj_cardq': 'cardk'
 }
 
+const craftingRecipes = {
+  'card2_card3_card_worker': 'card_li'  // 诗意1+诗意2+诗人=李白
+}
+
 // 检查两张卡是否可以合成
 const checkRecipe = (card1Type, card2Type) => {
   // 确保类型按字母顺序排序以保持一致性
   const types = [card1Type, card2Type].sort()
   const recipeKey = types.join('_')
   return recipeMapping[recipeKey]
+}
+
+// 在 checkRecipe 后添加三卡合成检查函数
+const checkCrafting = (cards) => {
+  if (cards.length !== 3) return null;
+  const types = cards.map(card => card.getData('type')).sort()
+  const recipeKey = types.join('_')
+  console.log('Crafting Recipe Key:', recipeKey); // 调试信息
+  return craftingRecipes[recipeKey]
 }
 
 const cardPrices = {
@@ -727,6 +741,125 @@ onMounted(() => {
         })
       })
 
+
+      // 创建合成台背景
+      const craftingStation = this.add.rectangle(
+        buySlot4.x + buySlot4.width + padding, // 书斋卡右边
+        buySlot4.y, // 与书斋卡垂直对齐
+        400, // 合成台宽度
+        140, // 合成台高度
+        0x6e5773
+      )
+        .setOrigin(0, 0)
+        .setDepth(100)
+        .setStrokeStyle(2, 0x8c7853);
+
+      // 创建四个合成槽
+      const craftingSlots = []
+      const slotWidth = 80
+      const cardWidth = 100; // 卡牌宽度
+      const cardHeight = 140; // 卡牌高度
+      const slotSpacing = 20
+      const slotTypes = ['card2', 'card3', 'card_worker', null] // null 表示结果槽
+
+      for (let i = 0; i < 4; i++) {
+        const x = craftingStation.x + slotSpacing + i * (cardWidth + slotSpacing);
+        const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; // 垂直居中
+
+        const slot = this.add.rectangle(x, y, cardWidth, cardHeight, 0x8c7853) // 使用卡牌大小
+          .setOrigin(0, 0)
+          .setDepth(101)
+          .setStrokeStyle(1, 0xffffff)
+          .setData('type', slotTypes[i])
+          .setData('occupied', false)
+          .setData('card', null)
+          .setInteractive({ dropZone: true });
+
+        craftingSlots.push(slot);
+
+        // 添加槽位标识
+        if (i < 3) {
+          this.add.text(x + cardWidth + 5, y + cardHeight / 2, i < 2 ? '+' : '=', {
+            fontSize: '24px',
+            color: '#ffffff'
+          }).setOrigin(0, 0.5).setDepth(101);
+        }
+
+        // 添加槽位提示文本
+        const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
+        this.add.text(x + cardWidth / 2, y - 5, slotText, {
+          fontSize: '12px',
+          color: '#ffffff'
+        }).setOrigin(0.5, 1).setDepth(101);
+      }
+
+      // 添加拖放事件
+      this.input.on('drop', (pointer, gameObject, dropZone) => {
+        const cardType = gameObject.getData('type');
+        const slotType = dropZone.getData('type');
+
+        if ((slotType === null || cardType === slotType) && !dropZone.getData('occupied')) {
+          // 放置卡牌到槽位
+          dropZone.setData('occupied', true);
+          dropZone.setData('card', gameObject);
+
+          // 调整卡牌位置到槽位中心
+          gameObject.x = dropZone.x + dropZone.width / 2;
+          gameObject.y = dropZone.y + dropZone.height / 2;
+
+          // 检查是否可以合成
+          const materials = craftingSlots.slice(0, 3)
+            .map(slot => slot.getData('card'))
+            .filter(Boolean); // 过滤掉未填充的槽位
+
+          if (materials.length === 3) {
+            const resultType = checkCrafting(materials);
+            if (resultType) {
+              // 创建结果卡牌
+              const resultCard = this.physics.add.image(
+                craftingSlots[3].x + craftingSlots[3].width / 2,
+                craftingSlots[3].y + craftingSlots[3].height / 2,
+                resultType
+              )
+                .setDisplaySize(100, 140)
+                .setInteractive({ cursor: 'pointer', useHandCursor: true })
+                .setCollideWorldBounds(true)
+                .setBounce(0.8)
+                .setData('type', resultType)
+                .setData('id', Date.now().toString());
+
+              this.input.setDraggable(resultCard);
+              this.cards.push(resultCard);
+
+              // 添加合成效果
+              const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
+                .setScale(0.1)
+                .setAlpha(0.8)
+                .setTint(0xffd700)
+                .setBlendMode(Phaser.BlendModes.ADD);
+
+              this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                scale: 1,
+                duration: 500,
+                onComplete: () => flash.destroy()
+              });
+
+              // 清空材料槽
+              materials.forEach(card => card.destroy());
+              craftingSlots.forEach(slot => {
+                slot.setData('occupied', false);
+                slot.setData('card', null);
+              });
+            }else {
+              console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
+            }
+          }
+        }
+      });
+
+
     // 创建金币显示背景并添加交互效果
     const coinBackground = this.add.rectangle(
       this.scale.width - padding - 100,
@@ -768,11 +901,35 @@ onMounted(() => {
     // 添加窗口缩放事件处理
     this.scale.on('resize', (gameSize) => {
       // 更新顶部边栏
-      topBar.width = gameSize.width
+      topBar.width = gameSize.width;
+
       // 更新金币显示位置
-      coinDisplay.x = gameSize.width - padding - 10
-      coinBackground.x = gameSize.width - padding
-    })
+      coinDisplay.x = gameSize.width - padding - 10;
+      coinBackground.x = gameSize.width - padding;
+
+      // 更新合成台位置
+      craftingStation.x = buySlot4.x + buySlot4.width + padding; // 书斋卡右边
+
+      // 更新槽位位置
+      craftingSlots.forEach((slot, i) => {
+        const x = craftingStation.x + slotSpacing + i * (cardWidth + slotSpacing);
+        slot.x = x;
+
+        // 更新槽位标识和提示文本的位置
+        if (i < 3) {
+          const operatorText = this.add.text(x + cardWidth + 5, slot.y + cardHeight / 2, i < 2 ? '+' : '=', {
+            fontSize: '24px',
+            color: '#ffffff'
+          }).setOrigin(0, 0.5).setDepth(101);
+        }
+
+        const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
+        this.add.text(x + cardWidth / 2, slot.y - 5, slotText, {
+          fontSize: '12px',
+          color: '#ffffff'
+        }).setOrigin(0.5, 1).setDepth(101);
+      });
+    });
 
     // 创建初始卡片
     const initialCards = ['card2', 'card3', 'card4', 'card5'] // 只包含基础卡片
