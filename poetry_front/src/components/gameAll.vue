@@ -71,7 +71,7 @@ const achievements = ref([
     unlocked: false
   }
 ])
-
+// 1,2,15,
 // 合成表数据
 const recipes = ref([
   {
@@ -96,32 +96,257 @@ const recipes = ref([
 
 // 卡片素材列表
 const cardImages = [
-  { key: 'card2', src: new URL('../assets/cards/card2.png', import.meta.url).href },
-  { key: 'card3', src: new URL('../assets/cards/card3.png', import.meta.url).href },
-  { key: 'card4', src: new URL('../assets/cards/card4.png', import.meta.url).href },
-  { key: 'card5', src: new URL('../assets/cards/card5.png', import.meta.url).href },
-  { key: 'cardj', src: new URL('../assets/cards/cardj.png', import.meta.url).href },
-  { key: 'cardq', src: new URL('../assets/cards/cardq.png', import.meta.url).href },
-  { key: 'cardk', src: new URL('../assets/cards/cardk.png', import.meta.url).href },
-  { key: 'card_pack', src: new URL('../assets/cards/card_pack.png', import.meta.url).href },
-  { key: 'card_worker', src: new URL('../assets/cards/card_worker.png', import.meta.url).href },
-  { key: 'card_factory', src: new URL('../assets/cards/card_factory.png', import.meta.url).href },
-  { key: 'card8', src: new URL('../assets/cards/card8.png', import.meta.url).href },
-  { key: 'card9', src: new URL('../assets/cards/card9.png', import.meta.url).href },
-  { key: 'card10', src: new URL('../assets/cards/card10.png', import.meta.url).href },
-  { key: 'card_li', src: new URL('../assets/cards/李白.png', import.meta.url).href },
+  { key: 'card_pack_poem', src: new URL('../assets/cards/诗意卡包(2).png', import.meta.url).href },
+  { key: 'card_pack_poet', src: new URL('../assets/cards/诗人卡包(1).png', import.meta.url).href },
+  { key: 'card_worker', src: new URL('../assets/cards/书生.png', import.meta.url).href },
+  { key: 'factory', src: new URL('../assets/cards/factory.png', import.meta.url).href },
+
+  { key: 'love', src: new URL('../assets/cards/诗意/爱情.png', import.meta.url).href },
+  { key: 'sad', src: new URL('../assets/cards/诗意/悲.png', import.meta.url).href },
+  { key: 'spring', src: new URL('../assets/cards/诗意/春.png', import.meta.url).href },
+  { key: 'danbo', src: new URL('../assets/cards/诗意/淡泊.png', import.meta.url).href },
+  { key: 'home', src: new URL('../assets/cards/诗意/故乡.png', import.meta.url).href },
+  { key: 'yellowriver', src: new URL('../assets/cards/诗意/黄河.png', import.meta.url).href },
+  { key: 'fire', src: new URL('../assets/cards/诗意/火.png', import.meta.url).href },
+  { key: 'wine', src: new URL('../assets/cards/诗意/酒.png', import.meta.url).href },
+  { key: 'byebye', src: new URL('../assets/cards/诗意/离别.png', import.meta.url).href },
+  { key: 'liu', src: new URL('../assets/cards/诗意/柳.png', import.meta.url).href },
+  { key: 'bird', src: new URL('../assets/cards/诗意/鸟.png', import.meta.url).href },
+  { key: 'autumn', src: new URL('../assets/cards/诗意/秋.png', import.meta.url).href },
+  { key: 'sun', src: new URL('../assets/cards/诗意/日.png', import.meta.url).href },
+  { key: 'mountain', src: new URL('../assets/cards/诗意/山.png', import.meta.url).href },
+  { key: 'water', src: new URL('../assets/cards/诗意/水.png', import.meta.url).href },
+  { key: 'missing', src: new URL('../assets/cards/诗意/思念.png', import.meta.url).href },
+  { key: 'flower', src: new URL('../assets/cards/诗意/桃花.png', import.meta.url).href },
+  { key: 'goose', src: new URL('../assets/cards/诗意/雁.png', import.meta.url).href },
+  { key: 'friend', src: new URL('../assets/cards/诗意/友情.png', import.meta.url).href },
+  { key: 'rain', src: new URL('../assets/cards/诗意/雨.png', import.meta.url).href },
+  { key: 'moon', src: new URL('../assets/cards/诗意/月.png', import.meta.url).href },
+  { key: 'war', src: new URL('../assets/cards/诗意/战争.png', import.meta.url).href },
+  { key: 'longriver', src: new URL('../assets/cards/诗意/长江.png', import.meta.url).href },
+  { key: 'bamboo', src: new URL('../assets/cards/诗意/竹.png', import.meta.url).href },
+  { key: 'zhuangzhinanchou', src: new URL('../assets/cards/诗意/壮志难酬.png', import.meta.url).href },
+  { key: 'nature', src: new URL('../assets/cards/诗意/自然.png', import.meta.url).href },
+
+  { key: 'baijuyi', src: new URL('../assets/cards/诗人/白居易.png', import.meta.url).href },
+  { key: 'dufu', src: new URL('../assets/cards/诗人/杜甫.png', import.meta.url).href },
+  { key: 'libai', src: new URL('../assets/cards/诗人/李白.png', import.meta.url).href },
+  { key: 'lishangyin', src: new URL('../assets/cards/诗人/李商隐.png', import.meta.url).href },
+  { key: 'liuyuxi', src: new URL('../assets/cards/诗人/刘禹锡.png', import.meta.url).href },
+  { key: 'luyou', src: new URL('../assets/cards/诗人/陆游.png', import.meta.url).href },
+  { key: 'sushi', src: new URL('../assets/cards/诗人/苏轼.png', import.meta.url).href },
+  { key: 'taoyuanming', src: new URL('../assets/cards/诗人/陶渊明.png', import.meta.url).href },
+  { key: 'wanganshi', src: new URL('../assets/cards/诗人/王安石.png', import.meta.url).href },
+  { key: 'wangwei', src: new URL('../assets/cards/诗人/王维.png', import.meta.url).href },
+  { key: 'xinqiji', src: new URL('../assets/cards/诗人/辛弃疾.png', import.meta.url).href },
+  { key: 'yanshu', src: new URL('../assets/cards/诗人/晏殊.png', import.meta.url).href },
+
+  { key: 'factory_love', src: new URL('../assets/cards/工厂/爱情.png', import.meta.url).href },
+  { key: 'factory_sad', src: new URL('../assets/cards/工厂/悲.png', import.meta.url).href },
+  { key: 'factory_spring', src: new URL('../assets/cards/工厂/春.png', import.meta.url).href },
+  { key: 'factory_danbo', src: new URL('../assets/cards/工厂/淡泊.png', import.meta.url).href },
+  { key: 'factory_home', src: new URL('../assets/cards/工厂/故乡.png', import.meta.url).href },
+  { key: 'factory_yellowriver', src: new URL('../assets/cards/工厂/黄河.png', import.meta.url).href },
+  { key: 'factory_fire', src: new URL('../assets/cards/工厂/火.png', import.meta.url).href },
+  { key: 'factory_wine', src: new URL('../assets/cards/工厂/酒.png', import.meta.url).href },
+  { key: 'factory_byebye', src: new URL('../assets/cards/工厂/离别.png', import.meta.url).href },
+  { key: 'factory_liu', src: new URL('../assets/cards/工厂/柳.png', import.meta.url).href },
+  { key: 'factory_bird', src: new URL('../assets/cards/工厂/鸟.png', import.meta.url).href },
+  { key: 'factory_autumn', src: new URL('../assets/cards/工厂/秋.png', import.meta.url).href },
+  { key: 'factory_sun', src: new URL('../assets/cards/工厂/日.png', import.meta.url).href },
+  { key: 'factory_mountain', src: new URL('../assets/cards/工厂/山.png', import.meta.url).href },
+  { key: 'factory_water', src: new URL('../assets/cards/工厂/水.png', import.meta.url).href },
+  { key: 'factory_missing', src: new URL('../assets/cards/工厂/思念.png', import.meta.url).href },
+  { key: 'factory_flower', src: new URL('../assets/cards/工厂/桃花.png', import.meta.url).href },
+  { key: 'factory_goose', src: new URL('../assets/cards/工厂/雁.png', import.meta.url).href },
+  { key: 'factory_friend', src: new URL('../assets/cards/工厂/友情.png', import.meta.url).href },
+  { key: 'factory_rain', src: new URL('../assets/cards/工厂/雨.png', import.meta.url).href },
+  { key: 'factory_moon', src: new URL('../assets/cards/工厂/月.png', import.meta.url).href },
+  { key: 'factory_war', src: new URL('../assets/cards/工厂/战争.png', import.meta.url).href },
+  { key: 'factory_longriver', src: new URL('../assets/cards/工厂/长江.png', import.meta.url).href },
+  { key: 'factory_bamboo', src: new URL('../assets/cards/工厂/竹.png', import.meta.url).href },
+  { key: 'factory_zhuangzhinanchou', src: new URL('../assets/cards/工厂/壮志难酬.png', import.meta.url).href },
+  { key: 'factory_nature', src: new URL('../assets/cards/工厂/自然.png', import.meta.url).href },
+
+  { key: 'jiangjinjiu', src: new URL('../assets/cards/诗词/将进酒.png', import.meta.url).href },
+  { key: 'shudaonan', src: new URL('../assets/cards/诗词/蜀道难.png', import.meta.url).href },
+  { key: 'xinglunan', src: new URL('../assets/cards/诗词/行路难.png', import.meta.url).href },
+  { key: 'huanghelousongmenghaoranzhiguangling', src: new URL('../assets/cards/诗词/黄鹤楼送孟浩然之广陵.png', import.meta.url).href },
+  { key: 'jingyesi', src: new URL('../assets/cards/诗词/静夜思.png', import.meta.url).href },
+  { key: 'wanglushanpubu', src: new URL('../assets/cards/诗词/望庐山瀑布.png', import.meta.url).href },
+  { key: 'zengwanglun', src: new URL('../assets/cards/诗词/赠汪伦.png', import.meta.url).href },
+  { key: 'wenwangchanglingzuoqianlongbiaoyaoyouciji', src: new URL('../assets/cards/诗词/闻王昌龄左迁龙标遥有此寄.png', import.meta.url).href },
+  { key: 'emeishanyuege', src: new URL('../assets/cards/诗词/峨眉山月歌.png', import.meta.url).href },
+  { key: 'shizhisaishang', src: new URL('../assets/cards/诗词/使至塞上.png', import.meta.url).href },
+  { key: 'xiangsi', src: new URL('../assets/cards/诗词/相思.png', import.meta.url).href },
+  { key: 'songyuanershi\'anxi', src: new URL('../assets/cards/诗词/送元二使安西.png', import.meta.url).href },
+  { key: 'jiuyuejiuriyishandongxiongdi', src: new URL('../assets/cards/诗词/九月九日忆山东兄弟.png', import.meta.url).href },
+  { key: 'weichengqu', src: new URL('../assets/cards/诗词/渭城曲.png', import.meta.url).href },
+  { key: 'shanjuqiuming', src: new URL('../assets/cards/诗词/山居秋暝.png', import.meta.url).href },
+  { key: 'niaomingjian', src: new URL('../assets/cards/诗词/鸟鸣涧.png', import.meta.url).href },
+  { key: 'zhuliguan', src: new URL('../assets/cards/诗词/竹里馆.png', import.meta.url).href },
+  { key: 'shuidiaogetou_mingyuejishiyou', src: new URL('../assets/cards/诗词/水调歌头·明月几时有.png', import.meta.url).href },
+  { key: 'chibifu', src: new URL('../assets/cards/诗词/赤壁赋.png', import.meta.url).href },
+  { key: 'jichengtansiyeyou', src: new URL('../assets/cards/诗词/记承天寺夜游.png', import.meta.url).href },
+  { key: 'tixilinbi', src: new URL('../assets/cards/诗词/题西林壁.png', import.meta.url).href },
+  { key: 'yinshangchuqinghouyu', src: new URL('../assets/cards/诗词/饮湖上初晴后雨.png', import.meta.url).href },
+  { key: 'dingfengbo_motingchuanlindayesheng', src: new URL('../assets/cards/诗词/定风波·莫听穿林打叶声.png', import.meta.url).href },
+  { key: 'busuanzi_huangzhoudinghuiyuanyujuzuo', src: new URL('../assets/cards/诗词/卜算子·黄州定慧院寓居作.png', import.meta.url).href },
+  { key: 'denggao', src: new URL('../assets/cards/诗词/登高.png', import.meta.url).href },
+  { key: 'maowuweiqiufengsuopoerge', src: new URL('../assets/cards/诗词/茅屋为秋风所破歌.png', import.meta.url).href },
+  { key: 'chunyexiyu', src: new URL('../assets/cards/诗词/春夜喜雨.png', import.meta.url).href },
+  { key: 'wangyue', src: new URL('../assets/cards/诗词/望岳.png', import.meta.url).href },
+  { key: 'wenguanjushouhenanhubei', src: new URL('../assets/cards/诗词/闻官军收河南河北.png', import.meta.url).href },
+  { key: 'chunwang', src: new URL('../assets/cards/诗词/春望.png', import.meta.url).href },
+  { key: 'jueju_lianggehuanglimingcuiliu', src: new URL('../assets/cards/诗词/绝句·两个黄鹂鸣翠柳.png', import.meta.url).href },
+  { key: 'bochuanguazhou', src: new URL('../assets/cards/诗词/泊船瓜洲.png', import.meta.url).href },
+  { key: 'dengfeilaifeng', src: new URL('../assets/cards/诗词/登飞来峰.png', import.meta.url).href },
+  { key: 'yuanri', src: new URL('../assets/cards/诗词/元日.png', import.meta.url).href },
+  { key: 'pozhenzi_weichentongfuzhuangciziyijizhi', src: new URL('../assets/cards/诗词/破阵子·为陈同甫赋壮词以寄之.png', import.meta.url).href },
+  { key: 'xijiangyue_yexinghuangshadaozhong', src: new URL('../assets/cards/诗词/西江月·夜行黄沙道中.png', import.meta.url).href },
+  { key: 'chounuer_shuboshandaozhongbi', src: new URL('../assets/cards/诗词/丑奴儿·书博山道中壁.png', import.meta.url).href },
+  { key: 'guiqulaixici', src: new URL('../assets/cards/诗词/归去来兮辞.png', import.meta.url).href },
+  { key: 'taohuayuanji', src: new URL('../assets/cards/诗词/桃花源记.png', import.meta.url).href },
+  { key: 'yinjian_jieluzairenjing', src: new URL('../assets/cards/诗词/饮酒·结庐在人境.png', import.meta.url).href },
+  { key: 'changhenge', src: new URL('../assets/cards/诗词/长恨歌.png', import.meta.url).href },
+  { key: 'qiantanghuchunxing', src: new URL('../assets/cards/诗词/钱塘湖春行.png', import.meta.url).href },
+  { key: 'fudeguyuancaosongbie', src: new URL('../assets/cards/诗词/赋得古原草送别.png', import.meta.url).href },
+  { key: 'yijiangnan', src: new URL('../assets/cards/诗词/忆江南.png', import.meta.url).href },
+  { key: 'pipaxing', src: new URL('../assets/cards/诗词/琵琶行.png', import.meta.url).href },
+  { key: 'dalinsitaohua', src: new URL('../assets/cards/诗词/大林寺桃花.png', import.meta.url).href },
+  { key: 'loushiming', src: new URL('../assets/cards/诗词/陋室铭.png', import.meta.url).href },
+  { key: 'chouletianyanzhouchufengxishangjianzheng', src: new URL('../assets/cards/诗词/酬乐天扬州初逢席上见赠.png', import.meta.url).href },
+  { key: 'wangdongting', src: new URL('../assets/cards/诗词/望洞庭.png', import.meta.url).href },
+  { key: 'youshanxicun', src: new URL('../assets/cards/诗词/游山西村.png', import.meta.url).href },
+  { key: 'chaitoufeng_hongsushou', src: new URL('../assets/cards/诗词/钗头凤·红酥手.png', import.meta.url).href },
+  { key: 'jinse', src: new URL('../assets/cards/诗词/锦瑟.png', import.meta.url).href },
+  { key: 'wuti_xiangjianshinnanbieyinan', src: new URL('../assets/cards/诗词/无题 相见时难别亦难.png', import.meta.url).href },
+  { key: 'yeyujibei', src: new URL('../assets/cards/诗词/夜雨寄北.png', import.meta.url).href },
+  { key: 'jiasheng', src: new URL('../assets/cards/诗词/贾生.png', import.meta.url).href },
+  { key: 'wanxisha_yiquxincijiuyibei', src: new URL('../assets/cards/诗词/浣溪沙·一曲新词酒一杯.png', import.meta.url).href }
+
 ]
 
 // 合成配方映射
 const recipeMapping = {
-  // key为两张卡的类型组合(按字母顺序排序),value为合成结果
-  'card2_card4': 'cardj',
-  'card3_card5': 'cardq',
-  'cardj_cardq': 'cardk'
-}
+  'bird_autumn': 'goose',
+  'bird_bird': 'friend',
+  'fire_fire': 'war',
+  'fire_moon': 'sun',
+  'friend_missing': 'love',
+  'hometown_leaving': 'missing',
+  'mountain_water': 'nature',
+  'nature_spring': 'flower',
+  'nature_water': 'bamboo',
+  'rain_rain': 'yellowriver',
+  'spring_water': 'liu',
+  'water_bamboo': 'danbo',
+  'water_fire': 'wine',
+  'water_water': 'rain',
+  'wine_autumn': 'zhuangzhinanchou',
+  'yellowriver_water': 'longriver',
+  'month_month': 'home',
+  'home_month': 'byebye',
+  'autumn_autumn': 'sad',
+};
 
 const craftingRecipes = {
-  'card2_card3_card_worker': 'card_li'  // 诗意1+诗意2+诗人=李白
+  'bird_mountain_libai': 'shudaonan',
+  'autumn_friend_libai': 'emeishanyuege',
+  'friend_byebye_libai': 'zengwanglun',
+  'friend_moon_libai': 'wenwangchanglingzuoqianlongbiaoyaoyouciji',
+  'home_moon_libai': 'jingyesi',
+  'byebye_longriver_libai': 'huanghelousongmenghaoranzhiguangling',
+  'mountain_water_libai': 'wanglushanpubu',
+  'autumn_wine_libai': 'xinglunan',
+  'wine_yellowriver_libai': 'jiangjinjiu',
+
+  'autumn_rain_dufu': 'maowuweiqiufengsuopoerge',
+  'bird_liu_dufu': 'jueju_lianggehuanglimingcuiliu',
+  'bird_mountain_dufu': 'wangyue',
+  'home_war_dufu': 'wenguanjushouhenanhubei',
+  'rain_spring_dufu': 'chunyexiyu',
+  'spring_war_dufu': 'chunwang',
+  'autumn_zhuangzhinanchou_dufu': 'denggao',
+
+  'goose_yellowriver_wangwei': 'shizhisaishang',
+  'friend_wine_wangwei': 'songyuanershianxi',
+  'spring_missing_wangwei': 'xiangsi',
+  'home_missing_wangwei': 'jiuyuejiuriyishandongxiongdi',
+  'friend_byebye_wangwei': 'weichengqu',
+  'autumn_rain_wangwei': 'shanjuqiuming',
+  'bamboo_danbo_wangwei': 'zhuliguan',
+  'bird_moon_wangwei': 'niaomingjian',
+
+  'moon_water_sushi': 'shuidiaogetou_mingyuejishiyou',
+  'fire_mountain_sushi': 'chibifu',
+  'moon_zhuangzhinanchou_sushi': 'jichengtansiyeyou',
+  'mountain_mountain_sushi': 'tixilinbi',
+  'rain_water_sushi': 'yinshangchuqinghouyu',
+  'bamboo_rain_sushi': 'dingfengbo_motingchuanlindayesheng',
+  'goose_moon_sushi': 'busuanzi_huangzhoudinghuiyuanyujuzuo',
+
+  'spring_longriver_wanganshi': 'bochuanguazhou',
+  'sun_mountain_wanganshi': 'dengfeilaifeng',
+  'spring_spring_wanganshi': 'yuanri',
+
+  'autumn_sad_xinqiji': 'chounuer_shuboshandaozhongbi',
+  'moon_nature_xinqiji': 'xijiangyue_yexinghuangshadaozhong',
+  'war_zhuangzhinanchou_xinqiji': 'pozhenzi_weichentongfuzhuangciziyijizhi',
+
+  'nature_nature_taoyuanming': 'guiqulaixici',
+  'flower_nature_taoyuanming': 'taohuayuanji',
+  'nature_wine_taoyuanming': 'yinjian_jieluzairenjing',
+
+  'love_sad_baijuyi': 'changhenge',
+  'spring_water_baijuyi': 'qiantanghuchunxing',
+  'byebye_spring_baijuyi': 'fudeguyuancaosongbie',
+  'longriver_spring_baijuyi': 'yijiangnan',
+  'byebye_sad_baijuyi': 'pipaxing',
+  'flower_spring_baijuyi': 'dalinsitaohua',
+
+  'danbo_nature_liuyuxi': 'loushiming',
+  'home_sad_liuyuxi': 'chouletianyanzhouchufengxishangjianzheng',
+  'mountain_water_liuyuxi': 'wangdongting',
+
+  'nature_wine_luyou': 'youshanxicun',
+  'love_sad_luyou': 'chaitoufeng_hongsushou',
+
+  'love_sad_lishangyin': 'jinse',
+  'love_byebye_lishangyin': 'wuti_xiangjianshinnanbieyinan',
+  'missing_rain_lishangyin': 'yeyujibei',
+  'zhuangzhinanchou_zhuangzhinanchou_lishangyin': 'jiasheng',
+
+  'spring_wine_yanshu': 'wanxisha_yiquxincijiuyibei',
+
+  ////////////////////////////////////////////////////////////////////////////
+
+  'love_love_factory': 'factory_love',
+  'sad_sad_factory': 'factory_sad',
+  'spring_spring_factory': 'factory_spring',
+  'danbo_danbo_factory': 'factory_danbo',
+  'home_home_factory': 'factory_home',
+  'yellowriver_yellowriver_factory': 'factory_yellowriver',
+  'fire_fire_factory': 'factory_fire',
+  'wine_wine_factory': 'factory_wine',
+  'byebye_byebye_factory': 'factory_byebye',
+  'liu_liu_factory': 'factory_liu',
+  'bird_bird_factory': 'factory_bird',
+  'autumn_autumn_factory': 'factory_autumn',
+  'sun_sun_factory': 'factory_sun',
+  'mountain_mountain_factory': 'factory_mountain',
+  'water_water_factory': 'factory_water',
+  'missing_missing_factory': 'factory_missing',
+  'flower_flower_factory': 'factory_flower',
+  'goose_goose_factory': 'factory_goose',
+  'friend_friend_factory': 'factory_friend',
+  'rain_rain_factory': 'factory_rain',
+  'moon_moon_factory': 'factory_moon',
+  'war_war_factory': 'factory_war',
+  'longriver_longriver_factory': 'factory_longriver',
+  'bamboo_bamboo_factory': 'factory_bamboo',
+  'zhuangzhinanchou_zhuangzhinanchou_factory': 'factory_zhuangzhinanchou',
+  'nature_nature_factory': 'factory_nature',
 }
 
 // 检查两张卡是否可以合成
@@ -155,7 +380,9 @@ const cardPrices = {
   card_worker: 10,
   card_factory: 10,
 }
-
+const rec={
+  
+}
 const coins = ref(100) // 初始金币数量
 
 // 购买卡包
@@ -169,13 +396,13 @@ const handleBuyPack = () => {
     const x = Math.random() * (scene.scale.width - 100) + 50
     const y = Math.random() * (scene.scale.height - 140 - 180) + 250
 
-    const cardPack = scene.physics.add.image(x, y, 'card_pack')
+    const cardPack = scene.physics.add.image(x, y, 'card_pack_poem')
       .setDisplaySize(100, 140)
       .setInteractive({ cursor: 'pointer', useHandCursor: true, draggable: true })
       .setCollideWorldBounds(true)
       .setBounce(0.8)
       .setData('clickCount', 0)
-      .setData('type', 'card_pack')
+      .setData('type', 'card_pack_poem')
       .setData('isDragging', false)
       .setData('pointerDown', false)
       .setData('dragStartX', 0)
@@ -228,11 +455,13 @@ const handleBuyPack = () => {
           cardPack.setData('clickCount', 1)
         } else {
           // 第二次点击：生成随机卡片并销毁卡包
-          const allCards = ['card2', 'card3', 'card4', 'card5', 'cardj', 'cardq', 'cardk']
+          const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
+           'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower', 
+           'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
           const numCards = 5
 
           // 创建闪光效果
-          const flash = scene.add.sprite(cardPack.x, cardPack.y, 'card3')
+          const flash = scene.add.sprite(cardPack.x, cardPack.y, 'card_pack_poem')
             .setScale(0.1)
             .setAlpha(0.8)
             .setTint(0xffffff)
@@ -300,18 +529,18 @@ const handleBuyAdvancedPack = () => {
   const x = Math.random() * (scene.scale.width - 100) + 50
   const y = Math.random() * (scene.scale.height - 140 - 180) + 250
 
-  const advancedPack = scene.physics.add.image(x, y, 'card_pack')
+  const advancedPack = scene.physics.add.image(x, y, 'card_pack_poet')
     .setDisplaySize(100, 140)
     .setInteractive({ cursor: 'pointer', useHandCursor: true, draggable: true })
     .setCollideWorldBounds(true)
     .setBounce(0.8)
     .setData('clickCount', 0)
-    .setData('type', 'advanced_pack')
+    .setData('type', 'card_pack_poet')
     .setData('isDragging', false)
     .setData('pointerDown', false)
     .setData('dragStartX', 0)
     .setData('dragStartY', 0)
-    .setTint(0xffd700) // 添加金色色调以区分高级卡包
+
 
   scene.input.setDraggable(advancedPack)
 
@@ -337,11 +566,12 @@ const handleBuyAdvancedPack = () => {
         advancedPack.setData('clickCount', 1)
       } else {
         // 第二次点击：生成随机卡片
-        const advancedCards = ['card8', 'card9', 'card10']
+        const advancedCards = ['baijuyi', 'dufu', 'libai', 'lishangyin', 'liuyuxi',
+         'luyou', 'sushi', 'taoyuanming', 'wanganshi', 'wangwei', 'xinqiji', 'yanshu']
         const numCards = 3
 
         // 创建闪光效果
-        const flash = scene.add.sprite(advancedPack.x, advancedPack.y, 'card3')
+        const flash = scene.add.sprite(advancedPack.x, advancedPack.y, 'card_pack_poet')
           .setScale(0.1)
           .setAlpha(0.8)
           .setTint(0xffd700)
@@ -623,7 +853,7 @@ onMounted(() => {
         fontSize: '28px'
       }).setOrigin(0.5).setDepth(102)
 
-      const buyText3 = this.add.text(buySlot3.x + 50, buySlot3.y + 90, '诗仙卡\n10金币', {
+      const buyText3 = this.add.text(buySlot3.x + 50, buySlot3.y + 90, '书生卡\n10金币', {
         fontSize: '14px',
         color: '#ffffff',
         align: 'center',
@@ -706,12 +936,12 @@ onMounted(() => {
           const x = Math.random() * (this.scale.width - 100) + 50
           const y = Math.random() * (this.scale.height - 140 - 180) + 250
 
-          const factoryCard = this.physics.add.image(x, y, 'card_factory')
+          const factoryCard = this.physics.add.image(x, y, 'factory')
             .setDisplaySize(100, 140)
             .setInteractive({ cursor: 'pointer', useHandCursor: true })
             .setCollideWorldBounds(true)
             .setBounce(0.8)
-            .setData('type', 'card_factory')
+            .setData('type', 'factory')
             .setData('id', Date.now().toString())
 
           this.input.setDraggable(factoryCard)
@@ -953,8 +1183,7 @@ onMounted(() => {
     });
 
     // 创建初始卡片
-    const initialCards = ['card2', 'card3', 'card4', 'card5'] // 只包含基础卡片
-
+    const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain','water','moon']; 
     for (let i = 0; i < initialCards.length; i++) {
       const cardKey = initialCards[i]
       const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
@@ -1149,7 +1378,7 @@ onMounted(() => {
               this.input.setDraggable(merged)
 
               // 添加闪光效果
-              const flash = this.add.sprite(x, y, 'card3')
+              const flash = this.add.sprite(x, y, 'spring')
                 .setScale(0.1)
                 .setAlpha(0.2)
                 .setTint(0x8c7853)
