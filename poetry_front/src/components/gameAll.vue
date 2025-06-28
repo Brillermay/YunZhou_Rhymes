@@ -794,11 +794,16 @@ onMounted(() => {
       }
 
       // 添加拖放事件
+      // 修改合成槽的拖放逻辑
       this.input.on('drop', (pointer, gameObject, dropZone) => {
         const cardType = gameObject.getData('type');
         const slotType = dropZone.getData('type');
 
-        if ((slotType === null || cardType === slotType) && !dropZone.getData('occupied')) {
+        const canPlace = (slotType === null) || 
+                        (slotType === cardType) || 
+                        !dropZone.getData('occupied');
+
+        if (canPlace && !dropZone.getData('occupied')) {
           // 放置卡牌到槽位
           dropZone.setData('occupied', true);
           dropZone.setData('card', gameObject);
@@ -806,15 +811,20 @@ onMounted(() => {
           // 调整卡牌位置到槽位中心
           gameObject.x = dropZone.x + dropZone.width / 2;
           gameObject.y = dropZone.y + dropZone.height / 2;
+          gameObject.setDepth(102); // 确保在槽位上方
 
           // 检查是否可以合成
           const materials = craftingSlots.slice(0, 3)
             .map(slot => slot.getData('card'))
-            .filter(Boolean); // 过滤掉未填充的槽位
+            .filter(Boolean);
 
           if (materials.length === 3) {
+            console.log('Materials ready:', materials.map(card => card.getData('type')));
             const resultType = checkCrafting(materials);
+            
             if (resultType) {
+              console.log('Creating result card:', resultType);
+              
               // 创建结果卡牌
               const resultCard = this.physics.add.image(
                 craftingSlots[3].x + craftingSlots[3].width / 2,
@@ -826,7 +836,8 @@ onMounted(() => {
                 .setCollideWorldBounds(true)
                 .setBounce(0.8)
                 .setData('type', resultType)
-                .setData('id', Date.now().toString());
+                .setData('id', Date.now().toString())
+                .setDepth(102); // 确保可见
 
               this.input.setDraggable(resultCard);
               this.cards.push(resultCard);
@@ -836,7 +847,8 @@ onMounted(() => {
                 .setScale(0.1)
                 .setAlpha(0.8)
                 .setTint(0xffd700)
-                .setBlendMode(Phaser.BlendModes.ADD);
+                .setBlendMode(Phaser.BlendModes.ADD)
+                .setDepth(103);
 
               this.tweens.add({
                 targets: flash,
@@ -847,15 +859,24 @@ onMounted(() => {
               });
 
               // 清空材料槽
-              materials.forEach(card => card.destroy());
+              materials.forEach(card => {
+                // 从cards数组中移除
+                this.cards = this.cards.filter(c => c !== card);
+                card.destroy();
+              });
+              
               craftingSlots.forEach(slot => {
                 slot.setData('occupied', false);
                 slot.setData('card', null);
               });
-            }else {
+              
+              console.log('Crafting completed successfully!');
+            } else {
               console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
             }
           }
+        } else {
+          console.log('Cannot place card:', cardType, 'in slot:', slotType);
         }
       });
 
@@ -1165,6 +1186,14 @@ onMounted(() => {
       gameObject.setDepth(150)
       gameObject.setAlpha(0.8)
       gameObject.body.moves = false
+
+      craftingSlots.forEach(slot => {
+        if (slot.getData('card') === gameObject) {
+          slot.setData('occupied', false);
+          slot.setData('card', null);
+          console.log('Freed crafting slot for card:', gameObject.getData('type'));
+        }
+      });
 
       // 查找卡片所在的堆叠组
       const stackIndex = this.cardStacks.findIndex(s => s.includes(gameObject))
