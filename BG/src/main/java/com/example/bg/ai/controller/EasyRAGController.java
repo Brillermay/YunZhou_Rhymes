@@ -462,8 +462,8 @@ public SseEmitter chatStreamWithRole(@RequestBody Map<String, Object> request) {
             return emitter;
         }
         // 只允许五个角色
-        if (!com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles().contains(role)) {
-            emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles()));
+        if (!com.example.bg.ai.RoleProfileUtil.getSupportedRoles().contains(role)) {
+            emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.RoleProfileUtil.getSupportedRoles()));
             emitter.complete();
             return emitter;
         }
@@ -492,4 +492,138 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
     }
     return emitter;
 }
+
+    /**
+     * 🆕 AI智能搜索诗词接口
+     */
+    @GetMapping("/ai-search/{query}")
+    @Operation(summary = "AI语义搜索诗词")
+    public ResponseEntity<Map<String, Object>> aiSearchPoems(
+            @PathVariable String query,
+            @RequestParam(defaultValue = "10") int maxResults) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            if (!easyRAGService.isInitialized()) {
+                response.put("success", false);
+                response.put("message", "AI搜索服务未初始化，请先初始化系统");
+                return ResponseEntity.ok(response);
+            }
+
+            if (query == null || query.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "搜索查询不能为空");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 调用RAG检索
+            List<String> rawResults = easyRAGService.testRetrieve(query, Math.min(maxResults, 20));
+
+            // 解析RAG结果为诗词数据
+            List<Map<String, Object>> poems = easyRAGService.parseRAGResultsToPoems(rawResults, query);
+
+            response.put("success", true);
+            response.put("data", poems);
+            response.put("total", poems.size());
+            response.put("query", query);
+            response.put("searchType", "ai_semantic");
+            response.put("timestamp", System.currentTimeMillis());
+
+            System.out.println("✅ AI搜索完成: 查询=" + query + ", 结果数=" + poems.size());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "AI搜索失败: " + e.getMessage());
+            response.put("query", query);
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * 🆕 AI搜索统计接口
+     */
+    @GetMapping("/ai-search-stats")
+    @Operation(summary = "获取AI搜索统计信息")
+    public ResponseEntity<Map<String, Object>> getAISearchStats() {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Map<String, Object> stats = easyRAGService.getAISearchStatistics();
+
+            response.put("success", true);
+            response.put("stats", stats);
+            response.put("timestamp", System.currentTimeMillis());
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.put("success", false);
+            response.put("message", "获取统计信息失败: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+/**
+ * 🔧 调试接口：检查RAG原始返回
+ */
+@GetMapping("/debug-rag/{query}")
+@Operation(summary = "调试RAG原始返回数据")
+public ResponseEntity<Map<String, Object>> debugRAG(@PathVariable String query) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+        // 获取原始RAG结果
+        List<String> rawResults = easyRAGService.testRetrieve(query, 5);
+        
+        response.put("success", true);
+        response.put("query", query);
+        response.put("rawResultsCount", rawResults.size());
+        response.put("rawResults", rawResults);
+        
+        // 尝试解析每个结果
+        List<Map<String, Object>> debugInfo = new ArrayList<>();
+        for (int i = 0; i < rawResults.size(); i++) {
+            Map<String, Object> debug = new HashMap<>();
+            debug.put("index", i);
+            debug.put("rawContent", rawResults.get(i));
+            debug.put("contentLength", rawResults.get(i).length());
+            
+            // 尝试提取PID
+            try {
+                String content = rawResults.get(i);
+                if (content.startsWith("相似度:")) {
+                    String[] parts = content.split("\n", 2);
+                    if (parts.length >= 2) {
+                        content = parts[1].replace("内容:", "").trim();
+                    }
+                }
+                debug.put("extractedContent", content.substring(0, Math.min(200, content.length())));
+                
+                // 检查是否包含poem_id
+                debug.put("containsPoemId", content.contains("poem_id"));
+                debug.put("containsPID", content.contains("PID"));
+                
+            } catch (Exception e) {
+                debug.put("extractError", e.getMessage());
+            }
+            
+            debugInfo.add(debug);
+        }
+        
+        response.put("debugInfo", debugInfo);
+        return ResponseEntity.ok(response);
+        
+    } catch (Exception e) {
+        e.printStackTrace();
+        response.put("success", false);
+        response.put("message", "调试失败: " + e.getMessage());
+        return ResponseEntity.status(500).body(response);
+    }
+}
+
 }

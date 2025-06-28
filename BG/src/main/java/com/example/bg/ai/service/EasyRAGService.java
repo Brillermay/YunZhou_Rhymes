@@ -3,6 +3,7 @@ package com.example.bg.ai.service;
 import com.example.bg.ConnetMySQL;
 import com.example.bg.poem.Poem;
 import com.example.bg.poem.PoemGetMapper;
+import com.example.bg.ai.RAGMapper;
 
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
@@ -26,19 +27,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import com.example.bg.ai.util.RoleProfileUtil;
+import com.example.bg.ai.RoleProfileUtil;
 
 @Service
-public class EasyRAGService extends ConnetMySQL {
+public class    EasyRAGService{
 
     @Autowired
     private ChatLanguageModel chatLanguageModel;
@@ -49,6 +47,11 @@ public class EasyRAGService extends ConnetMySQL {
     @Autowired
     private EmbeddingStore<TextSegment> embeddingStore;
 
+
+    // 在类的顶部添加 Mapper 注入
+    @Autowired
+    private RAGMapper ragMapper;
+
     // 🆕 注入缓存管理器
     @Autowired
     private EmbeddingCacheManager cacheManager;
@@ -58,6 +61,13 @@ public class EasyRAGService extends ConnetMySQL {
 
     private boolean isInitialized = false;
     private int successfullyProcessed = 0;
+
+    /**
+     * 🆕 检查系统是否已初始化
+     */
+    public boolean isInitialized() {
+        return isInitialized;
+    }
 
     // 🆕 添加 getCacheManager 方法
     public EmbeddingCacheManager getCacheManager() {
@@ -411,7 +421,7 @@ public class EasyRAGService extends ConnetMySQL {
     }
 
     /**
-     * 测试检索功能 - 使用新的 API
+     * 🔧 修复：测试检索功能 - 包含完整信息
      */
     public List<String> testRetrieve(String query, int maxResults) throws Exception {
         if (!isInitialized) {
@@ -422,7 +432,6 @@ public class EasyRAGService extends ConnetMySQL {
             Response<Embedding> embeddingResponse = embeddingModel.embed(query);
             Embedding queryEmbedding = embeddingResponse.content();
 
-            // 使用新的搜索 API
             EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                     .queryEmbedding(queryEmbedding)
                     .maxResults(maxResults)
@@ -434,9 +443,25 @@ public class EasyRAGService extends ConnetMySQL {
 
             List<String> results = new ArrayList<>();
             for (EmbeddingMatch<TextSegment> match : matches) {
-                String content = match.embedded().text();
-                String preview = content.length() > 100 ? content.substring(0, 100) + "..." : content;
-                results.add(String.format("相似度: %.3f\n内容: %s", match.score(), preview));
+                TextSegment segment = match.embedded();
+                String content = segment.text();
+                Metadata metadata = segment.metadata();
+
+                // 🔧 构建包含PID的完整内容
+                StringBuilder fullContent = new StringBuilder();
+
+                // 🎯 从 metadata 中提取 PID
+                String poemId = metadata.getString("poem_id");
+                if (poemId != null) {
+                    fullContent.append("诗词ID:").append(poemId).append("\n");
+                }
+
+                // 添加原始内容
+                fullContent.append(content);
+
+                // 🔧 返回格式：相似度 + 完整内容（包含PID）
+                results.add(String.format("相似度: %.3f\n内容: %s",
+                        match.score(), fullContent.toString()));
             }
 
             return results;
@@ -453,6 +478,8 @@ public class EasyRAGService extends ConnetMySQL {
     public String buildPoemContent(Poem poem) {
         StringBuilder content = new StringBuilder();
 
+        // 🔧 在内容开头添加PID信息
+        content.append("诗词ID:").append(poem.getPID()).append("\n");
         content.append("标题：").append(poem.getTitle() != null ? poem.getTitle() : "无标题").append("\n");
         content.append("作者：").append(poem.getPoet() != null ? poem.getPoet() : "佚名").append("\n");
         content.append("正文：").append(poem.getText() != null ? poem.getText() : "").append("\n");
@@ -497,21 +524,16 @@ public class EasyRAGService extends ConnetMySQL {
     }
 
     /**
-     * 从数据库加载所有诗词 - 确保完全读取
+     * 从数据库加载所有诗词 - 使用RAGMapper
      */
     private List<Poem> loadPoemsFromDatabase() throws Exception {
-        InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
-        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(in);
-
-        try (SqlSession session = factory.openSession()) {
-            PoemGetMapper mapper = session.getMapper(PoemGetMapper.class);
-
+        try {
             // 获取总数
-            int totalCount = mapper.countAllPoems(); // 你需要在 Mapper 中添加这个方法
+            Integer totalCount = ragMapper.countAllPoems();
             System.out.println("📊 数据库中诗词总数: " + totalCount);
 
             // 获取所有诗词
-            List<Poem> poems = mapper.getAllPoems();
+            List<Poem> poems = ragMapper.getAllPoemsForRAG();
             System.out.println("📚 实际读取诗词数: " + (poems != null ? poems.size() : 0));
 
             if (poems == null) {
@@ -524,6 +546,11 @@ public class EasyRAGService extends ConnetMySQL {
             }
 
             return poems;
+
+        } catch (Exception e) {
+            System.err.println("❌ 从数据库加载诗词失败: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -978,4 +1005,333 @@ public class EasyRAGService extends ConnetMySQL {
             }
         });
     }
+
+    /**
+     * 🆕 解析RAG检索结果为诗词数据结构
+     */
+    public List<Map<String, Object>> parseRAGResultsToPoems(List<String> rawResults, String query) throws Exception {
+        List<Map<String, Object>> poems = new ArrayList<>();
+
+        if (rawResults == null || rawResults.isEmpty()) {
+            System.out.println("⚠️  RAG检索无结果");
+            return poems;
+        }
+
+        System.out.println("🔍 开始解析 " + rawResults.size() + " 条RAG结果");
+
+        // 用于去重的Set
+        Set<String> seenPoemIds = new HashSet<>();
+
+        for (String rawResult : rawResults) {
+            try {
+                // 解析单个RAG结果
+                Map<String, Object> poemData = parseSingleRAGResult(rawResult, query);
+
+                if (poemData != null) {
+                    String poemId = String.valueOf(poemData.get("PID"));
+
+                    // 防止重复
+                    if (poemId != null && !seenPoemIds.contains(poemId)) {
+                        seenPoemIds.add(poemId);
+                        poems.add(poemData);
+
+                        System.out.println("✅ 解析诗词: " + poemData.get("title") + " - " + poemData.get("poet"));
+                    }
+                }
+
+            } catch (Exception e) {
+                System.err.println("❌ 解析RAG结果失败: " + e.getMessage());
+                // 继续处理下一个结果
+            }
+        }
+
+        System.out.println("📊 AI搜索结果: 查询=\"" + query + "\", 返回" + poems.size() + "首诗词");
+        return poems;
+    }
+
+    /**
+     * 🆕 解析单个RAG结果
+     */
+    private Map<String, Object> parseSingleRAGResult(String rawResult, String query) throws Exception {
+        if (rawResult == null || rawResult.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            // 从RAG结果中提取相似度分数
+            double similarity = extractSimilarity(rawResult);
+            String content = extractContent(rawResult);
+
+            // 尝试从内容中提取诗词信息
+            Map<String, Object> poemInfo = extractPoemInfoFromContent(content);
+
+            if (poemInfo != null) {
+                // 添加AI搜索相关的元数据
+                poemInfo.put("isAIResult", true);
+                poemInfo.put("similarity", similarity);
+                poemInfo.put("searchQuery", query);
+                poemInfo.put("aiReason", generateRecommendationReason(query, poemInfo, similarity));
+
+                return poemInfo;
+            }
+
+        } catch (Exception e) {
+            System.err.println("解析RAG结果时出错: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 从内容中提取诗词信息
+     */
+    private Map<String, Object> extractPoemInfoFromContent(String content) throws Exception {
+        if (content == null || content.trim().isEmpty()) {
+            return null;
+        }
+
+        // 尝试多种方式提取诗词ID
+        String poemId = extractPoemIdFromContent(content);
+
+        if (poemId != null) {
+            // 根据PID从数据库查询完整诗词信息
+            return getPoemDataByPID(poemId);
+        } else {
+            // 如果无法提取PID，尝试从内容中解析诗词信息
+            return parseContentDirectly(content);
+        }
+    }
+
+    /**
+ * 🔧 修改：从内容中提取诗词ID - 针对新格式优化
+ */
+private String extractPoemIdFromContent(String content) {
+    try {
+        System.out.println("🔍 尝试从内容中提取PID...");
+        System.out.println("📄 内容预览: " + content.substring(0, Math.min(200, content.length())));
+        
+        // 方式1: 查找 "诗词ID：" 模式（新增的格式）
+        if (content.contains("诗词ID：")) {
+            String[] parts = content.split("诗词ID：");
+            if (parts.length > 1) {
+                String pidPart = parts[1].split("[\\s\\n]")[0].trim();
+                if (pidPart.matches("\\d+")) {
+                    System.out.println("✅ 通过 '诗词ID：' 找到 PID: " + pidPart);
+                    return pidPart;
+                }
+            }
+        }
+        
+        // 方式2: 查找 metadata 中的 poem_id
+        if (content.contains("poem_id")) {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("poem_id[\"']?\\s*[:=]\\s*[\"']?(\\d+)[\"']?");
+            java.util.regex.Matcher matcher = pattern.matcher(content);
+            if (matcher.find()) {
+                String pid = matcher.group(1);
+                System.out.println("✅ 通过 poem_id 找到 PID: " + pid);
+                return pid;
+            }
+        }
+        
+        // 方式3: 查找其他PID模式
+        String[] patterns = {"PID:", "PID：", "诗词ID:", "poem_id:", "id:"};
+        for (String pattern : patterns) {
+            if (content.contains(pattern)) {
+                String[] parts = content.split(pattern);
+                if (parts.length > 1) {
+                    String pidPart = parts[1].split("[\\s,\\n}\\]]")[0].trim();
+                    pidPart = pidPart.replaceAll("[\"'{}\\[\\]]", ""); // 清理特殊字符
+                    if (pidPart.matches("\\d+")) {
+                        System.out.println("✅ 通过模式 '" + pattern + "' 找到 PID: " + pidPart);
+                        return pidPart;
+                    }
+                }
+            }
+        }
+
+        System.err.println("❌ 无法从内容中提取PID");
+        return null;
+
+    } catch (Exception e) {
+        System.err.println("提取诗词ID失败: " + e.getMessage());
+        e.printStackTrace();
+        return null;
+    }
+}
+
+    /**
+     * 🆕 根据PID查询完整诗词数据
+     */
+    private Map<String, Object> getPoemDataByPID(String poemId) throws Exception {
+        try {
+            // 使用Mapper查询数据库
+            Poem poem = ragMapper.getPoemByPID(poemId);
+
+            if (poem != null) {
+                return convertPoemToMap(poem);
+            } else {
+                System.err.println("❌ 未找到PID为 " + poemId + " 的诗词");
+            }
+
+        } catch (Exception e) {
+            System.err.println("根据PID查询诗词失败: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 直接从内容解析诗词信息（备用方案）
+     */
+    private Map<String, Object> parseContentDirectly(String content) {
+        try {
+            // 简单的内容解析逻辑
+            Map<String, Object> poemData = new HashMap<>();
+
+            // 尝试提取标题、作者等信息
+            String[] lines = content.split("\n");
+
+            for (String line : lines) {
+                line = line.trim();
+                if (line.contains("标题:") || line.contains("题目:")) {
+                    poemData.put("title", line.split("[:：]", 2)[1].trim());
+                } else if (line.contains("作者:") || line.contains("诗人:")) {
+                    poemData.put("poet", line.split("[:：]", 2)[1].trim());
+                } else if (line.contains("内容:") || line.contains("诗词:")) {
+                    poemData.put("text", line.split("[:：]", 2)[1].trim());
+                } else if (line.contains("类别:") || line.contains("分类:")) {
+                    poemData.put("category", line.split("[:：]", 2)[1].trim());
+                }
+            }
+
+            // 如果有基本信息就返回
+            if (poemData.containsKey("title") || poemData.containsKey("text")) {
+                poemData.putIfAbsent("PID", "unknown");
+                poemData.putIfAbsent("title", "未知标题");
+                poemData.putIfAbsent("poet", "未知作者");
+                poemData.putIfAbsent("text", content.substring(0, Math.min(100, content.length())));
+                poemData.putIfAbsent("category", "未分类");
+
+                return poemData;
+            }
+
+        } catch (Exception e) {
+            System.err.println("直接解析内容失败: " + e.getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * 🆕 将Poem对象转换为Map
+     */
+    private Map<String, Object> convertPoemToMap(Poem poem) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("PID", poem.getPID());
+        map.put("title", poem.getTitle());
+        map.put("poet", poem.getPoet());
+        map.put("text", poem.getText());
+        map.put("category", poem.getCategory());
+        map.put("background", poem.getBackground());
+        map.put("appreciation", poem.getAppreciation());
+        map.put("translation", poem.getTranslation());
+        return map;
+    }
+
+    /**
+     * 🆕 生成AI推荐理由
+     */
+    private String generateRecommendationReason(String query, Map<String, Object> poem, double similarity) {
+        try {
+            String title = (String) poem.get("title");
+            String poet = (String) poem.get("poet");
+
+            // 简单的推荐理由生成逻辑
+            if (similarity > 0.8) {
+                return String.format("与查询「%s」高度匹配，相似度%.0f%%", query, similarity * 100);
+            } else if (similarity > 0.6) {
+                return String.format("内容与「%s」相关，作者%s", query, poet);
+            } else {
+                return String.format("可能与「%s」有关联", query);
+            }
+
+        } catch (Exception e) {
+            return "AI推荐";
+        }
+    }
+
+    /**
+     * 🆕 辅助方法：提取相似度
+     */
+    private double extractSimilarity(String rawResult) {
+        try {
+            if (rawResult.startsWith("相似度:")) {
+                String[] parts = rawResult.split("\n", 2);
+                if (parts.length >= 1) {
+                    String similarityStr = parts[0].replace("相似度:", "").trim();
+                    return Double.parseDouble(similarityStr);
+                }
+            }
+        } catch (Exception e) {
+            // 忽略解析错误，返回默认值
+        }
+        return 0.5; // 默认相似度
+    }
+
+    /**
+     * 🆕 辅助方法：提取内容
+     */
+    private String extractContent(String rawResult) {
+        try {
+            if (rawResult.startsWith("相似度:")) {
+                String[] parts = rawResult.split("\n", 2);
+                if (parts.length >= 2) {
+                    return parts[1].replace("内容:", "").trim();
+                }
+            }
+        } catch (Exception e) {
+            // 忽略解析错误
+        }
+        return rawResult; // 如果解析失败，返回原始结果
+    }
+
+    /**
+     * 🆕 获取AI搜索统计信息
+     */
+    public Map<String, Object> getAISearchStatistics() throws Exception {
+        Map<String, Object> stats = new HashMap<>();
+
+        try {
+            // 获取向量数据库统计
+            Map<String, Object> cacheStats = getCacheStatistics();
+
+            stats.put("isInitialized", isInitialized);
+            stats.put("vectorCacheStats", cacheStats);
+            stats.put("embeddingModel", "text-embedding-v2");
+            stats.put("maxResults", 20);
+            stats.put("minSimilarity", 0.5);
+            stats.put("supportedQueries", Arrays.asList(
+                    "内容关键词搜索",
+                    "情感主题搜索",
+                    "作者风格搜索",
+                    "场景描述搜索"
+            ));
+
+            // 测试向量搜索功能
+            try {
+                List<String> testResult = testRetrieve("测试", 1);
+                stats.put("searchFunctionality", "正常");
+                stats.put("lastTestResult", testResult.size() > 0 ? "成功" : "无结果");
+            } catch (Exception e) {
+                stats.put("searchFunctionality", "异常: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            stats.put("error", e.getMessage());
+        }
+
+        return stats;
+    }
+
 }

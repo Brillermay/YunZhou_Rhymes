@@ -46,5 +46,41 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 🆕 新增：根据PID查询单首诗词 -->
+    <select id="getPoemByPID" parameterType="java.lang.String" resultType="com.example.bg.poem.Poem">
+        SELECT PID, Title, Poet, Text, Category, Background, Appreciation, Translation
+        FROM poem
+        WHERE PID = #{poemId}
+    </select>
+
+    <!-- 🆕 新增：根据多个PID批量查询诗词 -->
+    <select id="getPoemsByPIDs" parameterType="java.util.List" resultType="com.example.bg.poem.Poem">
+        SELECT PID, Title, Poet, Text, Category, Background, Appreciation, Translation
+        FROM poem
+        WHERE PID IN
+        <foreach item="pid" collection="list" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+        ORDER BY PID
+    </select>
+
+    <!-- 🆕 新增：检查PID是否存在 -->
+    <select id="checkPoemExists" parameterType="java.lang.String" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM poem
+        WHERE PID = #{poemId}
+    </select>
+
+    <!-- 🆕 新增：获取诗词总数（用于缓存验证） -->
+    <select id="countAllPoems" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM poem
+    </select>
+
+    <!-- 🆕 新增：获取所有诗词（用于RAG初始化） -->
+    <select id="getAllPoemsForRAG" resultType="com.example.bg.poem.Poem">
+        SELECT PID, Title, Poet, Text, Category, Background, Appreciation, Translation
+        FROM poem
+        ORDER BY PID
+    </select>
     
 </mapper>

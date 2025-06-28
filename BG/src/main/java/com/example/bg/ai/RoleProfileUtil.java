@@ -1,4 +1,4 @@
-package com.example.bg.ai.util;
+package com.example.bg.ai;
 
 import java.io.*;
 import java.util.*;
