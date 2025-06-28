@@ -1,14 +1,8 @@
 package com.example.bg.user;
 
-import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.AuthenticationException;
-import org.apache.shiro.authc.UsernamePasswordToken;
-import org.apache.shiro.crypto.hash.SimpleHash;
-import org.apache.shiro.subject.Subject;
-import org.apache.shiro.util.ByteSource;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
 
 import java.util.Map;
 import java.util.UUID;
@@ -23,25 +17,22 @@ import java.util.UUID;
         allowCredentials = "true"
 )
 @RestController
-@RequestMapping("/user")
-public class UserController {
-
+@RequestMapping("/admin")
+public class GMController {
     @Autowired
     private UserService userService;
     @PostMapping("/add")
-    @Operation(summary = "添加用户")
-    public String addUser(@RequestBody Map<String, String> request) {
+    @Operation(summary = "添加管理员")
+    public String addGM(@RequestBody Map<String, String> request) {
         User user=new User();
         user.setName(request.get("UserName"));
         user.setSalt(UUID.randomUUID().toString());
         user.setPwd(userService.encryptPassword(request.get("PassWord"),  user.getSalt()));
         user.setStatus("active");
-        user.setIsadmin(0);
+        user.setIsadmin(1);
         int result = userService.addUser(user);
         return result > 0 ? "添加成功" : "添加失败，请修改用户名";
     }
-
-
 
     // 使用Shiro的认证机制
     @PostMapping("/login")
@@ -52,7 +43,6 @@ public class UserController {
         return userService.login(username,password);
 
     }
-
     @DeleteMapping("/del/{uid}")
     @Operation(summary = "根据UID删除用户")
     public String delUser(@PathVariable int uid) {

@@ -3,6 +3,8 @@ package com.example.bg.GameBG.Player;
 
 import lombok.Data;
 
+import java.util.ArrayList;
+
 /*
  * 组织方式：
  * 考虑到一卡多用和卡组有多张卡片
@@ -20,4 +22,8 @@ import lombok.Data;
 public class Player {
     public int PID;//Player ID
     public String LastPlayTime;//最后上线时间
+    public String achievements;
+    public int gold,UID;
+
+    ArrayList<Card> cardList;
 }

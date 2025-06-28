@@ -6,8 +6,8 @@
 
 <mapper namespace="com.example.bg.user.UserMapper">
     <insert id="UserAdd" parameterType="com.example.bg.user.User">
-        INSERT INTO user (name, pwd,salt,status)
-        VALUES (#{name}, #{pwd},#{salt},#{status})
+        INSERT INTO user (name, pwd,salt,status,isadmin)
+        VALUES (#{name}, #{pwd},#{salt},#{status},#{isadmin})
     </insert>
     <delete id="delUser" parameterType="int">
         DELETE FROM user WHERE UID = #{UID}
