@@ -71,28 +71,6 @@ const achievements = ref([
     unlocked: false
   }
 ])
-// 1,2,15,
-// 合成表数据
-const recipes = ref([
-  {
-    id: 1,
-    card1: { src: new URL('../assets/cards/card2.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/card4.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardj.png', import.meta.url).href }
-  },
-  {
-    id: 2,
-    card1: { src: new URL('../assets/cards/card3.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/card5.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardq.png', import.meta.url).href }
-  },
-  {
-    id: 3,
-    card1: { src: new URL('../assets/cards/cardj.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/cardq.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardk.png', import.meta.url).href }
-  },
-])
 
 // 卡片素材列表
 const cardImages = [
@@ -100,6 +78,7 @@ const cardImages = [
   { key: 'card_pack_poet', src: new URL('../assets/cards/诗人卡包(1).png', import.meta.url).href },
   { key: 'card_worker', src: new URL('../assets/cards/书生.png', import.meta.url).href },
   { key: 'factory', src: new URL('../assets/cards/工厂/书斋.png', import.meta.url).href },
+  { key: 'unknown_card', src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
 
   { key: 'love', src: new URL('../assets/cards/诗意/爱情.png', import.meta.url).href },
   { key: 'sad', src: new URL('../assets/cards/诗意/悲.png', import.meta.url).href },
@@ -234,7 +213,7 @@ const recipeMapping = {
   'fire_fire': 'war',
   'fire_moon': 'sun',
   'friend_missing': 'love',
-  'hometown_leaving': 'missing',
+  'home_byebye': 'missing',
   'mountain_water': 'nature',
   'nature_spring': 'flower',
   'nature_water': 'bamboo',
@@ -245,8 +224,8 @@ const recipeMapping = {
   'water_water': 'rain',
   'autumn_wine': 'zhuangzhinanchou',
   'water_yellowriver': 'longriver',
-  'month_month': 'home',
-  'home_month': 'byebye',
+  'moon_moon': 'home',
+  'home_moon': 'byebye',
   'autumn_autumn': 'sad',
 };
 
@@ -349,6 +328,69 @@ const craftingRecipes = {
   'factory_zhuangzhinanchou_zhuangzhinanchou': 'factory_zhuangzhinanchou',
 
 }
+const unlockedRecipes = ref(new Set()) // 存储已解锁的配方
+
+// 修改合成表数据初始化
+const recipes = ref([])
+
+// 基于 recipeMapping 初始化所有配方为未知状态
+const initializeRecipes = () => {
+  const allRecipeEntries = Object.entries(recipeMapping)
+  recipes.value = allRecipeEntries.map((entry, index) => {
+    const [recipeKey, resultType] = entry
+    return {
+      id: index + 1,
+      recipeKey: recipeKey, // 保存配方键用于解锁检查 (例如: "autumn_bird")
+      resultType: resultType, // 保存结果类型 (例如: "goose")
+      card1: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      card2: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      result: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      unlocked: false // 添加解锁状态
+    }
+  })
+}
+
+// 解锁配方的函数
+
+const unlockRecipe = (card1Type, card2Type, resultType) => {
+  const types = [card1Type, card2Type].sort()
+  const recipeKey = types.join('_')
+  
+  // 检查这个配方是否在我们的19个基础配方中
+  if (recipeMapping[recipeKey] && !unlockedRecipes.value.has(recipeKey)) {
+    unlockedRecipes.value.add(recipeKey)
+    
+    // 更新合成表显示
+    const recipeIndex = recipes.value.findIndex(recipe => recipe.recipeKey === recipeKey)
+    if (recipeIndex !== -1) {
+      // 更新配方内容
+      const updatedRecipe = {
+        ...recipes.value[recipeIndex],
+        card1: { src: getCardImageSrc(types[0]) },
+        card2: { src: getCardImageSrc(types[1]) },
+        result: { src: getCardImageSrc(resultType) },
+        unlocked: true // 添加解锁标记
+      }
+      
+      // 从原位置移除
+      recipes.value.splice(recipeIndex, 1)
+      
+      // 添加到已解锁配方列表的末尾（但仍在未解锁配方之前）
+      const unlockedCount = recipes.value.filter(r => r.unlocked).length
+      recipes.value.splice(unlockedCount, 0, updatedRecipe)
+      
+      console.log(`解锁了新配方: ${types[0]} + ${types[1]} = ${resultType}`)
+    }
+  }
+}
+
+// 获取卡片图片路径的辅助函数
+const getCardImageSrc = (cardType) => {
+  const cardImage = cardImages.find(img => img.key === cardType)
+  return cardImage ? cardImage.src : new URL('../assets/cards/未知卡片.png', import.meta.url).href
+}
+
+initializeRecipes()
 
 // 检查两张卡是否可以合成
 const checkRecipe = (card1Type, card2Type) => {
@@ -1271,7 +1313,7 @@ onMounted(() => {
     const modeHintBackground = this.add.rectangle(
       this.scale.width - padding,
       padding + 55, // 在金币显示下方
-      120, // 宽度
+      100, // 宽度
       40,  // 高度
       0x4caf50 // 默认绿色（合成模式）
     )
@@ -1286,7 +1328,7 @@ onMounted(() => {
       padding + 75, // 背景框的中心位置
       '🔧 合成模式',
       {
-        fontSize: '16px',
+        fontSize: '13px',
         color: '#ffffff',
         fontWeight: 'bold'
       }
@@ -1543,6 +1585,8 @@ onMounted(() => {
                 .setData('id', Date.now().toString())
 
               this.input.setDraggable(merged)
+
+              unlockRecipe(card1Type, card2Type, resultType)
 
               // 添加闪光效果
               const flash = this.add.sprite(x, y, 'spring')
