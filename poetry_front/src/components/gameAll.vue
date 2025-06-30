@@ -56,6 +56,8 @@ import Phaser from 'phaser'
 // 添加边栏相关的数据
 const activeTab = ref('achievements')
 
+const isStackingMode = ref(false)
+
 // 成就列表数据
 const achievements = ref([
   {
@@ -882,11 +884,14 @@ onMounted(() => {
 
     // 出售槽文本
     const sellIcon = this.add.text(sellSlot.x + 50, sellSlot.y + 40, '💰', {  // y位置上移
-      fontSize: '28px'  // 稍微减小字体
+      fontSize: '28px',  // 稍微减小字体
+      resolution: 2, // 提高分辨率
+      padding: { x: 2, y: 2 } // 添加内边距
     }).setOrigin(0.5).setDepth(102)
 
     const sellText = this.add.text(sellSlot.x + 50, sellSlot.y + 90, '出售卡牌', {  // y位置上移
       fontSize: '14px',
+      resolution: 2, 
       color: '#ffffff',
       align: 'center',
       padding: { y: 5 }  // 添加垂直内边距
@@ -902,11 +907,13 @@ onMounted(() => {
 
     // 购买槽文本
     const buyIcon = this.add.text(buySlot.x + 50, buySlot.y + 40, '🎁', {  // y位置上移
-      fontSize: '28px'  // 稍微减小字体
+      fontSize: '28px',  // 稍微减小字体
+      resolution: 2
     }).setOrigin(0.5).setDepth(102)
 
     const buyText = this.add.text(buySlot.x + 50, buySlot.y + 90, '诗意卡包\n10金币', {  // y位置上移
       fontSize: '14px',
+      resolution: 2,
       color: '#ffffff',
       align: 'center',
       lineSpacing: 2,  // 减小行间距
@@ -914,6 +921,32 @@ onMounted(() => {
     }).setOrigin(0.5).setDepth(102)
 
 
+
+    // 修改Shift键监听为点击切换
+    this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+
+    // 添加Shift键点击事件监听
+    this.shiftKey.on('down', () => {
+      // 切换模式状态
+      isStackingMode.value = !isStackingMode.value
+      
+      // 可选：添加切换反馈效果
+      const flash = this.add.rectangle(
+        this.scale.width - padding - 50,
+        padding + 75,
+        100,
+        40,
+        0xffffff,
+        0.3
+      ).setDepth(200)
+      
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => flash.destroy()
+      })
+    })
 
     // 第一个购买槽处理函数
     const handleBuyClick = () => {
@@ -954,11 +987,13 @@ onMounted(() => {
 
       // 第二个购买槽的文本和图标
       const buyIcon2 = this.add.text(buySlot2.x + 50, buySlot2.y + 40, '📦', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText2 = this.add.text(buySlot2.x + 50, buySlot2.y + 90, '诗人卡包\n15金币', {
         fontSize: '14px',
+        resolution: 2,
         color: '#ffffff',
         align: 'center',
         lineSpacing: 2,
@@ -1007,11 +1042,13 @@ onMounted(() => {
 
       // 第三个购买槽的文本和图标
       const buyIcon3 = this.add.text(buySlot3.x + 50, buySlot3.y + 40, '🧙', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText3 = this.add.text(buySlot3.x + 50, buySlot3.y + 90, '书生卡\n10金币', {
         fontSize: '14px',
+        resolution: 2,
         color: '#ffffff',
         align: 'center',
         lineSpacing: 2,
@@ -1027,13 +1064,15 @@ onMounted(() => {
 
       // 第四个购买槽的文本和图标
       const buyIcon4 = this.add.text(buySlot4.x + 50, buySlot4.y + 40, '⛩️', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText4 = this.add.text(buySlot4.x + 50, buySlot4.y + 90, '书斋卡\n10金币', {
         fontSize: '14px',
         color: '#ffffff',
         align: 'center',
+        resolution: 2,
         lineSpacing: 2,
         padding: { y: 5 }
       }).setOrigin(0.5).setDepth(102)
@@ -1168,6 +1207,7 @@ onMounted(() => {
         if (i < 3) {
           this.add.text(x + cardWidth + 5, y + cardHeight / 2, i < 2 ? '+' : '=', {
             fontSize: '24px',
+            resolution: 5,
             color: '#ffffff'
           }).setOrigin(0, 0.5).setDepth(101);
         }
@@ -1176,6 +1216,7 @@ onMounted(() => {
         const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
         this.add.text(x + cardWidth / 2, y - 5, slotText, {
           fontSize: '12px',
+          resolution: 5,
           color: '#ffffff'
         }).setOrigin(0.5, 1).setDepth(101);
       }
@@ -1295,6 +1336,7 @@ onMounted(() => {
       `💰 ${coins.value}`, 
       {
         fontSize: '24px',
+        resolution: 2,
         color: '#ffffff'
       }
     )
@@ -1322,6 +1364,7 @@ onMounted(() => {
       {
         fontSize: '13px',
         color: '#ffffff',
+        resolution: 2,
         fontWeight: 'bold'
       }
     )
@@ -1331,7 +1374,7 @@ onMounted(() => {
     this.events.on('update', () => {
       coinDisplay.setText(`💰 ${coins.value}`)
         // 实时检查Shift键状态并更新模式显示
-      if (this.shiftKey.isDown) {
+        if (isStackingMode.value) {
         // 堆叠模式
         modeHintText.setText('📚 堆叠模式')
         modeHintBackground.setFillStyle(0xffb74d) // 橙色
@@ -1369,6 +1412,7 @@ onMounted(() => {
         if (i < 3) {
           const operatorText = this.add.text(x + cardWidth + 5, slot.y + cardHeight / 2, i < 2 ? '+' : '=', {
             fontSize: '24px',
+            resolution: 2,
             color: '#ffffff'
           }).setOrigin(0, 0.5).setDepth(101);
         }
@@ -1376,6 +1420,7 @@ onMounted(() => {
         const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
         this.add.text(x + cardWidth / 2, slot.y - 5, slotText, {
           fontSize: '12px',
+          resolution: 2,
           color: '#ffffff'
         }).setOrigin(0.5, 1).setDepth(101);
       });
@@ -1417,7 +1462,7 @@ onMounted(() => {
       const currentStackIndex = this.cardStacks.indexOf(currentStack)
 
       // 只有在按住 Shift 键时才执行堆叠逻辑
-      if (this.shiftKey.isDown) {
+      if (isStackingMode.value) {
         // 查找最近的同类型卡片或堆叠组
         let closestCard = null
         let minDistance = STACK_DETECTION_DISTANCE
@@ -1512,6 +1557,7 @@ onMounted(() => {
           // 添加金币动画
           const priceText = this.add.text(pointer.x, pointer.y, `+${totalPrice}`, {
             fontSize: '24px',
+            resolution: 2,
             color: '#ffd700'
           }).setDepth(102)
 
@@ -1554,7 +1600,7 @@ onMounted(() => {
       }
 
       // 检查合成 - 默认行为，不按 Shift 时执行
-      if (!this.shiftKey.isDown) {
+      if (!isStackingMode.value) {
         this.cards.forEach(otherCard => {
           if (otherCard !== gameObject &&
             Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
