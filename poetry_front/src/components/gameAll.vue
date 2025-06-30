@@ -14,12 +14,45 @@
 
         <div class="tab-content">
           <div v-if="activeTab === 'achievements'" class="achievements">
-            <h3>成就列表</h3>
-            <div v-for="achievement in achievements" :key="achievement.id" class="achievement-item">
-              <span :class="['achievement-icon', { unlocked: achievement.unlocked }]">🏆</span>
-              <div class="achievement-info">
-                <div class="achievement-name">{{ achievement.name }}</div>
-                <div class="achievement-desc">{{ achievement.description }}</div>
+            <!-- 基础成就分类 -->
+            <div class="achievement-category">
+              <div class="category-header" @click="toggleBasicAchievements">
+                <span class="toggle-icon">{{ basicAchievementsExpanded ? '▼' : '▶' }}</span>
+                <h3>基础成就</h3>
+              </div>
+              <div v-show="basicAchievementsExpanded" class="category-content">
+                <div v-for="achievement in basicAchievements" 
+                  :key="achievement.id" 
+                  :class="['achievement-item', { unlocked: achievement.unlocked }]">
+                <span :class="['achievement-icon', { unlocked: achievement.unlocked }]">
+                  {{ achievement.unlocked ? '🏆' : '🔒' }}
+                </span>
+                <div class="achievement-info">
+                  <div class="achievement-name">{{ achievement.name }}</div>
+                  <div class="achievement-desc">{{ achievement.description }}</div>
+                </div>
+              </div>
+              </div>
+            </div>
+
+            <!-- 诗词收集成就分类 -->
+            <div class="achievement-category">
+              <div class="category-header" @click="togglePoemAchievements">
+                <span class="toggle-icon">{{ poemAchievementsExpanded ? '▼' : '▶' }}</span>
+                <h3>诗词收集</h3>
+              </div>
+              <div v-show="poemAchievementsExpanded" class="category-content">
+                <div v-for="achievement in poemAchievements" 
+                  :key="achievement.id" 
+                  :class="['achievement-item', { unlocked: achievement.unlocked }]">
+                <span :class="['achievement-icon', { unlocked: achievement.unlocked }]">
+                  {{ achievement.unlocked ? '📜' : '🔒' }}
+                </span>
+                <div class="achievement-info">
+                  <div class="achievement-name">{{ achievement.name }}</div>
+                  <div class="achievement-desc">{{ achievement.description }}</div>
+                </div>
+              </div>
               </div>
             </div>
           </div>
@@ -55,11 +88,27 @@ import Phaser from 'phaser'
 
 // 添加边栏相关的数据
 const activeTab = ref('achievements')
-
 const isStackingMode = ref(false)
+const basicAchievementsExpanded = ref(true)
+const poemAchievementsExpanded = ref(true)
+
+// 折叠/展开控制函数
+const toggleBasicAchievements = () => {
+  basicAchievementsExpanded.value = !basicAchievementsExpanded.value
+}
+const togglePoemAchievements = () => {
+  poemAchievementsExpanded.value = !poemAchievementsExpanded.value
+}
+
+const purchaseCount = ref(0)  // 购买卡包计数
+const sellCount = ref(0)      // 出售卡片计数
+const mergeCount = ref(0)     // 合成次数计数
+const factoryCount = ref(0)   // 建造书斋计数
+const workerCount = ref(0)    // 雇佣书生计数
+
 
 // 成就列表数据
-const achievements = ref([
+const basicAchievements = ref([
   {
     id: 1,
     name: '初次合成',
@@ -72,7 +121,284 @@ const achievements = ref([
     description: '完成10次合成',
     unlocked: false
   },
+  {
+    id: 3,
+    name: '初次购买',
+    description: '购买第一个卡包', 
+    unlocked: false
+  },
+  {
+    id: 4,
+    name: '初建书斋',
+    description: '建造第一个书斋',
+    unlocked: false
+  },
+  {
+    id: 5,
+    name: '招募书生',
+    description: '雇佣第一位书生',
+    unlocked: false
+  },
+  {
+    id: 6,
+    name: '我是诗人',
+    description: '创作出第一首诗词',
+    unlocked: false
+  },
+  {
+    id: 7,
+    name: '卡包收藏家',
+    description: '购买10个卡包',
+    unlocked: false
+  },
+  {
+    id: 8,
+    name: '卡牌交易员',
+    description: '出售10张卡牌',
+    unlocked: false
+  },
+  {
+    id: 9,
+    name: '诗词收藏家',
+    description: '收集10首诗词卡片',
+    unlocked: false
+  },
+  {
+    id: 10,
+    name: '我爱你',
+    description: '获得“爱情”',
+    unlocked: false
+  }
 ])
+
+const poemAchievements = ref([
+  { id: 11, name: '将进酒', description: '成功合成《将进酒》', unlocked: false },
+  { id: 12, name: '蜀道难', description: '成功合成《蜀道难》', unlocked: false },
+  { id: 13, name: '行路难', description: '成功合成《行路难》', unlocked: false },
+  { id: 14, name: '黄鹤楼送孟浩然之广陵', description: '成功合成《黄鹤楼送孟浩然之广陵》', unlocked: false },
+  { id: 15, name: '静夜思', description: '成功合成《静夜思》', unlocked: false },
+  { id: 16, name: '望庐山瀑布', description: '成功合成《望庐山瀑布》', unlocked: false },
+  { id: 17, name: '赠汪伦', description: '成功合成《赠汪伦》', unlocked: false },
+  { id: 18, name: '闻王昌龄左迁龙标遥有此寄', description: '成功合成《闻王昌龄左迁龙标遥有此寄》', unlocked: false },
+  { id: 19, name: '峨眉山月歌', description: '成功合成《峨眉山月歌》', unlocked: false },
+  { id: 20, name: '使至塞上', description: '成功合成《使至塞上》', unlocked: false },
+  { id: 21, name: '相思', description: '成功合成《相思》', unlocked: false },
+  { id: 22, name: '送元二使安西', description: '成功合成《送元二使安西》', unlocked: false },
+  { id: 23, name: '九月九日忆山东兄弟', description: '成功合成《九月九日忆山东兄弟》', unlocked: false },
+  { id: 24, name: '渭城曲', description: '成功合成《渭城曲》', unlocked: false },
+  { id: 25, name: '山居秋暝', description: '成功合成《山居秋暝》', unlocked: false },
+  { id: 26, name: '鸟鸣涧', description: '成功合成《鸟鸣涧》', unlocked: false },
+  { id: 27, name: '竹里馆', description: '成功合成《竹里馆》', unlocked: false },
+  { id: 28, name: '水调歌头·明月几时有', description: '成功合成《水调歌头·明月几时有》', unlocked: false },
+  { id: 29, name: '赤壁赋', description: '成功合成《赤壁赋》', unlocked: false },
+  { id: 30, name: '记承天寺夜游', description: '成功合成《记承天寺夜游》', unlocked: false },
+  { id: 31, name: '题西林壁', description: '成功合成《题西林壁》', unlocked: false },
+  { id: 32, name: '饮湖上初晴后雨', description: '成功合成《饮湖上初晴后雨》', unlocked: false },
+  { id: 33, name: '定风波·莫听穿林打叶声', description: '成功合成《定风波·莫听穿林打叶声》', unlocked: false },
+  { id: 34, name: '卜算子·黄州定慧院寓居作', description: '成功合成《卜算子·黄州定慧院寓居作》', unlocked: false },
+  { id: 35, name: '登高', description: '成功合成《登高》', unlocked: false },
+  { id: 36, name: '茅屋为秋风所破歌', description: '成功合成《茅屋为秋风所破歌》', unlocked: false },
+  { id: 37, name: '春夜喜雨', description: '成功合成《春夜喜雨》', unlocked: false },
+  { id: 38, name: '望岳', description: '成功合成《望岳》', unlocked: false },
+  { id: 39, name: '闻官军收河南河北', description: '成功合成《闻官军收河南河北》', unlocked: false },
+  { id: 40, name: '春望', description: '成功合成《春望》', unlocked: false },
+  { id: 41, name: '绝句·两个黄鹂鸣翠柳', description: '成功合成《绝句·两个黄鹂鸣翠柳》', unlocked: false },
+  { id: 42, name: '泊船瓜洲', description: '成功合成《泊船瓜洲》', unlocked: false },
+  { id: 43, name: '登飞来峰', description: '成功合成《登飞来峰》', unlocked: false },
+  { id: 44, name: '元日', description: '成功合成《元日》', unlocked: false },
+  { id: 45, name: '破阵子·为陈同甫赋壮词以寄之', description: '成功合成《破阵子·为陈同甫赋壮词以寄之》', unlocked: false },
+  { id: 46, name: '西江月·夜行黄沙道中', description: '成功合成《西江月·夜行黄沙道中》', unlocked: false },
+  { id: 47, name: '丑奴儿·书博山道中壁', description: '成功合成《丑奴儿·书博山道中壁》', unlocked: false },
+  { id: 48, name: '归去来兮辞', description: '成功合成《归去来兮辞》', unlocked: false },
+  { id: 49, name: '桃花源记', description: '成功合成《桃花源记》', unlocked: false },
+  { id: 50, name: '饮酒·结庐在人境', description: '成功合成《饮酒·结庐在人境》', unlocked: false },
+  { id: 51, name: '长恨歌', description: '成功合成《长恨歌》', unlocked: false },
+  { id: 52, name: '钱塘湖春行', description: '成功合成《钱塘湖春行》', unlocked: false },
+  { id: 53, name: '赋得古原草送别', description: '成功合成《赋得古原草送别》', unlocked: false },
+  { id: 54, name: '忆江南', description: '成功合成《忆江南》', unlocked: false },
+  { id: 55, name: '琵琶行', description: '成功合成《琵琶行》', unlocked: false },
+  { id: 56, name: '大林寺桃花', description: '成功合成《大林寺桃花》', unlocked: false },
+  { id: 57, name: '陋室铭', description: '成功合成《陋室铭》', unlocked: false },
+  { id: 58, name: '酬乐天扬州初逢席上见赠', description: '成功合成《酬乐天扬州初逢席上见赠》', unlocked: false },
+  { id: 59, name: '望洞庭', description: '成功合成《望洞庭》', unlocked: false },
+  { id: 60, name: '游山西村', description: '成功合成《游山西村》', unlocked: false },
+  { id: 61, name: '钗头凤·红酥手', description: '成功合成《钗头凤·红酥手》', unlocked: false },
+  { id: 62, name: '锦瑟', description: '成功合成《锦瑟》', unlocked: false },
+  { id: 63, name: '无题 相见时难别亦难', description: '成功合成《无题 相见时难别亦难》', unlocked: false },
+  { id: 64, name: '夜雨寄北', description: '成功合成《夜雨寄北》', unlocked: false },
+  { id: 65, name: '贾生', description: '成功合成《贾生》', unlocked: false },
+  { id: 66, name: '浣溪沙·一曲新词酒一杯', description: '成功合成《浣溪沙·一曲新词酒一杯》', unlocked: false }
+])
+
+
+// 解锁成就的函数
+const unlockAchievement = (achievementId) => {
+  // 将 achievementId 转换为数字类型
+  const idNum = parseInt(achievementId)
+  
+  if (idNum <= 10) {
+    // 基础成就解锁逻辑
+    const basicAchievement = basicAchievements.value.find(a => a.id === idNum)
+    if (basicAchievement && !basicAchievement.unlocked) {
+      basicAchievement.unlocked = true
+      // 显示成就解锁提示
+      showAchievementUnlocked(basicAchievement.name)
+    }
+  } else {
+    // 诗词成就解锁逻辑
+    const poemAchievement = poemAchievements.value.find(a => a.id === idNum)
+    if (poemAchievement && !poemAchievement.unlocked) {
+      poemAchievement.unlocked = true
+      // 显示成就解锁提示
+      showAchievementUnlocked(poemAchievement.name)
+      
+      // 检查是否需要解锁"诗词收藏家"成就
+      checkPoemCollectorAchievement()
+    }
+  }
+}
+
+// 工厂相关成就的检查逻辑
+const checkFactoryAchievement = (resultType) => {
+  // 检查是否是专门书斋的合成结果（以factory_开头）
+  if (resultType && resultType.startsWith('factory_')) {
+    factoryCount.value++
+    if (factoryCount.value === 1) {
+      unlockAchievement(4) // 初建书斋成就
+    }
+  }
+}
+
+// 添加获取诗词名称的函数
+const getPoemName = (resultType) => {
+  // 从resultType(key)中提取诗词名称
+  const poemMap = {
+    'jiangjinjiu': '将进酒',
+    'shudaonan': '蜀道难',
+    'xinglunan': '行路难',
+    'huanghelousongmenghaoranzhiguangling': '黄鹤楼送孟浩然之广陵',
+    'jingyesi': '静夜思',
+    'wanglushanpubu': '望庐山瀑布',
+    'zengwanglun': '赠汪伦',
+    'wenwangchanglingzuoqianlongbiaoyaoyouciji': '闻王昌龄左迁龙标遥有此寄',
+    'emeishanyuege': '峨眉山月歌',
+    'shizhisaishang': '使至塞上',
+    'xiangsi': '相思',
+    'songyuanershianxi': '送元二使安西',
+    'jiuyuejiuriyishandongxiongdi': '九月九日忆山东兄弟',
+    'weichengqu': '渭城曲',
+    'shanjuqiuming': '山居秋暝',
+    'niaomingjian': '鸟鸣涧',
+    'zhuliguan': '竹里馆',
+    'shuidiaogetou_mingyuejishiyou': '水调歌头·明月几时有',
+    'chibifu': '赤壁赋',
+    'jichengtansiyeyou': '记承天寺夜游',
+    'tixilinbi': '题西林壁',
+    'yinshangchuqinghouyu': '饮湖上初晴后雨',
+    'dingfengbo_motingchuanlindayesheng': '定风波·莫听穿林打叶声',
+    'busuanzi_huangzhoudinghuiyuanyujuzuo': '卜算子·黄州定慧院寓居作',
+    'denggao': '登高',
+    'maowuweiqiufengsuopoerge': '茅屋为秋风所破歌',
+    'chunyexiyu': '春夜喜雨',
+    'wangyue': '望岳',
+    'wenguanjushouhenanhubei': '闻官军收河南河北',
+    'chunwang': '春望',
+    'jueju_lianggehuanglimingcuiliu': '绝句·两个黄鹂鸣翠柳',
+    'bochuanguazhou': '泊船瓜洲',
+    'dengfeilaifeng': '登飞来峰',
+    'yuanri': '元日',
+    'pozhenzi_weichentongfuzhuangciziyijizhi': '破阵子·为陈同甫赋壮词以寄之',
+    'xijiangyue_yexinghuangshadaozhong': '西江月·夜行黄沙道中',
+    'chounuer_shuboshandaozhongbi': '丑奴儿·书博山道中壁',
+    'guiqulaixici': '归去来兮辞',
+    'taohuayuanji': '桃花源记',
+    'yinjian_jieluzairenjing': '饮酒·结庐在人境',
+    'changhenge': '长恨歌',
+    'qiantanghuchunxing': '钱塘湖春行',
+    'fudeguyuancaosongbie': '赋得古原草送别',
+    'yijiangnan': '忆江南',
+    'pipaxing': '琵琶行',
+    'dalinsitaohua': '大林寺桃花',
+    'loushiming': '陋室铭',
+    'chouletianyanzhouchufengxishangjianzheng': '酬乐天扬州初逢席上见赠',
+    'wangdongting': '望洞庭',
+    'youshanxicun': '游山西村',
+    'chaitoufeng_hongsushou': '钗头凤·红酥手',
+    'jinse': '锦瑟',
+    'wuti_xiangjianshinnanbieyinan': '无题 相见时难别亦难',
+    'yeyujibei': '夜雨寄北',
+    'jiasheng': '贾生',
+    'wanxisha_yiquxincijiuyibei': '浣溪沙·一曲新词酒一杯',
+  }
+  return poemMap[resultType] || ''
+}
+
+// 显示成就解锁提示的函数
+const showAchievementUnlocked = (achievementName) => {
+  const scene = game.scene.scenes[0]
+  if (!scene) return
+
+  // 创建成就解锁提示文本
+  const notification = scene.add.text(
+    scene.scale.width / 2,
+    scene.scale.height - 100,
+    `🏆 解锁成就: ${achievementName}`,
+    {
+      fontSize: '24px',
+      backgroundColor: '#ffd700',
+      color: '#000000',
+      padding: { x: 20, y: 10 },
+      resolution: 2
+    }
+  ).setOrigin(0.5, 0.5).setAlpha(0).setDepth(1000)
+
+  // 添加动画效果
+  scene.tweens.add({
+    targets: notification,
+    y: '-=50',
+    alpha: 1,
+    duration: 1000,
+    ease: 'Power2',
+    onComplete: () => {
+      scene.time.delayedCall(2000, () => {
+        scene.tweens.add({
+          targets: notification,
+          alpha: 0,
+          duration: 1000,
+          onComplete: () => notification.destroy()
+        })
+      })
+    }
+  })
+}
+
+// 检查诗词收藏家成就
+const checkPoemCollectorAchievement = () => {
+  const unlockedPoemCount = poemAchievements.value.filter(a => a.unlocked).length
+  if (unlockedPoemCount >= 10 && !basicAchievements.value[8].unlocked) {
+    unlockAchievement(9) // 解锁"诗词收藏家"成就
+  }
+}
+// 添加检查love卡片的函数
+const checkLoveAchievement = (cardType) => {
+  if (cardType === 'love' && !basicAchievements.value[9].unlocked) {
+    unlockAchievement(10) // 解锁"我爱你"成就
+  }
+}
+
+
+// 在合成诗词成功时调用
+const unlockPoemAchievement = (poemName) => {
+  const achievement = poemAchievements.value.find(a => a.name === poemName)
+  if (achievement) {
+    unlockAchievement(achievement.id)
+    
+    // 同时解锁"我是诗人"成就(如果未解锁)
+    if (!basicAchievements.value[5].unlocked) {
+      unlockAchievement(6)
+    }
+  }
+}
 
 // 卡片素材列表
 const cardImages = [
@@ -554,6 +880,20 @@ const handleBuyPack = () => {
   const packPrice = 10
   if (coins.value >= packPrice) {
     coins.value -= packPrice
+
+    // 更新购买计数并检查成就
+    purchaseCount.value++
+    
+    // 检查初次购买成就
+    if (purchaseCount.value === 1) {
+      unlockAchievement(3) // 初次购买
+    }
+    
+    // 检查卡包收藏家成就
+    if (purchaseCount.value >= 10) {
+      unlockAchievement(7) // 卡包收藏家
+    }
+
     const scene = game.scene.scenes[0]
 
     // 在随机位置创建卡包
@@ -645,6 +985,8 @@ const handleBuyPack = () => {
             const radius = 80
             const randomCard = allCards[Math.floor(Math.random() * allCards.length)]
 
+            checkLoveAchievement(randomCard) // 检查是否获得love卡片
+
             const newX = cardPack.x + Math.cos(angle) * radius
             const newY = cardPack.y + Math.sin(angle) * radius
 
@@ -688,6 +1030,23 @@ const handleBuyPack = () => {
 
 //购买诗人卡包
 const handleBuyAdvancedPack = () => {
+  const packPrice = 15
+  if (coins.value >= packPrice) {
+    //coins.value -= packPrice
+
+    // 更新购买计数并检查成就，与普通卡包共用计数
+    purchaseCount.value++
+    
+    // 检查初次购买成就
+    if (purchaseCount.value === 1) {
+      unlockAchievement(3) // 初次购买
+    }
+    
+    // 检查卡包收藏家成就
+    if (purchaseCount.value >= 10) {
+      unlockAchievement(7) // 卡包收藏家
+    }
+
   const scene = game.scene.scenes[0]
   
   // 在随机位置创建卡包
@@ -812,6 +1171,7 @@ const handleBuyAdvancedPack = () => {
       }, 100)
     }
   })
+}
 }
 
 const gameCanvas = ref(null)
@@ -1081,6 +1441,12 @@ onMounted(() => {
       const handleBuyWorker = () => {
         if (coins.value >= 10) {
           coins.value -= 10
+          // 更新书生计数并检查成就
+          workerCount.value++
+          if (workerCount.value === 1) {
+            unlockAchievement(5) // 招募书生
+          }
+
           // 添加点击反馈动画
           this.tweens.add({
             targets: [buyIcon3, buyText3],
@@ -1115,6 +1481,7 @@ onMounted(() => {
       const handleBuyFactory = () => {
         if (coins.value >= 10) {
           coins.value -= 10
+
           // 添加点击反馈动画
           this.tweens.add({
             targets: [buyIcon4, buyText4],
@@ -1249,6 +1616,17 @@ onMounted(() => {
           if (materials.length === 3) {
             console.log('Materials ready:', materials.map(card => card.getData('type')));
             const resultType = checkCrafting(materials);
+
+            if (resultType) {
+
+              // 检查是否解锁了书斋成就
+              checkFactoryAchievement(resultType)
+
+              const poemName = getPoemName(resultType)
+              if (poemName) {
+                unlockPoemAchievement(poemName)
+              }
+            }
             
             if (resultType) {
               console.log('Creating result card:', resultType);
@@ -1592,6 +1970,12 @@ onMounted(() => {
             this.cards = this.cards.filter(c => c !== card)
           })
 
+          // 更新出售计数并检查成就
+          sellCount.value += cardsToSell.length
+          if (sellCount.value >= 10) {
+            unlockAchievement(8) // 卡牌交易员
+          }
+
           return
         }
         else{
@@ -1615,6 +1999,20 @@ onMounted(() => {
             const resultType = checkRecipe(card1Type, card2Type)
 
             if (resultType) {
+
+              checkLoveAchievement(resultType)  // 检查是否合成出love卡片
+
+              // 更新合成次数并检查成就
+              mergeCount.value++
+              
+              if (mergeCount.value === 1) {
+                unlockAchievement(1) // 初次合成
+              }
+              
+              if (mergeCount.value >= 10) {
+                unlockAchievement(2) // 合成大师
+              }
+
               const x = (gameObject.x + otherCard.x) / 2
               const y = (gameObject.y + otherCard.y) / 2
 
@@ -2150,12 +2548,42 @@ onBeforeUnmount(() => {
 }
 
 .achievement-item {
-  display: flex;
-  align-items: center;
+  margin: 8px 0;
   padding: 10px;
-  border-bottom: 1px solid #8c7853;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+  display: flex; /* 添加flex布局 */
+  align-items: center; /* 垂直居中 */
+}
+/* 未解锁成就的样式 */
+.achievement-item:not(.unlocked) {
+  opacity: 1;
+}
+/* 已解锁成就的样式 */
+.achievement-item.unlocked {
+  background-color: rgba(255, 215, 0, 0.1); /* 金色背景 */
+  border-color: white; /* 金色边框 */
+  box-shadow: 0 0 10px rgb(255, 255, 255); /* 发光效果 */
+}
+/* 已解锁成就图标的动画效果 */
+.achievement-icon.unlocked {
+  animation: unlocked-pulse 1s ease-in-out;
+  color: white; /* 金色图标 */
+}
+/* 已解锁成就的名称样式 */
+.achievement-item.unlocked .achievement-name {
+  color: white; /* 金色文字 */
+  font-weight: bold;
 }
 
+@keyframes unlocked-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
 .achievement-icon {
   opacity: 0.5;
   margin-right: 10px;
@@ -2219,4 +2647,52 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 0;
 }
+.achievement-category {
+  margin-bottom: 20px;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  background-color: #8c7853;
+  border-radius: 4px;
+}
+
+.category-header:hover {
+  background-color: #9c8863;
+}
+
+.toggle-icon {
+  margin-right: 10px;
+  font-size: 12px;
+}
+
+.category-content {
+  margin-top: 10px;
+}
+
+.achievement-item {
+  margin: 8px 0;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.achievement-item:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.achievement-icon {
+  font-size: 1.2em;
+  margin-right: 15px;
+}
+
+.achievement-icon.unlocked {
+  animation: unlocked-pulse 1s ease-in-out;
+}
+
+
 </style>
