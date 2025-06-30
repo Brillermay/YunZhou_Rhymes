@@ -889,17 +889,6 @@ onMounted(() => {
       padding: { y: 5 }  // 添加垂直内边距
     }).setOrigin(0.5).setDepth(102)
 
-      // 为出售槽添加交互效果
-      ;[sellIcon, sellText].forEach(element => {
-        element.setInteractive()
-        element.on('pointerover', () => {
-          sellSlot.setStrokeStyle(2, 0xffffff)
-        })
-        element.on('pointerout', () => {
-          sellSlot.setStrokeStyle(2, 0x6e5773)
-        })
-      })
-
     // 创建第一个购买槽
     const buySlot = this.add.rectangle(padding * 2 + 100, padding, 100, 140, 0x6e5773) // 使用渐变色的深色部分
       .setOrigin(0, 0)
@@ -1143,11 +1132,11 @@ onMounted(() => {
         buySlot4.y, // 与书斋卡垂直对齐
         400, // 合成台宽度
         140, // 合成台高度
-        0x6e5773
+        0xa3916a
       )
         .setOrigin(0, 0)
         .setDepth(100)
-        .setStrokeStyle(2, 0x8c7853);
+        .setStrokeStyle(2, 0xa3916a);
 
       // 创建四个合成槽
       const craftingSlots = []
@@ -1515,6 +1504,8 @@ onMounted(() => {
         if (totalPrice > 0) {
           coins.value += totalPrice
 
+          sellSlot.setStrokeStyle(2, 0x6e5773)
+
           // 添加金币动画
           const priceText = this.add.text(pointer.x, pointer.y, `+${totalPrice}`, {
             fontSize: '24px',
@@ -1553,6 +1544,9 @@ onMounted(() => {
           })
 
           return
+        }
+        else{
+          sellSlot.setStrokeStyle(2, 0x6e5773)
         }
       }
 
@@ -1642,6 +1636,7 @@ onMounted(() => {
           }
         })
       }
+      sellSlot.setStrokeStyle(2, 0x6e5773)
     })
 
     // 修改拖拽开始事件
@@ -1696,8 +1691,20 @@ onMounted(() => {
 
     // 修改拖拽中事件
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-      // const minY = topBarHeight
-      // const newY = Math.max(minY, dragY)
+    // 添加出售槽状态检测
+    const isInSellArea = dragY < topBarHeight && 
+                        dragX >= sellSlot.x && 
+                        dragX <= sellSlot.x + sellSlot.width
+    
+    const cardType = gameObject.getData('type')
+    const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
+    
+    // 更新出售槽样式
+    if (isInSellArea && canSell) {
+      sellSlot.setStrokeStyle(2, 0xffffff)
+    } else {
+      sellSlot.setStrokeStyle(2, 0x6e5773)
+    }
       gameObject.x = dragX
       gameObject.y = dragY
 
