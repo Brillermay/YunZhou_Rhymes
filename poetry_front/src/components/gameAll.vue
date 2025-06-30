@@ -56,6 +56,8 @@ import Phaser from 'phaser'
 // 添加边栏相关的数据
 const activeTab = ref('achievements')
 
+const isStackingMode = ref(false)
+
 // 成就列表数据
 const achievements = ref([
   {
@@ -69,7 +71,7 @@ const achievements = ref([
     name: '合成大师',
     description: '完成10次合成',
     unlocked: false
-  }
+  },
 ])
 
 // 卡片素材列表
@@ -327,7 +329,7 @@ const craftingRecipes = {
   'factory_yellowriver_yellowriver': 'factory_yellowriver',
   'factory_zhuangzhinanchou_zhuangzhinanchou': 'factory_zhuangzhinanchou',
 
-}
+};
 const unlockedRecipes = ref(new Set()) // 存储已解锁的配方
 
 // 修改合成表数据初始化
@@ -540,7 +542,6 @@ const cardPrices = {
   wanxisha_yiquxincijiuyibei: 10,
 };
 
-
 //存档用
 const rec={
   
@@ -548,7 +549,7 @@ const rec={
 
 const coins = ref(100) // 初始金币数量
 
-// 购买卡包
+// 购买诗意卡包
 const handleBuyPack = () => {
   const packPrice = 10
   if (coins.value >= packPrice) {
@@ -685,6 +686,7 @@ const handleBuyPack = () => {
   }
 }
 
+//购买诗人卡包
 const handleBuyAdvancedPack = () => {
   const scene = game.scene.scenes[0]
   
@@ -815,6 +817,7 @@ const handleBuyAdvancedPack = () => {
 const gameCanvas = ref(null)
 let game = null
 
+// 游戏主要逻辑
 onMounted(() => {
   const container = gameCanvas.value
   const containerWidth = container.clientWidth
@@ -846,6 +849,7 @@ onMounted(() => {
 
   game = new Phaser.Game(config)
 
+  // 游戏预加载
   function preload() {
     cardImages.forEach(card => {
       this.load.image(card.key, card.src)
@@ -860,6 +864,7 @@ onMounted(() => {
     const STACK_OFFSET_Y = 20 // 堆叠时卡片垂直偏移量
     const STACK_DETECTION_DISTANCE = 80 // 增加堆叠检测距离
     const STACK_SNAP_DURATION = 150 // 吸附动画持续时间
+    this.factories = [];// 工厂生产管理
 
     this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
@@ -879,11 +884,14 @@ onMounted(() => {
 
     // 出售槽文本
     const sellIcon = this.add.text(sellSlot.x + 50, sellSlot.y + 40, '💰', {  // y位置上移
-      fontSize: '28px'  // 稍微减小字体
+      fontSize: '28px',  // 稍微减小字体
+      resolution: 2, // 提高分辨率
+      padding: { x: 2, y: 2 } // 添加内边距
     }).setOrigin(0.5).setDepth(102)
 
     const sellText = this.add.text(sellSlot.x + 50, sellSlot.y + 90, '出售卡牌', {  // y位置上移
       fontSize: '14px',
+      resolution: 2, 
       color: '#ffffff',
       align: 'center',
       padding: { y: 5 }  // 添加垂直内边距
@@ -899,11 +907,13 @@ onMounted(() => {
 
     // 购买槽文本
     const buyIcon = this.add.text(buySlot.x + 50, buySlot.y + 40, '🎁', {  // y位置上移
-      fontSize: '28px'  // 稍微减小字体
+      fontSize: '28px',  // 稍微减小字体
+      resolution: 2
     }).setOrigin(0.5).setDepth(102)
 
     const buyText = this.add.text(buySlot.x + 50, buySlot.y + 90, '诗意卡包\n10金币', {  // y位置上移
       fontSize: '14px',
+      resolution: 2,
       color: '#ffffff',
       align: 'center',
       lineSpacing: 2,  // 减小行间距
@@ -911,6 +921,32 @@ onMounted(() => {
     }).setOrigin(0.5).setDepth(102)
 
 
+
+    // 修改Shift键监听为点击切换
+    this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+
+    // 添加Shift键点击事件监听
+    this.shiftKey.on('down', () => {
+      // 切换模式状态
+      isStackingMode.value = !isStackingMode.value
+      
+      // 可选：添加切换反馈效果
+      const flash = this.add.rectangle(
+        this.scale.width - padding - 50,
+        padding + 75,
+        100,
+        40,
+        0xffffff,
+        0.3
+      ).setDepth(200)
+      
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => flash.destroy()
+      })
+    })
 
     // 第一个购买槽处理函数
     const handleBuyClick = () => {
@@ -951,11 +987,13 @@ onMounted(() => {
 
       // 第二个购买槽的文本和图标
       const buyIcon2 = this.add.text(buySlot2.x + 50, buySlot2.y + 40, '📦', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText2 = this.add.text(buySlot2.x + 50, buySlot2.y + 90, '诗人卡包\n15金币', {
         fontSize: '14px',
+        resolution: 2,
         color: '#ffffff',
         align: 'center',
         lineSpacing: 2,
@@ -1004,11 +1042,13 @@ onMounted(() => {
 
       // 第三个购买槽的文本和图标
       const buyIcon3 = this.add.text(buySlot3.x + 50, buySlot3.y + 40, '🧙', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText3 = this.add.text(buySlot3.x + 50, buySlot3.y + 90, '书生卡\n10金币', {
         fontSize: '14px',
+        resolution: 2,
         color: '#ffffff',
         align: 'center',
         lineSpacing: 2,
@@ -1024,13 +1064,15 @@ onMounted(() => {
 
       // 第四个购买槽的文本和图标
       const buyIcon4 = this.add.text(buySlot4.x + 50, buySlot4.y + 40, '⛩️', {
-        fontSize: '28px'
+        fontSize: '28px',
+        resolution: 2
       }).setOrigin(0.5).setDepth(102)
 
       const buyText4 = this.add.text(buySlot4.x + 50, buySlot4.y + 90, '书斋卡\n10金币', {
         fontSize: '14px',
         color: '#ffffff',
         align: 'center',
+        resolution: 2,
         lineSpacing: 2,
         padding: { y: 5 }
       }).setOrigin(0.5).setDepth(102)
@@ -1165,6 +1207,7 @@ onMounted(() => {
         if (i < 3) {
           this.add.text(x + cardWidth + 5, y + cardHeight / 2, i < 2 ? '+' : '=', {
             fontSize: '24px',
+            resolution: 5,
             color: '#ffffff'
           }).setOrigin(0, 0.5).setDepth(101);
         }
@@ -1173,6 +1216,7 @@ onMounted(() => {
         const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
         this.add.text(x + cardWidth / 2, y - 5, slotText, {
           fontSize: '12px',
+          resolution: 5,
           color: '#ffffff'
         }).setOrigin(0.5, 1).setDepth(101);
       }
@@ -1292,6 +1336,7 @@ onMounted(() => {
       `💰 ${coins.value}`, 
       {
         fontSize: '24px',
+        resolution: 2,
         color: '#ffffff'
       }
     )
@@ -1319,6 +1364,7 @@ onMounted(() => {
       {
         fontSize: '13px',
         color: '#ffffff',
+        resolution: 2,
         fontWeight: 'bold'
       }
     )
@@ -1328,7 +1374,7 @@ onMounted(() => {
     this.events.on('update', () => {
       coinDisplay.setText(`💰 ${coins.value}`)
         // 实时检查Shift键状态并更新模式显示
-      if (this.shiftKey.isDown) {
+        if (isStackingMode.value) {
         // 堆叠模式
         modeHintText.setText('📚 堆叠模式')
         modeHintBackground.setFillStyle(0xffb74d) // 橙色
@@ -1366,6 +1412,7 @@ onMounted(() => {
         if (i < 3) {
           const operatorText = this.add.text(x + cardWidth + 5, slot.y + cardHeight / 2, i < 2 ? '+' : '=', {
             fontSize: '24px',
+            resolution: 2,
             color: '#ffffff'
           }).setOrigin(0, 0.5).setDepth(101);
         }
@@ -1373,6 +1420,7 @@ onMounted(() => {
         const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
         this.add.text(x + cardWidth / 2, slot.y - 5, slotText, {
           fontSize: '12px',
+          resolution: 2,
           color: '#ffffff'
         }).setOrigin(0.5, 1).setDepth(101);
       });
@@ -1414,7 +1462,7 @@ onMounted(() => {
       const currentStackIndex = this.cardStacks.indexOf(currentStack)
 
       // 只有在按住 Shift 键时才执行堆叠逻辑
-      if (this.shiftKey.isDown) {
+      if (isStackingMode.value) {
         // 查找最近的同类型卡片或堆叠组
         let closestCard = null
         let minDistance = STACK_DETECTION_DISTANCE
@@ -1509,6 +1557,7 @@ onMounted(() => {
           // 添加金币动画
           const priceText = this.add.text(pointer.x, pointer.y, `+${totalPrice}`, {
             fontSize: '24px',
+            resolution: 2,
             color: '#ffd700'
           }).setDepth(102)
 
@@ -1551,7 +1600,7 @@ onMounted(() => {
       }
 
       // 检查合成 - 默认行为，不按 Shift 时执行
-      if (!this.shiftKey.isDown) {
+      if (!isStackingMode.value) {
         this.cards.forEach(otherCard => {
           if (otherCard !== gameObject &&
             Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
@@ -1634,9 +1683,89 @@ onMounted(() => {
               }
             }
           }
-        })
+        });
       }
-      sellSlot.setStrokeStyle(2, 0x6e5773)
+
+      // 检查是否是工人卡和工厂卡的组合
+      if (cardType === 'card_worker') {
+        this.cards.forEach(otherCard => {
+          const otherType = otherCard.getData('type');
+          if (otherType.startsWith('factory_') && 
+              Phaser.Math.Distance.Between(gameObject.x, gameObject.y, otherCard.x, otherCard.y) < STACK_DETECTION_DISTANCE) {
+            
+            // 检查该工厂是否已有工人
+            const existingFactory = this.factories.find(f => f.base === otherCard);
+            if (existingFactory) {
+              return;
+            }
+
+            // 创建生产进度条背景
+            const progressBarBg = this.add.rectangle(
+              otherCard.x,
+              otherCard.y - 80, // 显示在工厂卡上方
+              80, // 进度条宽度
+              8, // 进度条高度
+              0x000000,
+              0.3
+            )
+            .setDepth(160)
+            .setStrokeStyle(1, 0x000000, 1); // 添加白色边框
+
+            // 创建生产进度条
+            const progressBar = this.add.rectangle(
+              otherCard.x - 40, // 从左边开始
+              otherCard.y - 80,
+              0, // 初始宽度为0
+              8,
+              0xffd700
+            )
+            .setOrigin(0, 0.5)
+            .setDepth(161)
+
+            // 创建新的工厂生产对象
+            const factory = {
+              worker: gameObject,
+              base: otherCard,
+              productType: otherType.replace('factory_', ''),
+              lastProduceTime: Date.now(),
+              progressBar,
+              progressBarBg,
+              timer: this.time.addEvent({
+                delay: 10000,
+                callback: () => this.produceCard(factory),
+                loop: true
+              })
+            };
+            
+            // 创建一个包含工人卡和工厂卡的堆叠组
+            const factoryStack = [otherCard, gameObject];
+            this.cardStacks.push(factoryStack);
+            
+            // 使用现有的堆叠位置更新函数
+            updateStackPosition.call(this, factoryStack, otherCard.x, otherCard.y, true);
+            
+            this.factories.push(factory);
+            isStacked = true;
+
+            // 为工厂卡添加拖动事件监听
+            otherCard.on('drag', (pointer, dragX, dragY) => {
+              // 更新进度条位置
+              progressBarBg.x = dragX;
+              progressBarBg.y = dragY - 80;
+              progressBar.x = dragX - 40;
+              progressBar.y = dragY - 80;
+              // 使用堆叠更新函数保持相对位置
+              updateStackPosition.call(this, factoryStack, dragX, dragY, false);
+            });
+          }
+        });
+      }
+
+      // 如果没有找到合适的堆叠目标，保持原位置
+      if (!isStacked && !currentStack) {
+        gameObject.x = gameObject.x
+        gameObject.y = gameObject.y
+      }
     })
 
     // 修改拖拽开始事件
@@ -1685,6 +1814,18 @@ onMounted(() => {
         // 将当前卡片及其上方的卡片提升层级
         for (let i = cardIndex; i < stack.length; i++) {
           stack[i].setDepth(150 + i - cardIndex)
+        }
+      }
+
+      // 检查是否是工人卡，并且是否在工厂中工作
+      const cardType = gameObject.getData('type');
+      if (cardType === 'card_worker') {
+        const factory = this.factories.find(f => f.worker === gameObject);
+        if (factory) {
+          factory.timer.destroy();
+          factory.progressBar.destroy();
+          factory.progressBarBg.destroy();
+          this.factories = this.factories.filter(f => f !== factory);
         }
       }
     })
@@ -1744,14 +1885,85 @@ onMounted(() => {
         }
       })
     }
+    // 添加生产卡片的方法
+    this.produceCard = (factory) => {
+      // 重置计时
+      factory.lastProduceTime = Date.now();
+      factory.progressBar.width = 0; // 重置进度条
+      
+      // 检查工厂和工人是否还存在
+      if (!factory.worker.active || !factory.base.active) {
+        factory.timer.destroy();
+        this.factories = this.factories.filter(f => f !== factory);
+        return;
+      }
+      
+      // 生成新卡片的随机位置（在工厂周围）
+      const radius = 100;
+      const angle = Math.random() * Math.PI * 2;
+      const x = factory.base.x + Math.cos(angle) * radius;
+      const y = factory.base.y + Math.sin(angle) * radius;
+      
+      // 创建新卡片
+      const newCard = this.physics.add.image(x, y, factory.productType)
+        .setDisplaySize(100, 140)
+        .setInteractive({ cursor: 'pointer', useHandCursor: true })
+        .setCollideWorldBounds(true)
+        .setBounce(0.8)
+        .setData('type', factory.productType)
+        .setData('id', Date.now().toString())
+        .setAlpha(0);
+      
+      // 添加出现动画
+      this.tweens.add({
+        targets: newCard,
+        alpha: 1,
+        scale: { from: 0.2, to: 0.475 },
+        duration: 500,
+        ease: 'Back.easeOut'
+      });
+      
+      // 添加闪光效果
+      const flash = this.add.sprite(x, y, factory.productType)
+        .setScale(0.1)
+        .setAlpha(0.8)
+        .setTint(0xffd700)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      
+      this.tweens.add({
+        targets: flash,
+        alpha: 0,
+        scale: 1,
+        duration: 500,
+        onComplete: () => flash.destroy()
+      });
+      
+      this.input.setDraggable(newCard);
+      this.cards.push(newCard);
+    };
   }
 
   // 需要持续更新的逻辑
   function update() {
-    // 可以添加需要持续更新的逻辑
+    // 检查所有工厂的状态
+    this.factories.forEach(factory => {
+      // 如果工人或工厂卡被移除，清理相关资源
+      if (!factory.worker.active || !factory.base.active) {
+        factory.timer.destroy();
+        factory.progressBar.destroy();
+        factory.progressBarBg.destroy();
+        this.factories = this.factories.filter(f => f !== factory);
+      } else {
+        // 更新进度条
+        const elapsed = (Date.now() - factory.lastProduceTime) % 10000; // 10秒循环
+        const progress = elapsed / 10000; // 计算进度(0-1)
+        factory.progressBar.width = 80 * progress; // 更新进度条宽度
+      }
+    });
   }
 })
 
+// 在组件卸载时销毁游戏实例
 onBeforeUnmount(() => {
   if (game) game.destroy(true)
 })
