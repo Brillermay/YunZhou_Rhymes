@@ -5,9 +5,10 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.bg.user.UserMapper">
+    <!-- 修改插入用户的SQL -->
     <insert id="UserAdd" parameterType="com.example.bg.user.User">
-        INSERT INTO user (name, pwd,salt,status,isadmin)
-        VALUES (#{name}, #{pwd},#{salt},#{status},#{isadmin})
+        INSERT INTO user (Name, Pwd, Salt, Status, IsAdmin, Nickname, Email)
+        VALUES (#{name}, #{pwd}, #{salt}, #{status}, #{isadmin}, #{nickname}, #{email})
     </insert>
     <delete id="delUser" parameterType="int">
         DELETE FROM user WHERE UID = #{UID}
@@ -20,8 +21,13 @@
         select UID
         from user where name =#{name};
     </select>
+    <!-- 修改查询用户的SQL，包含新字段 -->
     <select id="findByUsername" resultType="com.example.bg.user.User">
-        SELECT name, pwd, salt, status
-        FROM user WHERE name = #{name}
+        SELECT UID as uid, Name as name, Pwd as pwd, Salt as salt, 
+            Status as status, IsAdmin as isadmin,
+            Nickname as nickname, Email as email,
+            CreateTime as createTime, UpdateTime as updateTime
+        FROM user 
+        WHERE Name = #{name}
     </select>
 </mapper>

@@ -1,0 +1,691 @@
+@use "sass:color";
+
+// 变量定义
+$primary-color: #8c7853;
+$secondary-color: #6e5773;
+$background-color: #f5efe6;
+$card-background: #fffaf2;
+$text-color: #333;
+$text-secondary: #666;
+$text-light: #999;
+$border-color: #e3d9c6;
+$shadow-light: rgba(140, 120, 83, 0.1);
+$shadow-medium: rgba(140, 120, 83, 0.2);
+
+// 主容器
+.profile-layout {
+  height: 100vh;
+  overflow: hidden;
+  background: $background-color;
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  position: relative;
+}
+
+// 屏幕样式
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $border-color;
+    border-radius: 4px;
+    
+    &:hover {
+      background: color.scale($border-color, $lightness: -10%);
+    }
+  }
+}
+
+// 头部样式
+.profile-header,
+.stats-header {
+  text-align: center;
+  padding: 1.5rem 0;
+  background: linear-gradient(135deg, $primary-color, $secondary-color);
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  h1 {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+    font-style: italic;
+  }
+}
+
+// 容器样式
+.profile-container,
+.stats-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+.profile-container {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 2rem;
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: 350px 1fr;
+    gap: 1.5rem;
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 2rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+// 用户信息卡片
+.user-info-card {
+  background: $card-background;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px $shadow-light;
+  height: 600px;
+  box-sizing: border-box;
+  position: relative;
+  
+  @media (max-width: 768px) {
+    height: auto;
+    min-height: 500px;
+  }
+}
+
+// 登录提示
+.login-prompt {
+  text-align: center;
+  padding: 3rem 2rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  &-icon {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.6;
+  }
+
+  h2 {
+    color: $primary-color;
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+
+  p {
+    color: $text-secondary;
+    margin: 0 0 2rem 0;
+    font-size: 1rem;
+  }
+
+  &-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 200px;
+  }
+}
+
+.auth-prompt-btn {
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+
+  &.login {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    color: white;
+  }
+
+  &.register {
+    background: #f0ebe0;
+    color: $primary-color;
+    border: 1px solid $border-color;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// 头像区域
+.avatar-section {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
+
+  .user-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}
+
+// 用户详情
+.user-details {
+  .username {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    color: $primary-color;
+    font-weight: 500;
+  }
+
+  .user-id {
+    margin: 0 0 1.5rem 0;
+    color: $text-secondary;
+    font-size: 0.9rem;
+  }
+}
+
+// 统计项
+.user-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 2rem;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 0.5rem;
+
+  .stat-number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: $primary-color;
+    line-height: 1;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: $text-secondary;
+    white-space: nowrap;
+  }
+}
+
+// 操作按钮
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+}
+
+.action-btn {
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+
+  &.primary {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    color: white;
+  }
+
+  &.secondary {
+    background: #f0ebe0;
+    color: $primary-color;
+  }
+
+  &.logout {
+    background: #ff6b6b;
+    color: white;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// 收藏区域
+.favorites-section {
+  background: $card-background;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px $shadow-light;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+
+  .section-header {
+    margin-bottom: 1.5rem;
+
+    h3 {
+      margin: 0 0 1rem 0;
+      color: $primary-color;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+
+      @media (max-width: 768px) {
+        flex-direction: column;
+      }
+    }
+  }
+
+  .search-input,
+  .sort-select {
+    padding: 0.5rem;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    font-size: 0.9rem;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+  }
+
+  .search-input {
+    flex: 1;
+  }
+
+  .sort-select {
+    width: 120px;
+
+    @media (max-width: 768px) {
+      width: 100%;
+    }
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: $text-secondary;
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+  }
+
+  .favorites-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f0ebe0;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $border-color;
+      border-radius: 3px;
+
+      &:hover {
+        background: color.scale($border-color, $lightness: -15%);
+      }
+    }
+  }
+
+  .favorite-item {
+    background: #f8f5f0;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+
+    &:hover {
+      background: #f0ebe0;
+      border-color: $border-color;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px $shadow-light;
+    }
+
+    .poem-title {
+      margin: 0 0 0.3rem 0;
+      color: $primary-color;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .poem-poet {
+      margin: 0 0 0.5rem 0;
+      color: $secondary-color;
+      font-size: 0.9rem;
+    }
+
+    .poem-preview {
+      margin: 0 0 0.8rem 0;
+      color: $text-secondary;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .poem-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .favorite-time {
+        font-size: 0.8rem;
+        color: $text-light;
+      }
+
+      .remove-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.2rem;
+        border-radius: 4px;
+        transition: background 0.3s ease;
+
+        &:hover {
+          background: rgba(255, 107, 107, 0.1);
+        }
+      }
+    }
+  }
+}
+
+// 游戏统计样式
+.game-overview {
+  background: $card-background;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px $shadow-light;
+  grid-column: 1 / -1;
+  
+  h3 {
+    margin: 0 0 1.5rem 0;
+    color: $secondary-color;
+    font-size: 1.5rem;
+    text-align: center;
+    font-weight: 500;
+  }
+  
+  .overview-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+  }
+  
+  .stat-card {
+    background: #f8f5f0;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(110, 87, 115, 0.15);
+    }
+    
+    .stat-icon {
+      font-size: 2.5rem;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, $secondary-color, $primary-color);
+      border-radius: 50%;
+      color: white;
+    }
+    
+    .stat-info {
+      flex: 1;
+      
+      .stat-value {
+        display: block;
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: $secondary-color;
+        line-height: 1;
+        margin-bottom: 0.2rem;
+      }
+      
+      .stat-label {
+        font-size: 0.9rem;
+        color: #666;
+      }
+    }
+  }
+}
+
+.achievements-section {
+  background: $card-background;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 24px $shadow-light;
+  
+  h3 {
+    margin: 0 0 1.5rem 0;
+    color: $secondary-color;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+  
+  .achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .achievement-card {
+    background: #f8f5f0;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    opacity: 0.6;
+    
+    &.unlocked {
+      opacity: 1;
+      border: 2px solid $secondary-color;
+    }
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(110, 87, 115, 0.2);
+    }
+    
+    .achievement-icon {
+      font-size: 2rem;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, $secondary-color, $primary-color);
+      border-radius: 50%;
+      color: white;
+    }
+    
+    .achievement-info {
+      flex: 1;
+      
+      .achievement-title {
+        margin: 0 0 0.3rem 0;
+        color: $secondary-color;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+      
+      .achievement-desc {
+        margin: 0;
+        color: #666;
+        font-size: 0.85rem;
+      }
+    }
+  }
+}
+
+// 滚动提示
+.scroll-hint {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 1rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 100;
+  animation: bounce 2s infinite;
+  
+  &.fade-out {
+    animation: fadeOut 0.5s ease-out forwards;
+  }
+  
+  .hint-text {
+    font-size: 0.8rem;
+    color: $text-secondary;
+    margin: 0;
+    text-align: center;
+  }
+  
+  .hint-icon {
+    font-size: 1.2rem;
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+}
+
+// 动画定义
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 加载动画
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 通用动画类
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}

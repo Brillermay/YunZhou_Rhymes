@@ -420,11 +420,15 @@
   <script setup>
   import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
   import { useRouter } from 'vue-router';
-  
+  import { useUserStore } from '@/stores/user';
+
   const router = useRouter();
 
-  // 认证相关状态
-  const isLoggedIn = ref(false);
+  // 🔧 新增：使用 Pinia Store
+  const userStore = useUserStore();
+
+  // 🔧 修改：使用 Store 的状态而不是本地状态
+  const isLoggedIn = computed(() => userStore.isAuthenticated);
   const showAuthModal = ref(false);
   const isLoginMode = ref(true);
   const authLoading = ref(false);
@@ -443,13 +447,15 @@
   const currentScreen = ref(0);
   const isScrolling = ref(false);
   
-  const userInfo = reactive({
-    uid: null,
-    username: '',
-    avatar: '',
-    email: '',
+  // 🔧 修改：用户信息从 Store 获取
+  const userInfo = computed(() => ({
+    uid: userStore.uid,
+    username: userStore.username,
+    nickname: userStore.nickname || userStore.username,
+    avatar: '', // 暂时为空，后续可添加
+    email: userStore.email || '',
     joinDate: ''
-  });
+  }));
   
   const userStats = reactive({
     poemsRead: 0,
@@ -607,124 +613,77 @@
 
   // 登录处理
   const handleLogin = async () => {
+    authLoading.value = true;
+    authError.value = '';
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/user/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          UserName: authForm.username,
-          PassWord: authForm.password
-        })
+      const result = await userStore.apiLogin({
+        username: authForm.username,
+        password: authForm.password
       });
-
-      const result = await response.text();
-
-      if (result === '登录成功') {
-        // 获取用户ID
-        const uidResponse = await fetch(`${API_BASE_URL}/user/loginID/${authForm.username}`);
-        const uid = await uidResponse.json();
-
-        // 保存用户信息
-        const userData = {
-          uid: uid,
-          username: authForm.username
-        };
-
-        // 保存到本地存储
-        localStorage.setItem('userInfo', JSON.stringify(userData));
-        localStorage.setItem('isLoggedIn', 'true');
-
-        // 更新状态
-        Object.assign(userInfo, userData);
-        isLoggedIn.value = true;
-
-        // 关闭弹窗并加载用户数据
+      
+      if (result.success) {
         closeAuthModal();
         await loadUserData();
-
         alert('登录成功！');
       } else {
-        authError.value = result;
+        authError.value = result.message;
       }
     } catch (error) {
       console.error('登录失败:', error);
       authError.value = '登录失败，请稍后重试';
+    } finally {
+      authLoading.value = false;
     }
   };
 
   // 注册处理
-  const handleRegister = async () => {
+  // 🔧 完全替换：使用新的 API 注册方法
+const handleRegister = async () => {
+    authLoading.value = true;
+    authError.value = '';
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/user/add`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          UserName: authForm.username,
-          PassWord: authForm.password
-        })
+      const result = await userStore.apiRegister({
+        username: authForm.username,
+        password: authForm.password,
+        nickname: authForm.username, // 默认昵称为用户名
+        email: '' // 暂时为空
       });
-
-      const result = await response.text();
-
-      if (result === '添加成功') {
+      
+      if (result.success) {
         alert('注册成功！请登录');
         switchToLogin();
       } else {
-        authError.value = result;
+        authError.value = result.message;
       }
     } catch (error) {
       console.error('注册失败:', error);
       authError.value = '注册失败，请稍后重试';
+    } finally {
+      authLoading.value = false;
     }
   };
+
 
   // 退出登录
   const logout = () => {
     if (confirm('确定要退出登录吗？')) {
-      // 清除本地存储
-      localStorage.removeItem('userInfo');
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('poetryBookmarks');
-
-      // 重置状态
-      isLoggedIn.value = false;
-      Object.assign(userInfo, {
-        uid: null,
-        username: '',
-        avatar: '',
-        email: '',
-        joinDate: ''
-      });
-
+      userStore.logout();
+      // 重置本地数据
       Object.assign(userStats, {
         poemsRead: 0,
         favoriteCount: 0,
         daysActive: 0
       });
-
       favoritePoems.value = [];
-
       alert('已成功退出登录');
     }
   };
 
   // 检查登录状态
   const checkLoginStatus = () => {
-    const savedUser = localStorage.getItem('userInfo');
-    const loginStatus = localStorage.getItem('isLoggedIn');
-
-    if (savedUser && loginStatus === 'true') {
-      const userData = JSON.parse(savedUser);
-      Object.assign(userInfo, userData);
-      isLoggedIn.value = true;
-      return true;
-    }
-
-    return false;
+  return userStore.isAuthenticated;
   };
 
   // 计算屏幕样式
@@ -807,8 +766,19 @@
   // 方法
   const loadUserData = async () => {
     try {
-      // 检查登录状态
-      if (!checkLoginStatus()) {
+      // 如果未登录，尝试从存储恢复状态
+      if (!userStore.isLoggedIn) {
+        userStore.initFromStorage();
+      }
+      
+      // 如果仍未登录，直接返回
+      if (!userStore.isAuthenticated) {
+        return;
+      }
+
+      // 🔧 新增：验证用户状态
+      const isValid = await userStore.validateUser();
+      if (!isValid) {
         return;
       }
 
@@ -839,7 +809,7 @@
       gameDetails.game.maxLevel = 12;
       gameDetails.game.collected = 25;
 
-      // 加载收藏的诗词列表
+      // 🔧 新增：从后端加载收藏的诗词列表
       await loadFavoritePoems();
 
     } catch (error) {
@@ -880,9 +850,23 @@
     alert('编辑资料功能开发中...');
   };
   
+  // 🔧 修改：刷新数据功能
   const refreshData = async () => {
-    await loadUserData();
-    alert('数据已刷新！');
+    try {
+      // 验证用户状态
+      const isValid = await userStore.validateUser();
+      if (!isValid) {
+        alert('用户状态异常，请重新登录');
+        return;
+      }
+
+      // 重新加载用户数据
+      await loadUserData();
+      alert('数据已刷新！');
+    } catch (error) {
+      console.error('刷新数据失败:', error);
+      alert('刷新失败，请稍后重试');
+    }
   };
   
   const viewPoem = (poem) => {
@@ -910,25 +894,49 @@
     passwordForm.confirm = '';
   };
   
-  const changePassword = () => {
-    if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-      alert('请填写完整信息');
-      return;
+  // 🔧 新增：修改密码功能
+const changePassword = async () => {
+  if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+    alert('请填写完整信息');
+    return;
+  }
+  
+  if (passwordForm.new !== passwordForm.confirm) {
+    alert('两次输入的新密码不一致');
+    return;
+  }
+  
+  if (passwordForm.new.length < 6) {
+    alert('新密码长度至少6位');
+    return;
+  }
+
+  try {
+    // 🔧 新增：调用后端修改密码接口
+    const response = await fetch('http://localhost:8081/user/changePWD', {
+      method: 'GET', // 注意：您的后端使用 GET 方法
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        UserName: userStore.username,
+        PassWord: passwordForm.new
+      })
+    });
+
+    const result = await response.text();
+
+    if (result.includes('修改成功')) {
+      alert('密码修改成功！');
+      closePasswordModal();
+    } else {
+      alert('密码修改失败：' + result);
     }
-    
-    if (passwordForm.new !== passwordForm.confirm) {
-      alert('两次输入的新密码不一致');
-      return;
-    }
-    
-    if (passwordForm.new.length < 6) {
-      alert('新密码长度至少6位');
-      return;
-    }
-    
-    alert('密码修改功能开发中...');
-    closePasswordModal();
-  };
+  } catch (error) {
+    console.error('修改密码失败:', error);
+    alert('修改密码失败，请稍后重试');
+  }
+};
   
   // 键盘事件处理
   const handleKeydown = (event) => {
@@ -939,15 +947,15 @@
     }
   };
   
-  // 生命周期
+// 🔧 修改：生命周期 - 初始化时恢复用户状态
   onMounted(() => {
+    // 首先初始化 Store 状态
+    userStore.initFromStorage();
+    // 然后加载用户数据
     loadUserData();
     window.addEventListener('keydown', handleKeydown);
   });
   
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown);
-  });
   </script>
   
   <style scoped>

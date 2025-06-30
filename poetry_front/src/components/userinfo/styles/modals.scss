@@ -1,0 +1,471 @@
+// 模态框变量
+$modal-overlay-bg: rgba(0, 0, 0, 0.5);
+$modal-bg: #ffffff;
+$modal-border-radius: 20px;
+$modal-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+$primary-color: #8c7853;
+$secondary-color: #6e5773;
+
+// 模态框基础样式
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: $modal-overlay-bg;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
+}
+
+.modal-content {
+  background: $modal-bg;
+  border-radius: $modal-border-radius;
+  box-shadow: $modal-shadow;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 500px;
+  animation: slideUp 0.3s ease-out;
+  
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+    
+    &:hover {
+      background: #a1a1a1;
+    }
+  }
+}
+
+// 模态框头部
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #fafafa, #ffffff);
+  border-radius: $modal-border-radius $modal-border-radius 0 0;
+  
+  h3 {
+    margin: 0;
+    color: $primary-color;
+    font-size: 1.3rem;
+    font-weight: 500;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #999;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      background: #f0f0f0;
+      color: #666;
+      transform: rotate(90deg);
+    }
+  }
+}
+
+// 模态框主体
+.modal-body {
+  padding: 2rem;
+  
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+}
+
+// 认证模态框
+.auth-modal {
+  max-width: 450px;
+  
+  .auth-form {
+    padding: 0;
+    
+    .form-group {
+      margin-bottom: 1.2rem;
+      
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+      
+      .form-input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        background: #fafafa;
+        
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          background: white;
+          box-shadow: 0 0 0 3px rgba(140, 120, 83, 0.1);
+        }
+        
+        &::placeholder {
+          color: #999;
+        }
+      }
+    }
+    
+    .form-actions {
+      margin: 1.5rem 0;
+      
+      .btn-primary {
+        width: 100%;
+        padding: 0.8rem;
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+          transition: left 0.5s;
+        }
+        
+        &:hover::before {
+          left: 100%;
+        }
+      }
+    }
+    
+    .form-footer {
+      text-align: center;
+      padding-top: 1rem;
+      border-top: 1px solid #f0f0f0;
+      
+      p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+      }
+      
+      .link-btn {
+        background: none;
+        border: none;
+        color: $primary-color;
+        cursor: pointer;
+        text-decoration: underline;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: $secondary-color;
+        }
+      }
+    }
+  }
+  
+  .error-message {
+    background: linear-gradient(135deg, #ffe6e6, #ffebee);
+    color: #d63031;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    text-align: center;
+    border-left: 4px solid #ff5252;
+    animation: shake 0.5s ease-in-out;
+  }
+}
+
+// 密码修改模态框
+.password-modal {
+  max-width: 480px;
+  
+  .password-form {
+    padding: 0;
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+      
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+      
+      .form-input {
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+        
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba(140, 120, 83, 0.1);
+        }
+      }
+    }
+    
+    .password-strength {
+      margin-top: 0.5rem;
+      
+      .strength-bar {
+        height: 4px;
+        background: #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.3rem;
+        
+        .strength-fill {
+          height: 100%;
+          transition: all 0.3s ease;
+          border-radius: 2px;
+          
+          &.weak {
+            background: linear-gradient(90deg, #ff6b6b, #ff8a8a);
+          }
+          
+          &.fair {
+            background: linear-gradient(90deg, #ffa726, #ffcc02);
+          }
+          
+          &.good {
+            background: linear-gradient(90deg, #66bb6a, #81c784);
+          }
+          
+          &.strong {
+            background: linear-gradient(90deg, #4caf50, #66bb6a);
+          }
+        }
+      }
+      
+      .strength-text {
+        font-size: 0.8rem;
+        color: #666;
+      }
+    }
+    
+    .password-mismatch {
+      color: #d63031;
+      font-size: 0.8rem;
+      margin-top: 0.3rem;
+      animation: shake 0.3s ease-in-out;
+    }
+    
+    .password-tips {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-left: 4px solid $primary-color;
+      
+      h4 {
+        margin: 0 0 0.5rem 0;
+        color: #333;
+        font-size: 0.9rem;
+      }
+      
+      ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        list-style: none;
+        
+        li {
+          position: relative;
+          color: #666;
+          font-size: 0.85rem;
+          margin-bottom: 0.3rem;
+          
+          &::before {
+            content: '✗';
+            position: absolute;
+            left: -1rem;
+            color: #d63031;
+            font-weight: bold;
+          }
+          
+          &.valid {
+            color: #4caf50;
+            
+            &::before {
+              content: '✓';
+              color: #4caf50;
+            }
+          }
+        }
+      }
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+      
+      .btn-cancel,
+      .btn-save {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+      }
+      
+      .btn-cancel {
+        background: #f0f0f0;
+        color: #666;
+        
+        &:hover {
+          background: #e0e0e0;
+        }
+      }
+      
+      .btn-save {
+        background: linear-gradient(135deg, $primary-color, $secondary-color);
+        color: white;
+        
+        &:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+      }
+    }
+  }
+}
+
+// 动画定义
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 16px;
+  }
+  
+  .modal-header {
+    padding: 1rem 1.5rem;
+    
+    h3 {
+      font-size: 1.2rem;
+    }
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .auth-modal,
+  .password-modal {
+    .form-actions {
+      flex-direction: column;
+      gap: 0.8rem;
+      
+      .btn-cancel,
+      .btn-save {
+        width: 100%;
+      }
+    }
+  }
+}

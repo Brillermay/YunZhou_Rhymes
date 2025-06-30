@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,16 +29,24 @@ import java.util.UUID;
 public class UserController {
 
     @Autowired
-    private UserService userService;
+    private UserService userService;// 在第 36 行左右，修改 addUser 方法
     @PostMapping("/add")
     @Operation(summary = "添加用户")
     public String addUser(@RequestBody Map<String, String> request) {
-        User user=new User();
+        User user = new User();
         user.setName(request.get("UserName"));
         user.setSalt(UUID.randomUUID().toString());
-        user.setPwd(userService.encryptPassword(request.get("PassWord"),  user.getSalt()));
+        user.setPwd(userService.encryptPassword(request.get("PassWord"), user.getSalt()));
         user.setStatus("active");
         user.setIsadmin(0);
+        
+        // 🔧 新增：处理新字段
+        user.setNickname(request.get("Nickname")); // 前端传入昵称，如果为空则使用用户名
+        if (user.getNickname() == null || user.getNickname().trim().isEmpty()) {
+            user.setNickname(user.getName()); // 默认昵称为用户名
+        }
+        user.setEmail(request.get("Email")); // 前端传入邮箱（可选）
+        
         int result = userService.addUser(user);
         return result > 0 ? "添加成功" : "添加失败，请修改用户名";
     }
@@ -45,13 +54,37 @@ public class UserController {
 
 
     // 使用Shiro的认证机制
+    // 在第 46 行左右，修改 login 方法
     @PostMapping("/login")
     @Operation(summary = "用户登录")
-    public String login(@RequestBody Map<String, String> request) {
-        String username = request.get("UserName");  // 必须与JSON键名一致
+    public Map<String, Object> login(@RequestBody Map<String, String> request) {
+        String username = request.get("UserName");
         String password = request.get("PassWord");
-        return userService.login(username,password);
-
+        
+        Subject subject = SecurityUtils.getSubject();
+        UsernamePasswordToken token = new UsernamePasswordToken(username, password);
+        
+        try {
+            subject.login(token);
+            
+            // 🔧 新增：获取完整用户信息
+            User user = userService.findByUsername(username);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "登录成功");
+            response.put("uid", user.getUID());
+            response.put("username", user.getName());
+            response.put("nickname", user.getNickname());
+            response.put("email", user.getEmail());
+            response.put("isAdmin", user.getIsadmin() == 1);
+            
+            return response;
+        } catch (AuthenticationException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "登录失败: " + e.getMessage());
+            return errorResponse;
+        }
     }
 
     @DeleteMapping("/del/{uid}")
