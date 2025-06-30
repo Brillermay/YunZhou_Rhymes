@@ -819,6 +819,8 @@ onMounted(() => {
     const STACK_DETECTION_DISTANCE = 80 // 增加堆叠检测距离
     const STACK_SNAP_DURATION = 150 // 吸附动画持续时间
 
+    this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+
     // 创建顶部边栏背景，并添加交互效果
     const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
       .setOrigin(0, 0)
@@ -1265,9 +1267,47 @@ onMounted(() => {
       .setOrigin(1, 0.5)
       .setDepth(101); 
 
-    // 更新金币显示和背景
+    // 添加模式提示背景框
+    const modeHintBackground = this.add.rectangle(
+      this.scale.width - padding,
+      padding + 55, // 在金币显示下方
+      120, // 宽度
+      40,  // 高度
+      0x4caf50 // 默认绿色（合成模式）
+    )
+      .setOrigin(1, 0)
+      .setDepth(100)
+      .setAlpha(0.9)
+      .setStrokeStyle(2, 0x388e3c);
+
+    // 添加模式提示文本
+    const modeHintText = this.add.text(
+      this.scale.width - padding -10,
+      padding + 75, // 背景框的中心位置
+      '🔧 合成模式',
+      {
+        fontSize: '16px',
+        color: '#ffffff',
+        fontWeight: 'bold'
+      }
+    )
+      .setOrigin(1, 0.5)
+      .setDepth(101);
+    // 更新显示和背景
     this.events.on('update', () => {
       coinDisplay.setText(`💰 ${coins.value}`)
+        // 实时检查Shift键状态并更新模式显示
+      if (this.shiftKey.isDown) {
+        // 堆叠模式
+        modeHintText.setText('📚 堆叠模式')
+        modeHintBackground.setFillStyle(0xffb74d) // 橙色
+        modeHintBackground.setStrokeStyle(2, 0xff9800)
+      } else {
+        // 合成模式
+        modeHintText.setText('🔧 合成模式')
+        modeHintBackground.setFillStyle(0x4caf50) // 绿色
+        modeHintBackground.setStrokeStyle(2, 0x388e3c)
+      }
     })
 
     // 添加窗口缩放事件处理
@@ -1278,6 +1318,10 @@ onMounted(() => {
       // 更新金币显示位置
       coinDisplay.x = gameSize.width - padding - 10;
       coinBackground.x = gameSize.width - padding;
+
+      modeHintBackground.x = gameSize.width - padding ;
+      modeHintText.x = gameSize.width - padding -10;
+
 
       // 更新合成台位置
       craftingStation.x = buySlot4.x + buySlot4.width + padding; // 书斋卡右边
@@ -1338,72 +1382,75 @@ onMounted(() => {
       const currentStack = this.cardStacks.find(s => s.includes(gameObject))
       const currentStackIndex = this.cardStacks.indexOf(currentStack)
 
-      // 查找最近的同类型卡片或堆叠组
-      let closestCard = null
-      let minDistance = STACK_DETECTION_DISTANCE
+      // 只有在按住 Shift 键时才执行堆叠逻辑
+      if (this.shiftKey.isDown) {
+        // 查找最近的同类型卡片或堆叠组
+        let closestCard = null
+        let minDistance = STACK_DETECTION_DISTANCE
 
-      // 遍历所有卡片和堆叠组
-      this.cards.forEach(otherCard => {
-        if (otherCard !== gameObject && 
-            otherCard.getData('type') === cardType && 
-            otherCard.active) {
-          
-          // 获取目标卡片所在的堆叠组
-          const targetStack = this.cardStacks.find(s => s.includes(otherCard))
-          
-          // 如果是不同的堆叠组或者未堆叠的卡片
-          if (!targetStack || targetStack !== currentStack) {
-            const distance = Phaser.Math.Distance.Between(
-              gameObject.x, gameObject.y,
-              otherCard.x, otherCard.y
-            )
-            if (distance < minDistance) {
-              minDistance = distance
-              closestCard = otherCard
+        // 遍历所有卡片和堆叠组
+        this.cards.forEach(otherCard => {
+          if (otherCard !== gameObject && 
+              otherCard.getData('type') === cardType && 
+              otherCard.active) {
+            
+            // 获取目标卡片所在的堆叠组
+            const targetStack = this.cardStacks.find(s => s.includes(otherCard))
+            
+            // 如果是不同的堆叠组或者未堆叠的卡片
+            if (!targetStack || targetStack !== currentStack) {
+              const distance = Phaser.Math.Distance.Between(
+                gameObject.x, gameObject.y,
+                otherCard.x, otherCard.y
+              )
+              if (distance < minDistance) {
+                minDistance = distance
+                closestCard = otherCard
+              }
             }
-          }
-        }
-      })
-
-      // 如果找到可堆叠的卡片
-      if (closestCard) {
-        let targetStack = this.cardStacks.find(s => s.includes(closestCard))
-        let cardsToAdd = [gameObject]
-        
-        // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
-        if (currentStack) {
-          const cardIndex = currentStack.indexOf(gameObject)
-          cardsToAdd = currentStack.splice(cardIndex)
-          
-          // 如果原堆叠组只剩一张卡，移除该堆叠组
-          if (currentStack.length <= 1) {
-            this.cardStacks.splice(currentStackIndex, 1)
-          }
-        }
-
-        // 如果目标卡片不在任何堆叠组中，创建新的堆叠组
-        if (!targetStack) {
-          targetStack = [closestCard]
-          this.cardStacks.push(targetStack)
-        }
-
-        // 将所有需要添加的卡片加入目标堆叠组
-        cardsToAdd.forEach(card => {
-          if (!targetStack.includes(card)) {
-            targetStack.push(card)
           }
         })
 
-        // 更新堆叠位置
-        const baseY = Math.min(...targetStack.map(card => card.y))
-        updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
-        
-        isStacked = true
-      }
+        // 如果找到可堆叠的卡片
+        if (closestCard) {
+          let targetStack = this.cardStacks.find(s => s.includes(closestCard))
+          let cardsToAdd = [gameObject]
+          
+          // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
+          if (currentStack) {
+            const cardIndex = currentStack.indexOf(gameObject)
+            cardsToAdd = currentStack.splice(cardIndex)
+            
+            // 如果原堆叠组只剩一张卡，移除该堆叠组
+            if (currentStack.length <= 1) {
+              this.cardStacks.splice(currentStackIndex, 1)
+            }
+          }
 
-      if (!isStacked && currentStack) {
-        // 如果没有找到新的堆叠目标，更新当前堆叠组的位置
-        updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
+          // 如果目标卡片不在任何堆叠组中，创建新的堆叠组
+          if (!targetStack) {
+            targetStack = [closestCard]
+            this.cardStacks.push(targetStack)
+          }
+
+          // 将所有需要添加的卡片加入目标堆叠组
+          cardsToAdd.forEach(card => {
+            if (!targetStack.includes(card)) {
+              targetStack.push(card)
+            }
+          })
+
+          // 更新堆叠位置
+          const baseY = Math.min(...targetStack.map(card => card.y))
+          updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
+          
+          isStacked = true
+        }
+
+        if (!isStacked && currentStack) {
+          // 如果没有找到新的堆叠目标，更新当前堆叠组的位置
+          updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
+        }
       }
 
       // 检查是否在出售槽区域
@@ -1467,17 +1514,16 @@ onMounted(() => {
         }
       }
 
-      // 检查合成
-      this.cards.forEach(otherCard => {
-        if (otherCard !== gameObject &&
-          Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
-          
-          // 检查两张卡是否都不在堆叠组中
-          const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
-          const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
-          
-          // 只有当两张卡都不在堆叠组中时才允许合成
-          if (!card1Stack && !card2Stack) {
+      // 检查合成 - 默认行为，不按 Shift 时执行
+      if (!this.shiftKey.isDown) {
+        this.cards.forEach(otherCard => {
+          if (otherCard !== gameObject &&
+            Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
+            
+            // 获取两张卡片所在的堆叠组
+            const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
+            const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
+            
             const card1Type = gameObject.getData('type')
             const card2Type = otherCard.getData('type')
 
@@ -1513,6 +1559,29 @@ onMounted(() => {
                 onComplete: () => flash.destroy()
               })
 
+              // 如果卡片在堆叠组中，需要从堆叠组中移除
+              if (card1Stack) {
+                const index = card1Stack.indexOf(gameObject)
+                card1Stack.splice(index, 1)
+                if (card1Stack.length <= 1) {
+                  const stackIndex = this.cardStacks.indexOf(card1Stack)
+                  if (stackIndex !== -1) {
+                    this.cardStacks.splice(stackIndex, 1)
+                  }
+                }
+              }
+              
+              if (card2Stack) {
+                const index = card2Stack.indexOf(otherCard)
+                card2Stack.splice(index, 1)
+                if (card2Stack.length <= 1) {
+                  const stackIndex = this.cardStacks.indexOf(card2Stack)
+                  if (stackIndex !== -1) {
+                    this.cardStacks.splice(stackIndex, 1)
+                  }
+                }
+              }
+
               // 移除原卡片
               gameObject.destroy()
               otherCard.destroy()
@@ -1527,8 +1596,8 @@ onMounted(() => {
               }
             }
           }
-        }
-      })
+        })
+      }
     })
 
     // 修改拖拽开始事件
