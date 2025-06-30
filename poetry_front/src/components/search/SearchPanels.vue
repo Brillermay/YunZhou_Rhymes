@@ -23,20 +23,38 @@
   import HistoryPanel from './panels/HistoryPanel.vue'
   import FavoritesPanel from './panels/FavoritesPanel.vue'
   
-  defineProps({
-    showHistory: Boolean,
-    showFavorites: Boolean,
-    searchHistory: Array,
-    favoritePoems: Array
+  const props = defineProps({
+    showHistory: {
+      type: Boolean,
+      default: false
+    },
+    showFavorites: {
+      type: Boolean,
+      default: false
+    },
+    searchHistory: {
+      type: Array,
+      default: () => []
+    },
+    favoritePoems: {
+      type: Array,
+      default: () => []
+    },
+    isAuthenticated: {
+      type: Boolean,
+      default: false
+    }
   })
   
-  defineEmits([
+  // 🔧 定义 emits - 修复警告
+  const emit = defineEmits([
     'close-history',
     'close-favorites',
     'search-from-history',
     'clear-history',
     'view-detail',
     'toggle-favorite',
-    'clear-all-favorites'
+    'clear-all-favorites',
+    'show-login'  // 添加这个 emit 事件
   ])
   </script>

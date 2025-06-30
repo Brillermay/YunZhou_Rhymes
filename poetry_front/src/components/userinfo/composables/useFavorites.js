@@ -8,9 +8,22 @@ export function useFavorites() {
   const sortBy = ref('time')
   const userStore = useUserStore()
 
-  // API基础URL
-  const API_BASE = 'http://localhost:8080'
-  const STORAGE_KEY = 'poetryBookmarks'
+  // 🔧 修正API基础URL - 改为8081端口
+  const API_BASE = 'http://localhost:8081'
+  const STORAGE_KEY = 'poetrySearchFavorites' // 统一存储键名
+
+  // 🔧 检查用户是否完全登录
+  const isUserFullyAuthenticated = () => {
+    const isAuth = userStore?.isAuthenticated
+    const hasUid = userStore?.uid != null && userStore?.uid !== undefined
+    
+    console.log('🔍 [UserInfo] 检查用户完整登录状态:')
+    console.log('  - isAuthenticated:', isAuth)
+    console.log('  - uid:', userStore?.uid)
+    console.log('  - 完整登录:', isAuth && hasUid)
+    
+    return isAuth && hasUid
+  }
 
   // 过滤和排序后的收藏列表
   const filteredFavorites = computed(() => {
@@ -58,17 +71,20 @@ export function useFavorites() {
 
   // 🔥 从服务器加载收藏列表
   const loadFavoritesFromServer = async () => {
-    if (!userStore.isAuthenticated) {
-      console.log('⚠️ 用户未登录，加载本地收藏')
+    if (!isUserFullyAuthenticated()) {
+      console.log('⚠️ [UserInfo] 用户未完全登录，加载本地收藏')
       loadFavoritesFromLocalStorage()
       return
     }
 
     loading.value = true
-    console.log('📚 从服务器加载收藏列表, UID:', userStore.uid)
+    console.log('📚 [UserInfo] 从服务器加载收藏列表, UID:', userStore.uid)
     
     try {
-      const response = await fetch(`${API_BASE}/star/list/${userStore.uid}`, {
+      const url = `${API_BASE}/star/list/${userStore.uid}`
+      console.log('🔗 [UserInfo] 请求URL:', url)
+      
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -76,9 +92,24 @@ export function useFavorites() {
         }
       })
 
+      console.log('📡 [UserInfo] 服务器响应状态:', response.status)
+
       if (response.ok) {
-        const poems = await response.json()
-        console.log('✅ 收藏列表加载成功:', poems.length, '首')
+        let poems = []
+        try {
+          poems = await response.json()
+          console.log('✅ [UserInfo] 收藏列表加载成功:', poems.length, '首')
+        } catch (jsonError) {
+          const responseText = await response.text()
+          console.log('📄 [UserInfo] 服务器返回原始内容:', responseText)
+          
+          if (responseText.trim() === '' || responseText.trim() === '[]') {
+            poems = []
+            console.log('✅ [UserInfo] 服务器返回空收藏列表')
+          } else {
+            throw new Error('服务器返回的不是有效的JSON格式')
+          }
+        }
         
         // 转换数据格式，添加收藏时间
         favoritePoems.value = poems.map(poem => ({
@@ -87,7 +118,7 @@ export function useFavorites() {
           poet: poem.poet || '佚名',
           category: poem.category || '古诗',
           text: poem.text || '',
-          favoriteTime: new Date().toISOString() // 服务器可能没有返回收藏时间
+          favoriteTime: poem.favoriteTime || new Date().toISOString()
         }))
         
         // 同步到本地存储
@@ -96,7 +127,7 @@ export function useFavorites() {
         throw new Error(`服务器错误: ${response.status}`)
       }
     } catch (error) {
-      console.error('💥 加载收藏列表失败:', error)
+      console.error('💥 [UserInfo] 加载收藏列表失败:', error)
       // fallback到本地存储
       loadFavoritesFromLocalStorage()
     } finally {
@@ -106,12 +137,12 @@ export function useFavorites() {
 
   // 🔥 添加收藏到服务器
   const addFavoriteToServer = async (poem) => {
-    if (!userStore.isAuthenticated) {
-      console.log('⚠️ 用户未登录，无法添加收藏')
+    if (!isUserFullyAuthenticated()) {
+      console.log('⚠️ [UserInfo] 用户未登录，无法添加收藏')
       return { success: false, message: '请先登录' }
     }
 
-    console.log('⭐ 添加收藏到服务器:', poem.title, 'UID:', userStore.uid, 'PID:', poem.pid)
+    console.log('⭐ [UserInfo] 添加收藏到服务器:', poem.title, 'UID:', userStore.uid, 'PID:', poem.pid)
     
     try {
       const response = await fetch(`${API_BASE}/star/add`, {
@@ -127,7 +158,7 @@ export function useFavorites() {
       })
 
       const result = await response.text()
-      console.log('服务器响应:', result)
+      console.log('[UserInfo] 服务器响应:', result)
 
       if (response.ok && result.includes('成功')) {
         // 添加到本地列表
@@ -143,7 +174,7 @@ export function useFavorites() {
         // 检查是否已存在
         if (!favoritePoems.value.some(p => p.pid === poem.pid)) {
           favoritePoems.value.unshift(favoriteItem)
-          console.log('✅ 收藏添加成功，当前收藏数:', favoritePoems.value.length)
+          console.log('✅ [UserInfo] 收藏添加成功，当前收藏数:', favoritePoems.value.length)
         }
         
         return { success: true, message: '收藏成功' }
@@ -151,19 +182,19 @@ export function useFavorites() {
         throw new Error(result || '收藏失败')
       }
     } catch (error) {
-      console.error('💥 添加收藏失败:', error)
+      console.error('💥 [UserInfo] 添加收藏失败:', error)
       return { success: false, message: error.message || '收藏失败，请稍后重试' }
     }
   }
 
   // 🔥 从服务器移除收藏
   const removeFavoriteFromServer = async (pid) => {
-    if (!userStore.isAuthenticated) {
-      console.log('⚠️ 用户未登录，无法移除收藏')
+    if (!isUserFullyAuthenticated()) {
+      console.log('⚠️ [UserInfo] 用户未登录，无法移除收藏')
       return { success: false, message: '请先登录' }
     }
 
-    console.log('❌ 从服务器移除收藏:', pid, 'UID:', userStore.uid)
+    console.log('❌ [UserInfo] 从服务器移除收藏:', pid, 'UID:', userStore.uid)
     
     try {
       const response = await fetch(`${API_BASE}/star/remove`, {
@@ -179,14 +210,14 @@ export function useFavorites() {
       })
 
       const result = await response.text()
-      console.log('服务器响应:', result)
+      console.log('[UserInfo] 服务器响应:', result)
 
       if (response.ok && result.includes('成功')) {
         // 从本地列表移除
         const index = favoritePoems.value.findIndex(p => p.pid === pid)
         if (index > -1) {
           const removed = favoritePoems.value.splice(index, 1)[0]
-          console.log('✅ 收藏移除成功:', removed.title)
+          console.log('✅ [UserInfo] 收藏移除成功:', removed.title)
         }
         
         return { success: true, message: '已取消收藏' }
@@ -194,14 +225,14 @@ export function useFavorites() {
         throw new Error(result || '取消收藏失败')
       }
     } catch (error) {
-      console.error('💥 移除收藏失败:', error)
+      console.error('💥 [UserInfo] 移除收藏失败:', error)
       return { success: false, message: error.message || '取消收藏失败，请稍后重试' }
     }
   }
 
-  // 本地存储操作（作为备份）- 重命名函数
+  // 本地存储操作（作为备份）
   const loadFavoritesFromLocalStorage = () => {
-    console.log('📚 从本地存储加载收藏列表')
+    console.log('📚 [UserInfo] 从本地存储加载收藏列表')
     
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -211,13 +242,13 @@ export function useFavorites() {
           ...poem,
           favoriteTime: poem.favoriteTime || new Date().toISOString()
         }))
-        console.log('✅ 本地收藏列表加载成功:', favoritePoems.value.length, '首')
+        console.log('✅ [UserInfo] 本地收藏列表加载成功:', favoritePoems.value.length, '首')
       } else {
-        console.log('📝 本地存储中没有收藏数据')
+        console.log('📝 [UserInfo] 本地存储中没有收藏数据')
         favoritePoems.value = []
       }
     } catch (error) {
-      console.error('💥 加载本地收藏列表失败:', error)
+      console.error('💥 [UserInfo] 加载本地收藏列表失败:', error)
       favoritePoems.value = []
     }
   }
@@ -225,23 +256,23 @@ export function useFavorites() {
   const saveFavoritesToStorage = () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(favoritePoems.value))
-      console.log('💾 收藏列表已保存到本地存储')
+      console.log('💾 [UserInfo] 收藏列表已保存到本地存储')
     } catch (error) {
-      console.error('💥 保存收藏列表失败:', error)
+      console.error('💥 [UserInfo] 保存收藏列表失败:', error)
     }
   }
 
   // 🔥 统一的添加收藏方法
   const addFavorite = async (poem) => {
-    console.log('⭐ 添加收藏:', poem.title)
+    console.log('⭐ [UserInfo] 添加收藏:', poem.title)
     
     // 检查是否已收藏
     if (isFavorited(poem.pid)) {
-      console.log('⚠️ 诗词已在收藏列表中')
+      console.log('⚠️ [UserInfo] 诗词已在收藏列表中')
       return { success: false, message: '该诗词已在收藏列表中' }
     }
     
-    if (userStore.isAuthenticated) {
+    if (isUserFullyAuthenticated()) {
       // 用户已登录，使用服务器API
       return await addFavoriteToServer(poem)
     } else {
@@ -256,7 +287,7 @@ export function useFavorites() {
       }
       
       favoritePoems.value.unshift(favoriteItem)
-      console.log('✅ 本地收藏添加成功，当前收藏数:', favoritePoems.value.length)
+      console.log('✅ [UserInfo] 本地收藏添加成功，当前收藏数:', favoritePoems.value.length)
       
       return { success: true, message: '收藏成功（本地存储）' }
     }
@@ -264,9 +295,9 @@ export function useFavorites() {
 
   // 🔥 统一的移除收藏方法
   const removeFavorite = async (pid) => {
-    console.log('❌ 移除收藏:', pid)
+    console.log('❌ [UserInfo] 移除收藏:', pid)
     
-    if (userStore.isAuthenticated) {
+    if (isUserFullyAuthenticated()) {
       // 用户已登录，使用服务器API
       return await removeFavoriteFromServer(pid)
     } else {
@@ -274,10 +305,10 @@ export function useFavorites() {
       const index = favoritePoems.value.findIndex(p => p.pid === pid)
       if (index > -1) {
         const removed = favoritePoems.value.splice(index, 1)[0]
-        console.log('✅ 本地收藏移除成功:', removed.title)
+        console.log('✅ [UserInfo] 本地收藏移除成功:', removed.title)
         return { success: true, message: '已取消收藏（本地存储）' }
       } else {
-        console.log('⚠️ 未找到要移除的收藏')
+        console.log('⚠️ [UserInfo] 未找到要移除的收藏')
         return { success: false, message: '未找到该收藏' }
       }
     }
@@ -297,11 +328,15 @@ export function useFavorites() {
     }
   }
 
-  // 🔥 统一的加载收藏方法 - 重命名为 initializeFavorites
-  const initializeFavorites = () => {
-    if (userStore.isAuthenticated) {
+  // 🔥 统一的加载收藏方法
+  const initializeFavorites = async () => {
+    console.log('🔄 [UserInfo] 初始化收藏列表')
+    console.log('👤 [UserInfo] 用户登录状态:', userStore?.isAuthenticated)
+    console.log('🆔 [UserInfo] 用户UID:', userStore?.uid)
+    
+    if (isUserFullyAuthenticated()) {
       // 用户已登录，从服务器加载
-      loadFavoritesFromServer()
+      await loadFavoritesFromServer()
     } else {
       // 用户未登录，从本地存储加载
       loadFavoritesFromLocalStorage()
@@ -313,7 +348,8 @@ export function useFavorites() {
     return new Promise((resolve) => {
       if (confirm(`确定要清空所有收藏吗？这将删除 ${favoritePoems.value.length} 首诗词的收藏记录。`)) {
         favoritePoems.value = []
-        console.log('🗑️ 所有收藏已清空')
+        saveFavoritesToStorage()
+        console.log('🗑️ [UserInfo] 所有收藏已清空')
         resolve({ success: true, message: '收藏已清空' })
       } else {
         resolve({ success: false, message: '取消操作' })
@@ -324,6 +360,11 @@ export function useFavorites() {
   // 导出收藏列表
   const exportFavorites = () => {
     try {
+      if (favoritePoems.value.length === 0) {
+        alert('没有收藏的诗词可以导出')
+        return { success: false, message: '没有收藏的诗词' }
+      }
+
       const dataStr = JSON.stringify(favoritePoems.value, null, 2)
       const dataBlob = new Blob([dataStr], { type: 'application/json' })
       const url = URL.createObjectURL(dataBlob)
@@ -336,10 +377,12 @@ export function useFavorites() {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
       
-      console.log('📤 收藏列表导出成功')
+      console.log('📤 [UserInfo] 收藏列表导出成功')
+      alert(`成功导出 ${favoritePoems.value.length} 首诗词的收藏`)
       return { success: true, message: '导出成功' }
     } catch (error) {
-      console.error('💥 导出收藏列表失败:', error)
+      console.error('💥 [UserInfo] 导出收藏列表失败:', error)
+      alert('导出失败，请稍后重试')
       return { success: false, message: '导出失败' }
     }
   }
@@ -357,13 +400,14 @@ export function useFavorites() {
             const newFavorites = importedData.filter(p => !existingPids.has(p.pid))
             
             favoritePoems.value.push(...newFavorites)
-            console.log('📥 收藏列表导入成功，新增:', newFavorites.length, '首')
+            saveFavoritesToStorage()
+            console.log('📥 [UserInfo] 收藏列表导入成功，新增:', newFavorites.length, '首')
             resolve({ success: true, message: `导入成功，新增 ${newFavorites.length} 首诗词`, count: newFavorites.length })
           } else {
             throw new Error('文件格式不正确')
           }
         } catch (error) {
-          console.error('💥 解析导入文件失败:', error)
+          console.error('💥 [UserInfo] 解析导入文件失败:', error)
           reject({ success: false, message: '文件格式错误' })
         }
       }
@@ -394,17 +438,33 @@ export function useFavorites() {
   }
 
   // 监听用户登录状态变化
-  watch(() => userStore.isAuthenticated, (newValue, oldValue) => {
+  watch(() => userStore.isAuthenticated, async (newValue, oldValue) => {
+    console.log('👤 [UserInfo] 用户登录状态变化:', oldValue, '->', newValue)
+    
     if (newValue && !oldValue) {
       // 用户刚登录，从服务器加载收藏
-      console.log('👤 用户登录，重新加载收藏列表')
-      loadFavoritesFromServer()
+      console.log('👤 [UserInfo] 用户登录，重新加载收藏列表')
+      setTimeout(async () => {
+        if (isUserFullyAuthenticated()) {
+          await loadFavoritesFromServer()
+        }
+      }, 500)
     } else if (!newValue && oldValue) {
       // 用户退出登录，切换到本地存储
-      console.log('👤 用户退出，切换到本地收藏')
+      console.log('👤 [UserInfo] 用户退出，切换到本地收藏')
       loadFavoritesFromLocalStorage()
     }
   })
+
+  // 监听用户UID变化
+  watch(() => userStore?.uid, async (newUid, oldUid) => {
+    console.log('🆔 [UserInfo] 用户UID变化:', oldUid, '->', newUid)
+    
+    if (newUid && newUid !== oldUid && userStore?.isAuthenticated) {
+      console.log('🆔 [UserInfo] UID更新完成，重新加载服务器收藏')
+      await loadFavoritesFromServer()
+    }
+  }, { immediate: false })
 
   // 监听收藏列表变化，自动保存到本地存储
   watch(favoritePoems, () => {
@@ -430,8 +490,9 @@ export function useFavorites() {
     clearAllFavorites,
     exportFavorites,
     importFavorites,
-    initializeFavorites, // 更改导出的方法名
+    initializeFavorites,
     getPreviewText,
-    formatDate
+    formatDate,
+    isUserFullyAuthenticated
   }
 }
