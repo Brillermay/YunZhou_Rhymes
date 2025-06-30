@@ -69,28 +69,6 @@ const achievements = ref([
     name: '合成大师',
     description: '完成10次合成',
     unlocked: false
-  }
-])
-// 1,2,15,
-// 合成表数据
-const recipes = ref([
-  {
-    id: 1,
-    card1: { src: new URL('../assets/cards/card2.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/card4.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardj.png', import.meta.url).href }
-  },
-  {
-    id: 2,
-    card1: { src: new URL('../assets/cards/card3.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/card5.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardq.png', import.meta.url).href }
-  },
-  {
-    id: 3,
-    card1: { src: new URL('../assets/cards/cardj.png', import.meta.url).href },
-    card2: { src: new URL('../assets/cards/cardq.png', import.meta.url).href },
-    result: { src: new URL('../assets/cards/cardk.png', import.meta.url).href }
   },
 ])
 
@@ -100,6 +78,7 @@ const cardImages = [
   { key: 'card_pack_poet', src: new URL('../assets/cards/诗人卡包(1).png', import.meta.url).href },
   { key: 'card_worker', src: new URL('../assets/cards/书生.png', import.meta.url).href },
   { key: 'factory', src: new URL('../assets/cards/工厂/书斋.png', import.meta.url).href },
+  { key: 'unknown_card', src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
 
   { key: 'love', src: new URL('../assets/cards/诗意/爱情.png', import.meta.url).href },
   { key: 'sad', src: new URL('../assets/cards/诗意/悲.png', import.meta.url).href },
@@ -348,7 +327,70 @@ const craftingRecipes = {
   'factory_yellowriver_yellowriver': 'factory_yellowriver',
   'factory_zhuangzhinanchou_zhuangzhinanchou': 'factory_zhuangzhinanchou',
 
+};
+const unlockedRecipes = ref(new Set()) // 存储已解锁的配方
+
+// 修改合成表数据初始化
+const recipes = ref([])
+
+// 基于 recipeMapping 初始化所有配方为未知状态
+const initializeRecipes = () => {
+  const allRecipeEntries = Object.entries(recipeMapping)
+  recipes.value = allRecipeEntries.map((entry, index) => {
+    const [recipeKey, resultType] = entry
+    return {
+      id: index + 1,
+      recipeKey: recipeKey, // 保存配方键用于解锁检查 (例如: "autumn_bird")
+      resultType: resultType, // 保存结果类型 (例如: "goose")
+      card1: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      card2: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      result: { src: new URL('../assets/cards/未知卡片.png', import.meta.url).href },
+      unlocked: false // 添加解锁状态
+    }
+  })
 }
+
+// 解锁配方的函数
+
+const unlockRecipe = (card1Type, card2Type, resultType) => {
+  const types = [card1Type, card2Type].sort()
+  const recipeKey = types.join('_')
+  
+  // 检查这个配方是否在我们的19个基础配方中
+  if (recipeMapping[recipeKey] && !unlockedRecipes.value.has(recipeKey)) {
+    unlockedRecipes.value.add(recipeKey)
+    
+    // 更新合成表显示
+    const recipeIndex = recipes.value.findIndex(recipe => recipe.recipeKey === recipeKey)
+    if (recipeIndex !== -1) {
+      // 更新配方内容
+      const updatedRecipe = {
+        ...recipes.value[recipeIndex],
+        card1: { src: getCardImageSrc(types[0]) },
+        card2: { src: getCardImageSrc(types[1]) },
+        result: { src: getCardImageSrc(resultType) },
+        unlocked: true // 添加解锁标记
+      }
+      
+      // 从原位置移除
+      recipes.value.splice(recipeIndex, 1)
+      
+      // 添加到已解锁配方列表的末尾（但仍在未解锁配方之前）
+      const unlockedCount = recipes.value.filter(r => r.unlocked).length
+      recipes.value.splice(unlockedCount, 0, updatedRecipe)
+      
+      console.log(`解锁了新配方: ${types[0]} + ${types[1]} = ${resultType}`)
+    }
+  }
+}
+
+// 获取卡片图片路径的辅助函数
+const getCardImageSrc = (cardType) => {
+  const cardImage = cardImages.find(img => img.key === cardType)
+  return cardImage ? cardImage.src : new URL('../assets/cards/未知卡片.png', import.meta.url).href
+}
+
+initializeRecipes()
 
 // 检查两张卡是否可以合成
 const checkRecipe = (card1Type, card2Type) => {
@@ -822,6 +864,8 @@ onMounted(() => {
     const STACK_SNAP_DURATION = 150 // 吸附动画持续时间
     this.factories = [];// 工厂生产管理
 
+    this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+
     // 创建顶部边栏背景，并添加交互效果
     const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
       .setOrigin(0, 0)
@@ -847,17 +891,6 @@ onMounted(() => {
       align: 'center',
       padding: { y: 5 }  // 添加垂直内边距
     }).setOrigin(0.5).setDepth(102)
-
-      // 为出售槽添加交互效果
-      ;[sellIcon, sellText].forEach(element => {
-        element.setInteractive()
-        element.on('pointerover', () => {
-          sellSlot.setStrokeStyle(2, 0xffffff)
-        })
-        element.on('pointerout', () => {
-          sellSlot.setStrokeStyle(2, 0x6e5773)
-        })
-      })
 
     // 创建第一个购买槽
     const buySlot = this.add.rectangle(padding * 2 + 100, padding, 100, 140, 0x6e5773) // 使用渐变色的深色部分
@@ -1102,11 +1135,11 @@ onMounted(() => {
         buySlot4.y, // 与书斋卡垂直对齐
         400, // 合成台宽度
         140, // 合成台高度
-        0x6e5773
+        0xa3916a
       )
         .setOrigin(0, 0)
         .setDepth(100)
-        .setStrokeStyle(2, 0x8c7853);
+        .setStrokeStyle(2, 0xa3916a);
 
       // 创建四个合成槽
       const craftingSlots = []
@@ -1268,9 +1301,47 @@ onMounted(() => {
       .setOrigin(1, 0.5)
       .setDepth(101); 
 
-    // 更新金币显示和背景
+    // 添加模式提示背景框
+    const modeHintBackground = this.add.rectangle(
+      this.scale.width - padding,
+      padding + 55, // 在金币显示下方
+      100, // 宽度
+      40,  // 高度
+      0x4caf50 // 默认绿色（合成模式）
+    )
+      .setOrigin(1, 0)
+      .setDepth(100)
+      .setAlpha(0.9)
+      .setStrokeStyle(2, 0x388e3c);
+
+    // 添加模式提示文本
+    const modeHintText = this.add.text(
+      this.scale.width - padding -10,
+      padding + 75, // 背景框的中心位置
+      '🔧 合成模式',
+      {
+        fontSize: '13px',
+        color: '#ffffff',
+        fontWeight: 'bold'
+      }
+    )
+      .setOrigin(1, 0.5)
+      .setDepth(101);
+    // 更新显示和背景
     this.events.on('update', () => {
       coinDisplay.setText(`💰 ${coins.value}`)
+        // 实时检查Shift键状态并更新模式显示
+      if (this.shiftKey.isDown) {
+        // 堆叠模式
+        modeHintText.setText('📚 堆叠模式')
+        modeHintBackground.setFillStyle(0xffb74d) // 橙色
+        modeHintBackground.setStrokeStyle(2, 0xff9800)
+      } else {
+        // 合成模式
+        modeHintText.setText('🔧 合成模式')
+        modeHintBackground.setFillStyle(0x4caf50) // 绿色
+        modeHintBackground.setStrokeStyle(2, 0x388e3c)
+      }
     })
 
     // 添加窗口缩放事件处理
@@ -1281,6 +1352,10 @@ onMounted(() => {
       // 更新金币显示位置
       coinDisplay.x = gameSize.width - padding - 10;
       coinBackground.x = gameSize.width - padding;
+
+      modeHintBackground.x = gameSize.width - padding ;
+      modeHintText.x = gameSize.width - padding -10;
+
 
       // 更新合成台位置
       craftingStation.x = buySlot4.x + buySlot4.width + padding; // 书斋卡右边
@@ -1341,72 +1416,75 @@ onMounted(() => {
       const currentStack = this.cardStacks.find(s => s.includes(gameObject))
       const currentStackIndex = this.cardStacks.indexOf(currentStack)
 
-      // 查找最近的同类型卡片或堆叠组
-      let closestCard = null
-      let minDistance = STACK_DETECTION_DISTANCE
+      // 只有在按住 Shift 键时才执行堆叠逻辑
+      if (this.shiftKey.isDown) {
+        // 查找最近的同类型卡片或堆叠组
+        let closestCard = null
+        let minDistance = STACK_DETECTION_DISTANCE
 
-      // 遍历所有卡片和堆叠组
-      this.cards.forEach(otherCard => {
-        if (otherCard !== gameObject && 
-            otherCard.getData('type') === cardType && 
-            otherCard.active) {
-          
-          // 获取目标卡片所在的堆叠组
-          const targetStack = this.cardStacks.find(s => s.includes(otherCard))
-          
-          // 如果是不同的堆叠组或者未堆叠的卡片
-          if (!targetStack || targetStack !== currentStack) {
-            const distance = Phaser.Math.Distance.Between(
-              gameObject.x, gameObject.y,
-              otherCard.x, otherCard.y
-            )
-            if (distance < minDistance) {
-              minDistance = distance
-              closestCard = otherCard
+        // 遍历所有卡片和堆叠组
+        this.cards.forEach(otherCard => {
+          if (otherCard !== gameObject && 
+              otherCard.getData('type') === cardType && 
+              otherCard.active) {
+            
+            // 获取目标卡片所在的堆叠组
+            const targetStack = this.cardStacks.find(s => s.includes(otherCard))
+            
+            // 如果是不同的堆叠组或者未堆叠的卡片
+            if (!targetStack || targetStack !== currentStack) {
+              const distance = Phaser.Math.Distance.Between(
+                gameObject.x, gameObject.y,
+                otherCard.x, otherCard.y
+              )
+              if (distance < minDistance) {
+                minDistance = distance
+                closestCard = otherCard
+              }
             }
-          }
-        }
-      })
-
-      // 如果找到可堆叠的卡片
-      if (closestCard) {
-        let targetStack = this.cardStacks.find(s => s.includes(closestCard))
-        let cardsToAdd = [gameObject]
-        
-        // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
-        if (currentStack) {
-          const cardIndex = currentStack.indexOf(gameObject)
-          cardsToAdd = currentStack.splice(cardIndex)
-          
-          // 如果原堆叠组只剩一张卡，移除该堆叠组
-          if (currentStack.length <= 1) {
-            this.cardStacks.splice(currentStackIndex, 1)
-          }
-        }
-
-        // 如果目标卡片不在任何堆叠组中，创建新的堆叠组
-        if (!targetStack) {
-          targetStack = [closestCard]
-          this.cardStacks.push(targetStack)
-        }
-
-        // 将所有需要添加的卡片加入目标堆叠组
-        cardsToAdd.forEach(card => {
-          if (!targetStack.includes(card)) {
-            targetStack.push(card)
           }
         })
 
-        // 更新堆叠位置
-        const baseY = Math.min(...targetStack.map(card => card.y))
-        updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
-        
-        isStacked = true
-      }
+        // 如果找到可堆叠的卡片
+        if (closestCard) {
+          let targetStack = this.cardStacks.find(s => s.includes(closestCard))
+          let cardsToAdd = [gameObject]
+          
+          // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
+          if (currentStack) {
+            const cardIndex = currentStack.indexOf(gameObject)
+            cardsToAdd = currentStack.splice(cardIndex)
+            
+            // 如果原堆叠组只剩一张卡，移除该堆叠组
+            if (currentStack.length <= 1) {
+              this.cardStacks.splice(currentStackIndex, 1)
+            }
+          }
 
-      if (!isStacked && currentStack) {
-        // 如果没有找到新的堆叠目标，更新当前堆叠组的位置
-        updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
+          // 如果目标卡片不在任何堆叠组中，创建新的堆叠组
+          if (!targetStack) {
+            targetStack = [closestCard]
+            this.cardStacks.push(targetStack)
+          }
+
+          // 将所有需要添加的卡片加入目标堆叠组
+          cardsToAdd.forEach(card => {
+            if (!targetStack.includes(card)) {
+              targetStack.push(card)
+            }
+          })
+
+          // 更新堆叠位置
+          const baseY = Math.min(...targetStack.map(card => card.y))
+          updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
+          
+          isStacked = true
+        }
+
+        if (!isStacked && currentStack) {
+          // 如果没有找到新的堆叠目标，更新当前堆叠组的位置
+          updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
+        }
       }
 
       // 检查是否在出售槽区域
@@ -1428,6 +1506,8 @@ onMounted(() => {
 
         if (totalPrice > 0) {
           coins.value += totalPrice
+
+          sellSlot.setStrokeStyle(2, 0x6e5773)
 
           // 添加金币动画
           const priceText = this.add.text(pointer.x, pointer.y, `+${totalPrice}`, {
@@ -1468,19 +1548,21 @@ onMounted(() => {
 
           return
         }
+        else{
+          sellSlot.setStrokeStyle(2, 0x6e5773)
+        }
       }
 
-      // 检查合成
-      this.cards.forEach(otherCard => {
-        if (otherCard !== gameObject &&
-          Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
-          
-          // 检查两张卡是否都不在堆叠组中
-          const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
-          const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
-          
-          // 只有当两张卡都不在堆叠组中时才允许合成
-          if (!card1Stack && !card2Stack) {
+      // 检查合成 - 默认行为，不按 Shift 时执行
+      if (!this.shiftKey.isDown) {
+        this.cards.forEach(otherCard => {
+          if (otherCard !== gameObject &&
+            Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
+            
+            // 获取两张卡片所在的堆叠组
+            const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
+            const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
+            
             const card1Type = gameObject.getData('type')
             const card2Type = otherCard.getData('type')
 
@@ -1501,6 +1583,8 @@ onMounted(() => {
 
               this.input.setDraggable(merged)
 
+              unlockRecipe(card1Type, card2Type, resultType)
+
               // 添加闪光效果
               const flash = this.add.sprite(x, y, 'spring')
                 .setScale(0.1)
@@ -1516,6 +1600,29 @@ onMounted(() => {
                 onComplete: () => flash.destroy()
               })
 
+              // 如果卡片在堆叠组中，需要从堆叠组中移除
+              if (card1Stack) {
+                const index = card1Stack.indexOf(gameObject)
+                card1Stack.splice(index, 1)
+                if (card1Stack.length <= 1) {
+                  const stackIndex = this.cardStacks.indexOf(card1Stack)
+                  if (stackIndex !== -1) {
+                    this.cardStacks.splice(stackIndex, 1)
+                  }
+                }
+              }
+              
+              if (card2Stack) {
+                const index = card2Stack.indexOf(otherCard)
+                card2Stack.splice(index, 1)
+                if (card2Stack.length <= 1) {
+                  const stackIndex = this.cardStacks.indexOf(card2Stack)
+                  if (stackIndex !== -1) {
+                    this.cardStacks.splice(stackIndex, 1)
+                  }
+                }
+              }
+
               // 移除原卡片
               gameObject.destroy()
               otherCard.destroy()
@@ -1530,8 +1637,8 @@ onMounted(() => {
               }
             }
           }
-        }
-      })
+        });
+      }
 
       // 检查是否是工人卡和工厂卡的组合
       if (cardType === 'card_worker') {
@@ -1679,8 +1786,20 @@ onMounted(() => {
 
     // 修改拖拽中事件
     this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-      // const minY = topBarHeight
-      // const newY = Math.max(minY, dragY)
+    // 添加出售槽状态检测
+    const isInSellArea = dragY < topBarHeight && 
+                        dragX >= sellSlot.x && 
+                        dragX <= sellSlot.x + sellSlot.width
+    
+    const cardType = gameObject.getData('type')
+    const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
+    
+    // 更新出售槽样式
+    if (isInSellArea && canSell) {
+      sellSlot.setStrokeStyle(2, 0xffffff)
+    } else {
+      sellSlot.setStrokeStyle(2, 0x6e5773)
+    }
       gameObject.x = dragX
       gameObject.y = dragY
 
