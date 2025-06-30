@@ -493,6 +493,46 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
     return emitter;
 }
 
+
+    @PostMapping(value = "/poetry/rating", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "AI诗词创作评分（流式）")
+    public SseEmitter ratePoetry(@RequestBody Map<String, Object> request) {
+        SseEmitter emitter = new SseEmitter(0L);
+        try {
+            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+
+
+            // 调用 EasyRAGService 中的 ratePoetryStream 方法
+            easyRAGService.ratePoetryStream(history,emitter);
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().data("评分失败：" + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
+    }
+
+    @PostMapping(value = "/time-machine/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "诗词时光机（沉浸式角色扮演+灵魂转生，流式）")
+    public SseEmitter timeMachineStream(@RequestBody Map<String, Object> request) {
+        SseEmitter emitter = new SseEmitter(0L);
+        try {
+            String era = (String) request.get("era"); // 用户选择的朝代
+            String identity = (String) request.get("identity"); // 用户选择的身份
+            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history"); // 历史对话
+
+            // 调用 EasyRAGService 中的 timeMachineStream 方法
+            easyRAGService.timeMachineStream(history, emitter);
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().data("诗词时光机体验失败：" + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
+    }
+
     /**
      * 🆕 AI智能搜索诗词接口
      */
