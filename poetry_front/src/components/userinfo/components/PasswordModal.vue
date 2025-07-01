@@ -1,7 +1,6 @@
-<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\userinfo\components\PasswordModal.vue -->
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal-content password-modal">
+    <div class="password-modal-content">
       <div class="modal-header">
         <h3>修改密码</h3>
         <button class="close-btn" @click="$emit('close')">×</button>
@@ -88,10 +87,10 @@
             </button>
             <button 
               type="submit" 
-              class="btn-save"
+              class="btn-confirm"
               :disabled="!isFormValid || loading"
             >
-              <span v-if="loading" class="loading-spinner"></span>
+              <span v-if="loading" class="loading-spinner">🔄</span>
               {{ loading ? '保存中...' : '保存' }}
             </button>
           </div>
@@ -195,6 +194,7 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* 🔧 修复：完整的弹窗样式 */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -216,6 +216,8 @@ const handleSubmit = async () => {
   border-radius: 20px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-out;
 }
@@ -232,9 +234,9 @@ const handleSubmit = async () => {
 
 .modal-header h3 {
   margin: 0;
-  color: #8c7853;
+  color: #333;
   font-size: 1.3rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .close-btn {
@@ -261,15 +263,23 @@ const handleSubmit = async () => {
 
 .modal-body {
   padding: 2rem;
+  overflow-y: auto;
+  max-height: calc(90vh - 100px);
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
   color: #333;
   font-weight: 500;
   font-size: 0.9rem;
@@ -278,7 +288,7 @@ const handleSubmit = async () => {
 .form-input {
   width: 100%;
   padding: 0.8rem 1rem;
-  border: 1px solid #ddd;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
   font-size: 0.9rem;
   box-sizing: border-box;
@@ -288,9 +298,13 @@ const handleSubmit = async () => {
 
 .form-input:focus {
   outline: none;
-  border-color: #8c7853;
+  border-color: #4f46e5;
   background: white;
-  box-shadow: 0 0 0 3px rgba(140, 120, 83, 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-input::placeholder {
+  color: #999;
 }
 
 .password-strength {
@@ -333,7 +347,7 @@ const handleSubmit = async () => {
 }
 
 .password-mismatch {
-  color: #d63031;
+  color: #dc2626;
   font-size: 0.8rem;
   margin-top: 0.3rem;
   animation: shake 0.3s ease-in-out;
@@ -343,14 +357,15 @@ const handleSubmit = async () => {
   background: linear-gradient(135deg, #f8f9fa, #e9ecef);
   border-radius: 8px;
   padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-left: 4px solid #8c7853;
+  margin-top: 0.5rem;
+  border-left: 4px solid #4f46e5;
 }
 
 .password-tips h4 {
   margin: 0 0 0.5rem 0;
   color: #333;
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .password-tips ul {
@@ -364,69 +379,81 @@ const handleSubmit = async () => {
   color: #666;
   font-size: 0.85rem;
   margin-bottom: 0.3rem;
+  padding-left: 1.5rem;
 }
 
 .password-tips li::before {
   content: '✗';
   position: absolute;
-  left: -1rem;
-  color: #d63031;
+  left: 0;
+  color: #dc2626;
   font-weight: bold;
 }
 
 .password-tips li.valid {
-  color: #4caf50;
+  color: #16a34a;
 }
 
 .password-tips li.valid::before {
   content: '✓';
-  color: #4caf50;
+  color: #16a34a;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
 }
 
 .btn-cancel,
 .btn-confirm {
   padding: 0.8rem 1.5rem;
-  border: none;
   border-radius: 8px;
-  cursor: pointer;
   font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  border: none;
+  min-width: 80px;
 }
 
 .btn-cancel {
-  background: #f0ebe0;
-  color: #8c7853;
-  border: 1px solid #e3d9c6;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 
 .btn-cancel:hover {
-  background: #e3d9c6;
-  border-color: #8c7853;
+  background: #e2e8f0;
+  transform: translateY(-1px);
 }
 
 .btn-confirm {
-  background: linear-gradient(135deg, #8c7853, #6e5773);
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .btn-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca, #6d28d9);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .btn-confirm:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
 }
 
 /* 动画 */
@@ -450,6 +477,11 @@ const handleSubmit = async () => {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* 响应式 */
