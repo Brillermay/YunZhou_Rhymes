@@ -76,7 +76,7 @@
   
   <script setup>
   import SearchSuggestions from './SearchSuggestions.vue'
-  import QuickSearchTags from './QuickSearchTags.vue'
+  import QuickSearchTags from './QuicksearchTags.vue'
   
   const props = defineProps({
     modelValue: String,
