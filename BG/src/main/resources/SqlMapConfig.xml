@@ -17,10 +17,14 @@
 <!--                <property name="url" value="jdbc:mysql://localhost:3306/poem"/>-->
 <!--                <property name="username" value="root"/>-->
 <!--                <property name="password" value="123456"/>-->
+<!--                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>-->
+<!--                <property name="url" value="jdbc:mysql://localhost:3306/es"/>-->
+<!--                <property name="username" value="root"/>-->
+<!--                <property name="password" value="npnpnpnow"/>-->
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
                 <property name="url" value="jdbc:mysql://localhost:3306/es"/>
                 <property name="username" value="root"/>
-                <property name="password" value="npnpnpnow"/>
+                <property name="password" value="QAZ123wsx#"/>
             </dataSource>
         </environment>
     </environments>
