@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import API_BASE_URL from '@/config/api';
 
 export function useAuth(userStore) {
   const showAuthModal = ref(false)
@@ -9,17 +10,21 @@ export function useAuth(userStore) {
   // 计算属性
   const isLoggedIn = computed(() => userStore.isAuthenticated)
 
-  // 显示认证弹窗
-  const showLogin = () => {
-    isLoginMode.value = true
+  // 🔧 新增：显示认证弹窗的统一方法
+  const handleShowAuth = (mode = 'login') => {
+    console.log('🚀 显示认证弹窗:', mode)
+    isLoginMode.value = mode === 'login'
     showAuthModal.value = true
     resetAuthState()
   }
 
+  // 显示认证弹窗
+  const showLogin = () => {
+    handleShowAuth('login')
+  }
+
   const showRegister = () => {
-    isLoginMode.value = false
-    showAuthModal.value = true
-    resetAuthState()
+    handleShowAuth('register')
   }
 
   // 切换认证模式
@@ -128,7 +133,7 @@ export function useAuth(userStore) {
     }
   }
 
-  // 修改密码
+  // 🔧 修复：修改密码接口调用
   const changePassword = async (passwordData) => {
     try {
       console.log('🔐 尝试修改密码')
@@ -139,9 +144,9 @@ export function useAuth(userStore) {
         return { success: false, message: validation.message }
       }
       
-      // 调用后端修改密码接口
-      const response = await fetch('http://localhost:8081/user/changePWD', {
-        method: 'POST', // 修正为POST方法
+      // 🔧 修复：正确使用API_BASE_URL
+      const response = await fetch(`${API_BASE_URL}/user/changePWD`, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -175,6 +180,7 @@ export function useAuth(userStore) {
     isLoggedIn,
     
     // 方法
+    handleShowAuth,  // 🔧 新增：导出缺失的方法
     showLogin,
     showRegister,
     switchAuthMode,

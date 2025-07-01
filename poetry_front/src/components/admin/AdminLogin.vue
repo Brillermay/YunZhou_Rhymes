@@ -105,6 +105,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import API_BASE_URL from '@/config/api';
 
 const router = useRouter();
 
@@ -126,8 +127,7 @@ const loginError = ref('');
 const loginSuccess = ref('');
 const captchaCode = ref('');
 
-// API基础URL (暂时不使用)
-const API_BASE_URL = 'http://localhost:8081';
+
 
 // 生成验证码
 const generateCaptcha = () => {

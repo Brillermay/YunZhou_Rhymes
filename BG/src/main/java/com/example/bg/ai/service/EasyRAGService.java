@@ -1292,61 +1292,61 @@ public class    EasyRAGService{
     }
 
     /**
- * 🔧 修改：从内容中提取诗词ID - 针对新格式优化
- */
-private String extractPoemIdFromContent(String content) {
-    try {
-        System.out.println("🔍 尝试从内容中提取PID...");
-        System.out.println("📄 内容预览: " + content.substring(0, Math.min(200, content.length())));
-        
-        // 方式1: 查找 "诗词ID：" 模式（新增的格式）
-        if (content.contains("诗词ID：")) {
-            String[] parts = content.split("诗词ID：");
-            if (parts.length > 1) {
-                String pidPart = parts[1].split("[\\s\\n]")[0].trim();
-                if (pidPart.matches("\\d+")) {
-                    System.out.println("✅ 通过 '诗词ID：' 找到 PID: " + pidPart);
-                    return pidPart;
-                }
-            }
-        }
-        
-        // 方式2: 查找 metadata 中的 poem_id
-        if (content.contains("poem_id")) {
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("poem_id[\"']?\\s*[:=]\\s*[\"']?(\\d+)[\"']?");
-            java.util.regex.Matcher matcher = pattern.matcher(content);
-            if (matcher.find()) {
-                String pid = matcher.group(1);
-                System.out.println("✅ 通过 poem_id 找到 PID: " + pid);
-                return pid;
-            }
-        }
-        
-        // 方式3: 查找其他PID模式
-        String[] patterns = {"PID:", "PID：", "诗词ID:", "poem_id:", "id:"};
-        for (String pattern : patterns) {
-            if (content.contains(pattern)) {
-                String[] parts = content.split(pattern);
+     * 🔧 修改：从内容中提取诗词ID - 针对新格式优化
+     */
+    private String extractPoemIdFromContent(String content) {
+        try {
+            System.out.println("🔍 尝试从内容中提取PID...");
+            System.out.println("📄 内容预览: " + content.substring(0, Math.min(200, content.length())));
+
+            // 方式1: 查找 "诗词ID：" 模式（新增的格式）
+            if (content.contains("诗词ID：")) {
+                String[] parts = content.split("诗词ID：");
                 if (parts.length > 1) {
-                    String pidPart = parts[1].split("[\\s,\\n}\\]]")[0].trim();
-                    pidPart = pidPart.replaceAll("[\"'{}\\[\\]]", ""); // 清理特殊字符
+                    String pidPart = parts[1].split("[\\s\\n]")[0].trim();
                     if (pidPart.matches("\\d+")) {
-                        System.out.println("✅ 通过模式 '" + pattern + "' 找到 PID: " + pidPart);
+                        System.out.println("✅ 通过 '诗词ID：' 找到 PID: " + pidPart);
                         return pidPart;
                     }
                 }
             }
+
+            // 方式2: 查找 metadata 中的 poem_id
+            if (content.contains("poem_id")) {
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("poem_id[\"']?\\s*[:=]\\s*[\"']?(\\d+)[\"']?");
+                java.util.regex.Matcher matcher = pattern.matcher(content);
+                if (matcher.find()) {
+                    String pid = matcher.group(1);
+                    System.out.println("✅ 通过 poem_id 找到 PID: " + pid);
+                    return pid;
+                }
+            }
+
+            // 方式3: 查找其他PID模式
+            String[] patterns = {"PID:", "PID：", "诗词ID:", "poem_id:", "id:"};
+            for (String pattern : patterns) {
+                if (content.contains(pattern)) {
+                    String[] parts = content.split(pattern);
+                    if (parts.length > 1) {
+                        String pidPart = parts[1].split("[\\s,\\n}\\]]")[0].trim();
+                        pidPart = pidPart.replaceAll("[\"'{}\\[\\]]", ""); // 清理特殊字符
+                        if (pidPart.matches("\\d+")) {
+                            System.out.println("✅ 通过模式 '" + pattern + "' 找到 PID: " + pidPart);
+                            return pidPart;
+                        }
+                    }
+                }
+            }
+
+            System.err.println("❌ 无法从内容中提取PID");
+            return null;
+
+        } catch (Exception e) {
+            System.err.println("提取诗词ID失败: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         }
-
-        System.err.println("❌ 无法从内容中提取PID");
-        return null;
-
-    } catch (Exception e) {
-        System.err.println("提取诗词ID失败: " + e.getMessage());
-        e.printStackTrace();
-        return null;
     }
-}
 
     /**
      * 🆕 根据PID查询完整诗词数据

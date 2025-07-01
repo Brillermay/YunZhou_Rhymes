@@ -167,6 +167,8 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 
+import API_BASE_URL from '@/config/api';
+
 // 1. 引入古人头像
 import libaiImg from '@/assets/poets/libai.png'
 import lindaiyuImg from '@/assets/poets/lindaiyu.png'
@@ -371,31 +373,31 @@ async function startChat() {
     }))
 
   try {
-    let url = 'http://localhost:8081/ai/easy/chat/stream'
+    let url = `${API_BASE_URL}/ai/easy/chat/stream`
     let body = {
       question: input.value,
       history: history.slice(0, -1) // 默认
     }
     if (chatMode.value === 'ancient') {
-      url = 'http://localhost:8081/ai/easy/chat/stream/role'
+      url = `${API_BASE_URL}/ai/easy/chat/stream/role`
       body.role = selectedRole.value
     }
     if (chatMode.value === 'soul') {
-      url = 'http://localhost:8081/ai/easy/soul-matcher/stream'
+      url = `${API_BASE_URL}/ai/easy/soul-matcher/stream`
       body = {
         question: input.value, // 添加当前输入
         history: history
       }
     }
     if (chatMode.value === 'rating') {
-      url = 'http://localhost:8081/ai/easy/poetry/rating'
+      url = `${API_BASE_URL}/ai/easy/poetry/rating`
       body = {
         question: input.value, // 添加当前输入
         history: history
       }
     }
     if (chatMode.value === 'timemachine') {
-      url = 'http://localhost:8081/ai/easy/time-machine/stream'
+      url = `h${API_BASE_URL}/ai/easy/time-machine/stream`
       body = {
         question: input.value, // 添加当前输入
         history: history

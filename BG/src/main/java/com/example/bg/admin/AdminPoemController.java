@@ -15,13 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/poem")
-@CrossOrigin(origins = {
-        "http://localhost:8080",
-        "http://localhost:8081",
-        "http://127.0.0.1:8081",  // 显式添加此项
-        "http://117.72.88.23:8081",
-},
-        allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AdminPoemController extends ConnetMySQL {
 
     /**

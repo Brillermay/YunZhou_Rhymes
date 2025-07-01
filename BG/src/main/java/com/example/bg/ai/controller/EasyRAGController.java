@@ -534,7 +534,7 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
     }
 
     /**
-     * 🆕 AI智能搜索诗词接口
+     * 🆕 AI智能搜索诗词接口 - 🔧 优化版：支持自动初始化
      */
     @GetMapping("/ai-search/{query}")
     @Operation(summary = "AI语义搜索诗词")
@@ -545,16 +545,31 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
         Map<String, Object> response = new HashMap<>();
 
         try {
-            if (!easyRAGService.isInitialized()) {
-                response.put("success", false);
-                response.put("message", "AI搜索服务未初始化，请先初始化系统");
-                return ResponseEntity.ok(response);
-            }
-
             if (query == null || query.trim().isEmpty()) {
                 response.put("success", false);
                 response.put("message", "搜索查询不能为空");
                 return ResponseEntity.badRequest().body(response);
+            }
+
+            // 🔧 新增：自动初始化检查和处理
+            if (!easyRAGService.isInitialized()) {
+                System.out.println("⚡ AI搜索系统未初始化，开始自动初始化...");
+                
+                try {
+                    // 自动初始化
+                    easyRAGService.initializeRAG();
+                    System.out.println("✅ AI搜索系统自动初始化成功");
+                    
+                    // 可选：添加初始化状态到响应中
+                    response.put("auto_initialized", true);
+                    
+                } catch (Exception initException) {
+                    System.err.println("❌ AI搜索系统自动初始化失败: " + initException.getMessage());
+                    response.put("success", false);
+                    response.put("message", "AI搜索服务初始化失败，请稍后重试：" + initException.getMessage());
+                    response.put("error_type", "initialization_failed");
+                    return ResponseEntity.status(500).body(response);
+                }
             }
 
             // 调用RAG检索
@@ -579,6 +594,7 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
             response.put("success", false);
             response.put("message", "AI搜索失败: " + e.getMessage());
             response.put("query", query);
+            response.put("error_type", "search_failed");
             return ResponseEntity.status(500).body(response);
         }
     }

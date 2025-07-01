@@ -1,6 +1,6 @@
 import { ref } from 'vue'
+import API_BASE_URL from '@/config/api';
 
-const API_BASE_URL = 'http://localhost:8081'
 
 export function useSearch() {
   const searchQuery = ref('')

@@ -260,17 +260,33 @@ const handleToggleFavorite = async (poemData) => {
   let poem = null
   
   if (typeof poemData === 'number') {
-    // 如果传入的是数字ID，需要构造诗词对象
+    // 🔧 修复：使用正确的字段查找诗词
     console.log('🔄 传入的是诗词ID，需要查找完整诗词信息')
     
-    // 从搜索结果中查找对应的诗词
-    poem = searchResults.value?.find(p => p.pid === poemData)
+    // 从搜索结果中查找对应的诗词 - 修复字段匹配
+    poem = searchResults.value?.find(p => 
+      (p.PID && p.PID === poemData) || 
+      (p.pid && p.pid === poemData) || 
+      (p.id && p.id === poemData)
+    )
+    
+    console.log('🔍 搜索结果数量:', searchResults.value?.length)
+    console.log('🔍 搜索结果示例:', searchResults.value?.[0])
+    console.log('🔍 查找目标ID:', poemData)
     
     if (!poem) {
       console.error('❌ 无法找到对应的诗词信息')
+      console.log('📋 可用的诗词IDs:', searchResults.value?.map(p => ({ 
+        PID: p.PID, 
+        pid: p.pid, 
+        id: p.id, 
+        title: p.title || p.Title 
+      })))
       alert('无法获取诗词信息，请重试')
       return
     }
+    
+    console.log('✅ 找到诗词:', poem.title || poem.Title)
   } else if (typeof poemData === 'object' && poemData !== null) {
     // 如果传入的是对象
     poem = poemData
@@ -290,8 +306,8 @@ const handleToggleFavorite = async (poemData) => {
   console.log('🔍 收藏操作检查:')
   console.log('  - 用户认证状态:', isAuth)
   console.log('  - 用户UID:', uid)
-  console.log('  - 诗词PID:', poem?.pid)
-  console.log('  - 诗词标题:', poem?.title)
+  console.log('  - 诗词PID:', poem?.PID || poem?.pid || poem?.id)
+  console.log('  - 诗词标题:', poem?.title || poem?.Title)
   
   if (!isAuth) {
     console.log('⚠️ 用户未登录，显示登录提示')
@@ -305,16 +321,28 @@ const handleToggleFavorite = async (poemData) => {
     return
   }
   
-  if (!poem || !poem.pid) {
-    console.error('❌ 诗词数据无效')
+  // 🔧 修复：标准化诗词数据格式，确保字段统一
+  const normalizedPoem = {
+    pid: poem.PID || poem.pid || poem.id,
+    PID: poem.PID || poem.pid || poem.id,
+    title: poem.title || poem.Title,
+    poet: poem.poet || poem.Poet,
+    text: poem.text || poem.Text,
+    dynasty: poem.dynasty || poem.Dynasty,
+    category: poem.category || poem.Category
+  }
+  
+  if (!normalizedPoem.pid) {
+    console.error('❌ 诗词数据无效 - 缺少ID')
     alert('诗词数据错误，无法收藏')
     return
   }
   
   console.log('✅ 验证通过，执行收藏操作')
+  console.log('📋 标准化后的诗词数据:', normalizedPoem)
   
   try {
-    const result = await toggleFavorite(poem)
+    const result = await toggleFavorite(normalizedPoem)
     console.log('📊 收藏操作结果:', result)
     
     if (result.success) {

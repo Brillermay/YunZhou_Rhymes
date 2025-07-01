@@ -41,7 +41,7 @@
 
               <!-- 用户基本信息 -->
               <div class="user-details">
-                <h2 class="username">{{ userInfo.username }}</h2>
+                <h2 class="username">{{ userInfo.nickname || userInfo.username }}</h2>
                 <p class="user-id">ID: {{ userInfo.uid }}</p>
                 <div class="user-stats">
                   <div class="stat-item">
@@ -421,6 +421,7 @@
   import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { useUserStore } from '@/stores/user';
+import API_BASE_URL from '@/config/api';
 
   const router = useRouter();
 
@@ -441,7 +442,7 @@
   });
 
   // API基础URL
-  const API_BASE_URL = 'http://localhost:8081';
+  const API_BASE_URL = '${API_BASE_URL}';
 
   // 响应式数据
   const currentScreen = ref(0);
@@ -913,7 +914,7 @@ const changePassword = async () => {
 
   try {
     // 🔧 新增：调用后端修改密码接口
-    const response = await fetch('http://localhost:8081/user/changePWD', {
+    const response = await fetch('${API_BASE_URL}/user/changePWD', {
       method: 'GET', // 注意：您的后端使用 GET 方法
       headers: {
         'Content-Type': 'application/json',
