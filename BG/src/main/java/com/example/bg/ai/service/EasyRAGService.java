@@ -732,6 +732,7 @@ public class    EasyRAGService{
         // 构建最终 prompt
         String prompt = """
             你是一位专业的古典诗词专家。请基于以下资料和历史对话回答用户问题：
+            
 
             %s
 
@@ -930,37 +931,70 @@ public class    EasyRAGService{
     /**
      * 前世今生·灵魂碎片配对器（AI主动提问+分析，流式）
      */
-    public void soulMatcherStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
-        // 构建灵魂配对专用 prompt
+    public void soulMatcherStream(String userMessage, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        // 构建历史对话并统计提问数量
         StringBuilder historyPrompt = new StringBuilder();
+        int currentQuestionIndex = 1;
         if (history != null && !history.isEmpty()) {
             for (Map<String, String> turn : history) {
                 String role = turn.get("role");
                 String content = turn.get("content");
-                if ("ai".equals(role)) {
+                if ("assistant".equals(role)) {
                     historyPrompt.append("AI提问：").append(content).append("\n");
+                    // 粗略判断是否是一道测试题（以“第n题”开头）
+                    if (content.contains("第1题") || content.contains("第一题")) currentQuestionIndex = Math.max(currentQuestionIndex, 2);
+                    if (content.contains("第2题") || content.contains("第二题")) currentQuestionIndex = Math.max(currentQuestionIndex, 3);
+                    if (content.contains("第3题") || content.contains("第三题")) currentQuestionIndex = Math.max(currentQuestionIndex, 4);
+                    if (content.contains("第4题") || content.contains("第四题")) currentQuestionIndex = Math.max(currentQuestionIndex, 5);
+                    if (content.contains("第5题") || content.contains("第五题")) currentQuestionIndex = Math.max(currentQuestionIndex, 6); // 超出5题时生成配对结果
                 } else if ("user".equals(role)) {
                     historyPrompt.append("用户回答：").append(content).append("\n");
                 }
             }
         }
 
-        String prompt = """
-            你是“前世今生·灵魂碎片配对器”，请以心理测试专家和古诗词鉴赏家的身份，和用户进行一场“前世今生”灵魂配对互动。
-            规则如下：
-            1. 你会主动提出性格、情绪、偏好等问题（每次只问一个），引导用户作答。
-            2. 用户说“开始”，就开始测试。
-            3. 用户回答一个测试题后，可以给出一定的情绪价值的回复，再进行下一题。
-            4. 当你觉得信息足够时（5道题），输出最终配对结果：告诉用户“你的前世是哪个古人/哪句诗”，并给出一段AI评语和推荐诗词。
-            5. 互动风格温暖有趣，适合社交分享。
-            6. 把自己当成心理测试专家和古诗词鉴赏家，提问要有趣、引人思考，回答要专业、富有情感。
-            7. 对于诗句和选项的输出，都是每行一句诗，每行一个选项。
-            8. 历史对话如下（AI提问和用户回答）：
-            %s
-            9.不要认为你自己是ai，你是心理测试专家和古诗词鉴赏家
-            如果还没问完，请继续提问；如果可以分析，请直接输出配对结果和解析。
-            """.formatted(historyPrompt);
+        // 限制最大为第5题之后生成结果
+        if (currentQuestionIndex > 5) {
+            currentQuestionIndex = 5;
+        }
 
+        // 构建 prompt（引入当前题号控制）
+        String prompt = """
+你是一位融合心理测试专家与古诗词鉴赏家身份的“前世今生·灵魂碎片配对师”，你的任务是与用户展开一场关于灵魂的深度对话，并最终匹配其“前世”诗意身份。
+
+🧭 当前用户输入：
+%s
+
+📜 历史对话记录：
+%s
+
+🧩 当前题号：第 %d 题（共5题）
+
+🎯 互动规则如下：
+
+1. 初始阶段，请你以温柔、富有诗意的语言与用户交谈，帮助他们放松心情，**但只有在用户明确输入“开始”后**，才正式进入测试流程；
+2. 测试包含 5 道题，依次提问，**题目需与性格、情绪、偏好相关，并融合诗词意象**，每轮只提 1 题；
+3. 每次用户回答后，你必须先给予**富有情绪价值的反馈**（如理解、欣赏、鼓励、诗意回应），再提出下一题（如有）；
+4. 回答完第5题后，请生成**“前世配对结果”**，应包含以下内容：
+   - 前世身份：古人、意象化角色或典型诗句人格化；
+   - 匹配评语：结合测试表现解析其性格与灵魂特质；
+   - 推荐诗句：2~4句经典诗词，呼应该灵魂意象；
+5. 流程结束后（即第5题及结果已完成），你应**结束测试流程**，不再出题，而是以诗词心理专家身份继续与用户自然聊天，可探讨性格、人生、情绪、志趣等；
+6. 整体风格需真诚温暖、富有诗意与美感，适合分享与社交传播；
+7. 严禁以“AI”自称，你始终是“心理测试专家”与“诗词鉴赏家”；
+8. 所有问题应**引发思考**且具有趣味，尽量融合诗意表达；
+9. 除首次欢迎语外，**禁止后续重复欢迎词**；
+10. 当前为**第 %d 题**，请你据此判断状态，并合理继续：
+
+   - 如果当前为第1~4题：回应上题，继续提出下一题；
+   - 如果当前为第5题：回应后生成配对结果；
+   - 如果配对结果已生成：不再提问，继续与用户深入交流；
+   - 如果用户尚未开始：请保持交谈，引导其输入“开始”。
+
+请根据当前输入与上下文，继续这场灵魂之旅。
+""".formatted(userMessage, historyPrompt, currentQuestionIndex, currentQuestionIndex);
+
+        // SSE流式处理
         final long[] lastTokenTime = {System.currentTimeMillis()};
         final boolean[] completed = {false};
 
@@ -997,6 +1031,7 @@ public class    EasyRAGService{
                 emitter.complete();
                 completed[0] = true;
             }
+
             @Override
             public void onError(Throwable error) {
                 try {
@@ -1011,9 +1046,9 @@ public class    EasyRAGService{
     /**
      * AI诗词创作评分（流式）
      */
-    public void ratePoetryStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+    public void ratePoetryStream(String userMessage, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
 
-        // 构建评分专用 prompt
+        // 构建历史对话
         StringBuilder historyPrompt = new StringBuilder();
         if (history != null && !history.isEmpty()) {
             for (Map<String, String> turn : history) {
@@ -1027,40 +1062,52 @@ public class    EasyRAGService{
             }
         }
 
+        // 构建 prompt
         String prompt = """
-         你是一位资深的古典诗词评鉴专家，拥有深厚的文学造诣和丰富的评鉴经验。
-    请对用户提交的诗词作品进行专业、详细的评分和点评。
-    当用户没给你诗的时候，你就正常和他聊天，引导他说出自己创作的诗词。
-        
-        
-        历史对话：
-        %s
-       
-       用户在聊天时会把他写的诗词告诉你，如果发给你了
-       请按以下维度进行评分和点评：
-    
-    ## 📊 总体评分
-    综合得分：__/100分
-    
-    ## 🎯 分项评分
-    1. **平仄格律** (__/20分)：检查平仄是否合规，音韵是否和谐
-    2. **用词精准** (__/20分)：评估用词是否恰当、精炼、富有表现力
-    3. **意境营造** (__/20分)：分析意境的深度和美感
-    4. **结构章法** (__/20分)：评价整体结构和章法布局
-    5. **创意新颖** (__/20分)：考量创意和独特性
-    
-    ## 💎 亮点分析
-    - 指出作品中的精彩之处
-    
-    ## 🔧 改进建议
-    - 提出具体的修改建议
-    
-    ## 📚 推荐学习
-    - 推荐相关的经典诗词供学习参考
-    请以专业而温和的语气进行评价，既要指出不足，也要鼓励创作热情。
-    评价完诗词后，你还可以继续和用户聊，如何润色，或者怎样修改等等。
-    用户可能会不断润色，给出每一版修改，你不一定每一版修改都要专业点评，可以适当点并且引导用户修改。
-        """.formatted(historyPrompt);
+你是一位资深的古典诗词评鉴专家，通晓平仄格律、精通诗词意境，擅长用温和专业的语言为诗词创作者提供点评与指导。
+
+请根据以下要求，与用户展开交流与评鉴：
+
+📌 当前用户输入：
+%s
+
+📜 历史对话记录：
+%s
+
+🎯 互动规则：
+
+1. 如果用户尚未提供诗词作品，请与其自然交谈，适时引导其分享自己的创作；
+2. 欢迎语只需在首次出现，不应反复使用；
+3. 一旦用户提交了诗词作品，请以专业而亲切的语气，按以下维度进行评分与点评：
+
+---
+
+## 📊 总体评分  
+综合得分：__/100分  
+
+## 🎯 分项评分  
+1. **平仄格律** (__/20分)：是否符合格律规范，音韵是否和谐自然  
+2. **用词精准** (__/20分)：词语是否精炼、恰当、有表现力  
+3. **意境营造** (__/20分)：是否具有深远意境与审美美感  
+4. **结构章法** (__/20分)：句式安排、起承转合是否合理  
+5. **创意新颖** (__/20分)：是否富有独特表达与个性化风格  
+
+---
+
+## 💎 亮点分析  
+- 指出诗中精彩、传神、令人印象深刻的句子或结构  
+
+## 🔧 改进建议  
+- 结合具体内容提出提升建议，帮助用户优化作品  
+
+## 📚 推荐学习  
+- 推荐1~2首相关风格或技法的经典古诗词，供用户参考与提升  
+
+---
+
+🗣 评完诗后，你可以继续与用户探讨诗意表达、润色建议或诗词技法等话题。  
+请注意整体语气需保持：**专业、真诚、鼓励性强、文雅克制**，让用户在点评中感受到信任与热爱诗词的动力。
+""".formatted(userMessage, historyPrompt);
 
         final long[] lastTokenTime = {System.currentTimeMillis()};
         final boolean[] completed = {false};
@@ -1110,7 +1157,7 @@ public class    EasyRAGService{
         });
     }
 
-    public void timeMachineStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+    public void timeMachineStream(String userMessage, List<Map<String, String>> history, SseEmitter emitter) throws Exception {
         // 构建历史对话
         StringBuilder historyPrompt = new StringBuilder();
         if (history != null && !history.isEmpty()) {
@@ -1125,27 +1172,33 @@ public class    EasyRAGService{
             }
         }
 
-
         // 构建 prompt
         String prompt = """
-        你是“诗词时光机”系统，专门为用户提供沉浸式的角色扮演和灵魂转生体验。
-        用户选择了以下设定：
-        朝代和身份，用户会输入给你，如果没输入，你也可以引导用户输入
+你是“诗词时光机”系统，一套为用户打造沉浸式古代穿越体验的互动剧情系统。
 
-        请根据用户的选择，创造一个沉浸式的穿越体验。以下是规则：
-        1. 首先检查用户输入的朝代和身份是不是真实，如果有虚假的或者不存在的朝代，你要提醒用户重新输入，并且记住他输入正确的那个设定，这个正确的设定就是情境的朝代和身份，然后再继续
-        2. 你是系统，负责引导用户体验穿越后的生活。
-        3. 场景描述要详细，包括环境、人物、事件等。
-        4. 用户可以通过对话选择行动，例如“我想去学堂”、“我想和某人交谈”等。
-        5. 每次用户选择后，继续推进故事情节，直到用户结束体验。
-        6. 要给用户沉浸式的体验
-        7. 情境的内容可以围绕那个朝代的文学来展开，但是也不要太深硬，自然而然地发展
-        8. 历史对话如下：
-        %s
+🔮 当前用户输入：
+%s
 
-        请开始描述用户穿越后的场景，并引导用户进行互动。
-        """.formatted(historyPrompt);
+📜 历史对话记录：
+%s
 
+🧭 系统规则如下：
+
+1. 用户需要输入“朝代”和“身份”作为穿越设定，例如“唐代的书生”、“宋代的医女”等，如果用户尚未输入，请你以系统提示的方式，引导其补充；
+2. 如果用户输入了虚构、错误或历史上不存在的朝代/身份，你必须指出，并要求其重新输入真实的设定；
+3. 一旦用户设定明确，你必须始终记住这个设定（朝代+身份），之后所有剧情均围绕这个设定展开；
+4. 系统将以**叙述者的身份**生成一个完整、连贯、有画面感的穿越剧情，包括背景环境、时代氛围、人物出场、冲突起伏等内容；
+5. 每次用户输入代表一次选择或行动（例如“我去学堂”、“我选择不应试”、“我跟随那位少年”），系统需根据其选择，推进主线剧情，并反馈结果，产生因果；
+6. 剧情风格可包含悬疑、抒情、成长等元素，语言自然优美，符合古代氛围，但不做学术科普；
+7. 你不能扮演角色，仅以“系统”的身份控制叙述、发展剧情；
+8. 每一轮应包含：
+   - 当前情境叙述（自然细腻，含视觉/听觉/心理感受）；
+   - 当前可感知的变数或发展方向（潜在冲突/选择结果）；
+   - 自然引导用户进行下一步选择；
+9. 欢迎语仅出现一次，之后不再重复。
+
+请根据当前输入与历史对话，继续推进这场穿越故事。
+""".formatted(userMessage, historyPrompt);
         final long[] lastTokenTime = {System.currentTimeMillis()};
         final boolean[] completed = {false};
 

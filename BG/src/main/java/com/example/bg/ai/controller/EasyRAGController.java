@@ -443,67 +443,65 @@ public class EasyRAGController extends ConnetMySQL {
     }
 
     @PostMapping(value = "/chat/stream/role", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-@Operation(summary = "古人角色扮演流式对话（SSE，多轮）")
-public SseEmitter chatStreamWithRole(@RequestBody Map<String, Object> request) {
-    SseEmitter emitter = new SseEmitter(0L);
-    try {
-        String question = (String) request.get("question");
-        String role = (String) request.get("role");
-        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
-
-        if (question == null || question.trim().isEmpty()) {
-            emitter.send(SseEmitter.event().data("问题不能为空"));
-            emitter.complete();
-            return emitter;
-        }
-        if (role == null || role.trim().isEmpty()) {
-            emitter.send(SseEmitter.event().data("角色不能为空"));
-            emitter.complete();
-            return emitter;
-        }
-        // 只允许五个角色
-        if (!com.example.bg.ai.RoleProfileUtil.getSupportedRoles().contains(role)) {
-            emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.RoleProfileUtil.getSupportedRoles()));
-            emitter.complete();
-            return emitter;
-        }
-        easyRAGService.chatStreamWithRole(question, role, history, emitter);
-    } catch (Exception e) {
+    @Operation(summary = "古人角色扮演流式对话（SSE，多轮）")
+    public SseEmitter chatStreamWithRole(@RequestBody Map<String, Object> request) {
+        SseEmitter emitter = new SseEmitter(0L);
         try {
-            emitter.send(SseEmitter.event().data("流式对话失败：" + e.getMessage()));
-        } catch (Exception ignored) {}
-        emitter.completeWithError(e);
-    }
-    return emitter;
-}
+            String question = (String) request.get("question");
+            String role = (String) request.get("role");
+            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
 
-@PostMapping(value = "/soul-matcher/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-@Operation(summary = "前世今生·灵魂碎片配对器（AI主动提问+分析，流式）")
-public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
-    SseEmitter emitter = new SseEmitter(0L);
-    try {
-        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
-        easyRAGService.soulMatcherStream(history, emitter);
-    } catch (Exception e) {
+            if (question == null || question.trim().isEmpty()) {
+                emitter.send(SseEmitter.event().data("问题不能为空"));
+                emitter.complete();
+                return emitter;
+            }
+            if (role == null || role.trim().isEmpty()) {
+                emitter.send(SseEmitter.event().data("角色不能为空"));
+                emitter.complete();
+                return emitter;
+            }
+            // 只允许五个角色
+            if (!com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles().contains(role)) {
+                emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles()));
+                emitter.complete();
+                return emitter;
+            }
+            easyRAGService.chatStreamWithRole(question, role, history, emitter);
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().data("流式对话失败：" + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
+    }
+
+    @PostMapping(value = "/soul-matcher/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "前世今生·灵魂碎片配对器（AI主动提问+分析，流式）")
+    public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
+        SseEmitter emitter = new SseEmitter(0L);
         try {
-            emitter.send(SseEmitter.event().data("配对器流式对话失败：" + e.getMessage()));
-        } catch (Exception ignored) {}
-        emitter.completeWithError(e);
+            String userMessage = (String) request.get("userMessage"); // 新增
+            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+            easyRAGService.soulMatcherStream(userMessage, history, emitter); // 修改方法调用
+        } catch (Exception e) {
+            try {
+                emitter.send(SseEmitter.event().data("配对器流式对话失败：" + e.getMessage()));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(e);
+        }
+        return emitter;
     }
-    return emitter;
-}
-
 
     @PostMapping(value = "/poetry/rating", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "AI诗词创作评分（流式）")
     public SseEmitter ratePoetry(@RequestBody Map<String, Object> request) {
         SseEmitter emitter = new SseEmitter(0L);
         try {
+            String userMessage = (String) request.get("userMessage"); // 新增
             List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
-
-
-            // 调用 EasyRAGService 中的 ratePoetryStream 方法
-            easyRAGService.ratePoetryStream(history,emitter);
+            easyRAGService.ratePoetryStream(userMessage, history, emitter); // 修改方法调用
         } catch (Exception e) {
             try {
                 emitter.send(SseEmitter.event().data("评分失败：" + e.getMessage()));
@@ -518,12 +516,9 @@ public SseEmitter soulMatcherStream(@RequestBody Map<String, Object> request) {
     public SseEmitter timeMachineStream(@RequestBody Map<String, Object> request) {
         SseEmitter emitter = new SseEmitter(0L);
         try {
-            String era = (String) request.get("era"); // 用户选择的朝代
-            String identity = (String) request.get("identity"); // 用户选择的身份
-            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history"); // 历史对话
-
-            // 调用 EasyRAGService 中的 timeMachineStream 方法
-            easyRAGService.timeMachineStream(history, emitter);
+            String userMessage = (String) request.get("userMessage"); // 新增
+            List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+            easyRAGService.timeMachineStream(userMessage, history, emitter); // 修改方法调用
         } catch (Exception e) {
             try {
                 emitter.send(SseEmitter.event().data("诗词时光机体验失败：" + e.getMessage()));
