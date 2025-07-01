@@ -1,12 +1,12 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia';
+import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import pinia from './stores' // 新增：导入 Pinia
 
 const app = createApp(App)
+const pinia = createPinia()
 
 app.use(router)
-//app.use(pinia) // 新增：注册 Pinia
+app.use(pinia)
 
 app.mount('#app')

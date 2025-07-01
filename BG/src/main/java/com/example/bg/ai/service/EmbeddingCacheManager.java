@@ -21,9 +21,10 @@ import java.util.*;
 public class EmbeddingCacheManager {
 
     // 缓存目录配置 - 相对于项目根目录
-    private static final String CACHE_BASE_DIR = "data";
-    private static final String EMBEDDINGS_DIR = CACHE_BASE_DIR + "/embeddings";
-    private static final String CACHE_INFO_FILE = CACHE_BASE_DIR + "/cache_info.json";
+    // 同时修改这些常量：
+    private static final String CACHE_BASE_DIR = System.getProperty("user.dir") +File.separator + "BG" +File.separator + "data";
+    private static final String EMBEDDINGS_DIR = CACHE_BASE_DIR + File.separator + "embeddings";  
+    private static final String CACHE_INFO_FILE = CACHE_BASE_DIR + File.separator + "cache_info.json";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -163,9 +164,18 @@ public class EmbeddingCacheManager {
      * 初始化缓存目录
      */
     public void initializeCacheDirectories() throws IOException {
-        Files.createDirectories(Paths.get(CACHE_BASE_DIR));
-        Files.createDirectories(Paths.get(EMBEDDINGS_DIR));
-        System.out.println("📁 缓存目录初始化完成: " + new File(CACHE_BASE_DIR).getAbsolutePath());
+        // 🔧 简单修复：使用项目根目录下的data文件夹
+        String projectRoot = System.getProperty("user.dir");
+        String cacheDir = projectRoot + File.separator + "BG"+ File.separator + "data";
+        String embeddingsDir = cacheDir + File.separator + "embeddings";
+        
+        System.out.println("🔍 项目根目录: " + projectRoot);
+        System.out.println("🔍 缓存目录: " + cacheDir);
+        
+        Files.createDirectories(Paths.get(cacheDir));
+        Files.createDirectories(Paths.get(embeddingsDir));
+        
+        System.out.println("📁 缓存目录初始化完成: " + cacheDir);
     }
 
 

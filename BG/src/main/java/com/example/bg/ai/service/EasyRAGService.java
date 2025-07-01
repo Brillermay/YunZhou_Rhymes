@@ -653,7 +653,7 @@ public class    EasyRAGService{
                     emitter.completeWithError(e);
                 }
             }
-            
+
             public void onComplete() {
                 try {
                     emitter.send(SseEmitter.event().data("[END]"));
@@ -741,58 +741,59 @@ public class    EasyRAGService{
             当前用户问题：%s
 
             请根据资料和历史对话，给出专业、详细的回答。
+            不能够告诉用户你读了什么资料。
             """.formatted(context, historyPrompt, userMessage);
 
-    final long[] lastTokenTime = {System.currentTimeMillis()};
-    final boolean[] completed = {false};
+        final long[] lastTokenTime = {System.currentTimeMillis()};
+        final boolean[] completed = {false};
 
-    // 定时任务线程，超时自动结束
-    Thread timeoutThread = new Thread(() -> {
-        try {
-            while (!completed[0]) {
-                Thread.sleep(2000); // 检查间隔
-                if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
-                    emitter.send(SseEmitter.event().data("[END]"));
-                    emitter.complete();
+        // 定时任务线程，超时自动结束
+        Thread timeoutThread = new Thread(() -> {
+            try {
+                while (!completed[0]) {
+                    Thread.sleep(2000); // 检查间隔
+                    if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                        emitter.send(SseEmitter.event().data("[END]"));
+                        emitter.complete();
+                        completed[0] = true;
+                        System.out.println("超时自动结束");
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+        timeoutThread.start();
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                lastTokenTime[0] = System.currentTimeMillis();
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
                     completed[0] = true;
-                    System.out.println("超时自动结束");
                 }
             }
-        } catch (Exception ignored) {}
-    });
-    timeoutThread.start();
 
-    streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
-        @Override
-        public void onNext(String token) {
-            lastTokenTime[0] = System.currentTimeMillis();
-            try {
-                emitter.send(SseEmitter.event().data(token));
-            } catch (Exception e) {
-                emitter.completeWithError(e);
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
                 completed[0] = true;
+                System.out.println("onComplete 被调用");
             }
-        }
-
-        public void onComplete() {
-            try {
-                emitter.send(SseEmitter.event().data("[END]"));
-            } catch (Exception ignored) {}
-            emitter.complete();
-            completed[0] = true;
-            System.out.println("onComplete 被调用");
-        }
-        @Override
-        public void onError(Throwable error) {
-            try {
-                emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
-            } catch (Exception ignored) {}
-            emitter.completeWithError(error);
-            completed[0] = true;
-            System.out.println("onError 被调用");
-        }
-    });
-}
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+                completed[0] = true;
+                System.out.println("onError 被调用");
+            }
+        });
+    }
 
     /**
      * 🆕 保存诗词缓存（包含失败状态）并支持角色扮演
@@ -879,52 +880,52 @@ public class    EasyRAGService{
             - 如资料不足，可结合常识和想象补充
             """.formatted(role, roleProfile, context, historyPrompt, userMessage, role);
 
-    final long[] lastTokenTime = {System.currentTimeMillis()};
-    final boolean[] completed = {false};
+        final long[] lastTokenTime = {System.currentTimeMillis()};
+        final boolean[] completed = {false};
 
-    Thread timeoutThread = new Thread(() -> {
-        try {
-            while (!completed[0]) {
-                Thread.sleep(2000);
-                if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
-                    emitter.send(SseEmitter.event().data("[END]"));
-                    emitter.complete();
+        Thread timeoutThread = new Thread(() -> {
+            try {
+                while (!completed[0]) {
+                    Thread.sleep(2000);
+                    if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                        emitter.send(SseEmitter.event().data("[END]"));
+                        emitter.complete();
+                        completed[0] = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+        timeoutThread.start();
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                lastTokenTime[0] = System.currentTimeMillis();
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
                     completed[0] = true;
                 }
             }
-        } catch (Exception ignored) {}
-    });
-    timeoutThread.start();
 
-    streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
-        @Override
-        public void onNext(String token) {
-            lastTokenTime[0] = System.currentTimeMillis();
-            try {
-                emitter.send(SseEmitter.event().data(token));
-            } catch (Exception e) {
-                emitter.completeWithError(e);
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
                 completed[0] = true;
             }
-        }
-
-        public void onComplete() {
-            try {
-                emitter.send(SseEmitter.event().data("[END]"));
-            } catch (Exception ignored) {}
-            emitter.complete();
-            completed[0] = true;
-        }
-        @Override
-        public void onError(Throwable error) {
-            try {
-                emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
-            } catch (Exception ignored) {}
-            emitter.completeWithError(error);
-            completed[0] = true;
-        }
-    });
-}
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+                completed[0] = true;
+            }
+        });
+    }
 
     /**
      * 前世今生·灵魂碎片配对器（AI主动提问+分析，流式）
@@ -956,6 +957,7 @@ public class    EasyRAGService{
             7. 对于诗句和选项的输出，都是每行一句诗，每行一个选项。
             8. 历史对话如下（AI提问和用户回答）：
             %s
+            9.不要认为你自己是ai，你是心理测试专家和古诗词鉴赏家
             如果还没问完，请继续提问；如果可以分析，请直接输出配对结果和解析。
             """.formatted(historyPrompt);
 
@@ -995,6 +997,193 @@ public class    EasyRAGService{
                 emitter.complete();
                 completed[0] = true;
             }
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+                completed[0] = true;
+            }
+        });
+    }
+
+    /**
+     * AI诗词创作评分（流式）
+     */
+    public void ratePoetryStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+
+        // 构建评分专用 prompt
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null && !history.isEmpty()) {
+            for (Map<String, String> turn : history) {
+                String role = turn.get("role");
+                String content = turn.get("content");
+                if ("user".equals(role)) {
+                    historyPrompt.append("用户：").append(content).append("\n");
+                } else if ("assistant".equals(role)) {
+                    historyPrompt.append("AI：").append(content).append("\n");
+                }
+            }
+        }
+
+        String prompt = """
+         你是一位资深的古典诗词评鉴专家，拥有深厚的文学造诣和丰富的评鉴经验。
+    请对用户提交的诗词作品进行专业、详细的评分和点评。
+    当用户没给你诗的时候，你就正常和他聊天，引导他说出自己创作的诗词。
+        
+        
+        历史对话：
+        %s
+       
+       用户在聊天时会把他写的诗词告诉你，如果发给你了
+       请按以下维度进行评分和点评：
+    
+    ## 📊 总体评分
+    综合得分：__/100分
+    
+    ## 🎯 分项评分
+    1. **平仄格律** (__/20分)：检查平仄是否合规，音韵是否和谐
+    2. **用词精准** (__/20分)：评估用词是否恰当、精炼、富有表现力
+    3. **意境营造** (__/20分)：分析意境的深度和美感
+    4. **结构章法** (__/20分)：评价整体结构和章法布局
+    5. **创意新颖** (__/20分)：考量创意和独特性
+    
+    ## 💎 亮点分析
+    - 指出作品中的精彩之处
+    
+    ## 🔧 改进建议
+    - 提出具体的修改建议
+    
+    ## 📚 推荐学习
+    - 推荐相关的经典诗词供学习参考
+    请以专业而温和的语气进行评价，既要指出不足，也要鼓励创作热情。
+    评价完诗词后，你还可以继续和用户聊，如何润色，或者怎样修改等等。
+    用户可能会不断润色，给出每一版修改，你不一定每一版修改都要专业点评，可以适当点并且引导用户修改。
+        """.formatted(historyPrompt);
+
+        final long[] lastTokenTime = {System.currentTimeMillis()};
+        final boolean[] completed = {false};
+
+        Thread timeoutThread = new Thread(() -> {
+            try {
+                while (!completed[0]) {
+                    Thread.sleep(2000);
+                    if (System.currentTimeMillis() - lastTokenTime[0] > 2000 && !completed[0]) {
+                        emitter.send(SseEmitter.event().data("[END]"));
+                        emitter.complete();
+                        completed[0] = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+        timeoutThread.start();
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                lastTokenTime[0] = System.currentTimeMillis();
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                    completed[0] = true;
+                }
+            }
+
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
+                completed[0] = true;
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                try {
+                    emitter.send(SseEmitter.event().data("流式输出错误：" + error.getMessage()));
+                } catch (Exception ignored) {}
+                emitter.completeWithError(error);
+                completed[0] = true;
+            }
+        });
+    }
+
+    public void timeMachineStream(List<Map<String, String>> history, SseEmitter emitter) throws Exception {
+        // 构建历史对话
+        StringBuilder historyPrompt = new StringBuilder();
+        if (history != null && !history.isEmpty()) {
+            for (Map<String, String> turn : history) {
+                String role = turn.get("role");
+                String content = turn.get("content");
+                if ("user".equals(role)) {
+                    historyPrompt.append("用户：").append(content).append("\n");
+                } else if ("system".equals(role)) {
+                    historyPrompt.append("系统：").append(content).append("\n");
+                }
+            }
+        }
+
+
+        // 构建 prompt
+        String prompt = """
+        你是“诗词时光机”系统，专门为用户提供沉浸式的角色扮演和灵魂转生体验。
+        用户选择了以下设定：
+        朝代和身份，用户会输入给你，如果没输入，你也可以引导用户输入
+
+        请根据用户的选择，创造一个沉浸式的穿越体验。以下是规则：
+        1. 首先检查用户输入的朝代和身份是不是真实，如果有虚假的或者不存在的朝代，你要提醒用户重新输入，并且记住他输入正确的那个设定，这个正确的设定就是情境的朝代和身份，然后再继续
+        2. 你是系统，负责引导用户体验穿越后的生活。
+        3. 场景描述要详细，包括环境、人物、事件等。
+        4. 用户可以通过对话选择行动，例如“我想去学堂”、“我想和某人交谈”等。
+        5. 每次用户选择后，继续推进故事情节，直到用户结束体验。
+        6. 要给用户沉浸式的体验
+        7. 情境的内容可以围绕那个朝代的文学来展开，但是也不要太深硬，自然而然地发展
+        8. 历史对话如下：
+        %s
+
+        请开始描述用户穿越后的场景，并引导用户进行互动。
+        """.formatted(historyPrompt);
+
+        final long[] lastTokenTime = {System.currentTimeMillis()};
+        final boolean[] completed = {false};
+
+        // 定时任务线程，超时自动结束
+        Thread timeoutThread = new Thread(() -> {
+            try {
+                while (!completed[0]) {
+                    Thread.sleep(2000);
+                    if (System.currentTimeMillis() - lastTokenTime[0] > 2500 && !completed[0]) {
+                        emitter.send(SseEmitter.event().data("[END]"));
+                        emitter.complete();
+                        completed[0] = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+        });
+        timeoutThread.start();
+
+        streamingChatLanguageModel.generate(prompt, new StreamingResponseHandler() {
+            @Override
+            public void onNext(String token) {
+                lastTokenTime[0] = System.currentTimeMillis();
+                try {
+                    emitter.send(SseEmitter.event().data(token));
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                    completed[0] = true;
+                }
+            }
+
+            public void onComplete() {
+                try {
+                    emitter.send(SseEmitter.event().data("[END]"));
+                } catch (Exception ignored) {}
+                emitter.complete();
+                completed[0] = true;
+            }
+
             @Override
             public void onError(Throwable error) {
                 try {

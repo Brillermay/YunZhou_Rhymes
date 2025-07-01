@@ -46,5 +46,8 @@ public class UserService {
     {
         return userMapper.getName(uid);
     }
-
+    // 在 UserService.java 中添加新方法（大约在第 45 行后）
+    public User findByUsername(String username) {
+        return userMapper.findByUsername(username);
+    }
 }

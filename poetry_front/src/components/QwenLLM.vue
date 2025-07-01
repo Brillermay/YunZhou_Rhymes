@@ -34,14 +34,18 @@
               <div class="sidebar-desc">与古人虚拟对话，感受历史风采</div>
             </div>
           </li>
-          <li class="sidebar-item">
+          <li class="sidebar-item" :class="{ active: chatMode === 'rating' }" @click="switchMode('rating')">
             <div class="sidebar-icon">📜</div>
             <div class="sidebar-texts">
               <div class="sidebar-main">诗词创作评分</div>
               <div class="sidebar-desc">AI点评你的诗词创作</div>
             </div>
           </li>
-          <li class="sidebar-item">
+          <li
+            class="sidebar-item"
+            :class="{ active: chatMode === 'timemachine' }"
+            @click="switchMode('timemachine')"
+          >
             <div class="sidebar-icon">🕰️</div>
             <div class="sidebar-texts">
               <div class="sidebar-main">诗词时光机</div>
@@ -103,6 +107,20 @@
           <span class="input-tips-label">你可以问我：</span>
           <span v-for="(tip, i) in inputTips" :key="i" class="input-tip" @click="useTip(tip)">“{{ tip }}”</span>
         </div>
+        <!-- 新增：时光机模式下的输入提示 -->
+        <div
+          v-if="chatMode === 'timemachine' && chatList.length === 1"
+          class="input-tips"
+        >
+          <span class="input-tips-icon">💡</span>
+          <span class="input-tips-label">你可以试试：</span>
+          <span
+            v-for="(tip, i) in timeMachineTips"
+            :key="i"
+            class="input-tip"
+            @click="useTip(tip)"
+          >“{{ tip }}”</span>
+        </div>
         <div class="chat-input-row">
           <textarea v-model="input" placeholder="请输入您的问题或诗意畅想..." class="chat-input"
             @keydown.enter.exact.prevent="startChat" rows="1" />
@@ -136,11 +154,11 @@
       </div>
     </div>
     <div
-      v-if="(chatMode === 'normal' || chatMode === 'soul')"
+      v-if="(chatMode === 'normal' || chatMode === 'soul' || chatMode === 'timemachine')"
       class="chat-bg-switcher"
     >
       <button class="bg-btn" @click="prevBg" title="上一张背景">‹</button>
-      <span class="bg-index">{{ chatMode === 'normal' ? normalBgIndex + 1 : soulBgIndex + 1 }}/{{ chatMode === 'normal' ? normalBgList.length : soulBgList.length }}</span>
+      <span class="bg-index">{{ normalBgIndex + 1 }}/{{ normalBgList.length }}</span>
       <button class="bg-btn" @click="nextBg" title="下一张背景">›</button>
     </div>
   </div>
@@ -210,7 +228,7 @@ const input = ref('')
 const chatList = ref([]) // 多轮对话历史
 const isStreaming = ref(false)
 const streamingOutputRaw = ref('')
-const chatMode = ref('normal') // 'normal' | 'ancient' | 'soul'
+const chatMode = ref('normal') // 'normal' | 'ancient' | 'soul' | 'rating' | 'timemachine'
 const selectedRole = ref('')
 const showRoleSelect = ref(false)
 const ancientRoles = ['李白', '林黛玉', '苏轼', '辛弃疾', '陶渊明']
@@ -247,7 +265,7 @@ const chatBg = computed(() => {
   if (chatMode.value === 'ancient' && selectedRole.value && poetBgMap[selectedRole.value]) {
     return `url('${poetBgMap[selectedRole.value]}')`
   }
-  if (chatMode.value === 'normal') {
+  if (chatMode.value === 'normal' || chatMode.value === 'rating') {
     return `url('${normalBgList[normalBgIndex.value]}')`
   }
   if (chatMode.value === 'soul') {
@@ -334,6 +352,7 @@ const chatHistory = ref(null)
 
 async function startChat() {
   if (!input.value.trim() || isStreaming.value) return
+
   chatList.value.push({
     role: 'user',
     html: formatOutput(input.value),
@@ -347,7 +366,7 @@ async function startChat() {
   // 构造历史
   const history = chatList.value
     .map(msg => ({
-      role: msg.role === 'ai' ? 'ai' : 'user',
+      role: msg.role === 'ai' ? 'assistant' : 'user',
       content: msg.content || msg.html.replace(/<[^>]+>/g, '')
     }))
 
@@ -367,6 +386,21 @@ async function startChat() {
         history: history // 只传history，不传question
       }
     }
+    if (chatMode.value === 'rating') {
+      url = 'http://localhost:8081/ai/easy/poetry/rating'
+      let ratingHistory = history
+      body = {
+        history: ratingHistory
+      }
+    }
+    // 修改：timemachine模式
+    if (chatMode.value === 'timemachine') {
+      url = 'http://localhost:8081/ai/easy/time-machine/stream'
+      body = {
+        history
+      }
+    }
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -428,6 +462,7 @@ async function startChat() {
   }
 }
 
+
 function scrollToBottom() {
   if (chatHistory.value) {
     chatHistory.value.scrollTop = chatHistory.value.scrollHeight
@@ -475,6 +510,26 @@ function switchMode(mode) {
         '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
       ),
       content: '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
+    })
+  } else if (mode === 'rating') {
+    showRoleSelect.value = false
+    normalBgIndex.value = 0
+    chatList.value.push({
+      role: 'ai',
+      html: formatOutput(
+        '欢迎来到诗词创作评分！你可以输入你的诗词内容，我会为你点评和打分。'
+      ),
+      content: '欢迎来到诗词创作评分！请直接输入你的诗词内容，我会为你点评和打分。'
+    })
+  } else if (mode === 'timemachine') {
+    showRoleSelect.value = false
+    normalBgIndex.value = 0
+    chatList.value.push({
+      role: 'ai',
+      html: formatOutput(
+        '欢迎来到“诗词时光机”！请选择你想穿越的朝代和身份，格式为“朝代-身份”，如“唐朝-科举学生”。'
+      ),
+      content: '欢迎来到“诗词时光机”！请选择你想穿越的朝代和身份，格式为“朝代-身份”，如“唐朝-科举学生”。'
     })
   } else {
     showRoleSelect.value = false
@@ -537,6 +592,15 @@ function useTip(tip) {
   input.value = tip
   inputTips.value = [] // 点击后消失
 }
+
+// 新增：时光机模式的提示选项
+const timeMachineTips = [
+  '唐朝-科举学生',
+  '宋朝-征战将领',
+  '魏晋-隐士诗人',
+  '明朝-江南才女',
+  '清朝-宫廷画师'
+]
 </script>
 
 <style scoped>

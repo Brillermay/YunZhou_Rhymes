@@ -1,5 +1,7 @@
 package com.example.bg.user;
 
+import java.time.LocalDateTime;
+
 import lombok.Data;
 
 @Data
@@ -12,4 +14,10 @@ public class User {
     public String status; // 账户状态
 
     public int isadmin;
+
+        // 新增字段
+    private String nickname;
+    private String email;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }
