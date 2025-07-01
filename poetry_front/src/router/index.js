@@ -5,7 +5,7 @@ import PoetryGame from '@/components/PoetryTest.vue'
 import Forum from '@/components/Forum.vue'
 import ForumLogin from '@/components/ForumLogin.vue'
 import FeiHua from '@/components/FeiHuaLing.vue'
-import GameAll from "../components/gameAll.vue";
+import GameAll from "../components/split/gameAll.vue";
 import UserInfo from "@/components/userinfo/UserInfo.vue";
 import QwenLLM  from "@/components/QwenLLM.vue";
 
