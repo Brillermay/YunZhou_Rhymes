@@ -122,8 +122,29 @@
           >“{{ tip }}”</span>
         </div>
         <div class="chat-input-row">
-          <textarea v-model="input" placeholder="请输入您的问题或诗意畅想..." class="chat-input"
-            @keydown.enter.exact.prevent="startChat" rows="1" />
+          <textarea 
+          v-model="input" 
+          placeholder="请输入您的问题或诗意畅想..." 
+          class="chat-input"
+          @keydown.enter.exact.prevent="startChat" 
+          @input="adjustInputHeight"
+          rows="1" />
+          
+          <!-- 语音输入按钮 -->
+          <button 
+            @click="toggleVoiceInput" 
+            :class="['voice-btn', { 'recording': isRecording }]"
+            :title="isRecording ? '点击停止录音' : '点击开始语音输入'"
+          >
+            <svg v-if="!isRecording" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+            </svg>
+            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M6 6h12v12H6z"/>
+            </svg>
+            <span class="voice-status" v-if="isRecording">正在录音...</span>
+          </button>
+          
           <button @click="startChat" class="send-btn">发送</button>
         </div>
       </section>
@@ -153,12 +174,23 @@
         </div>
       </div>
     </div>
+    <!-- 背景切换按钮 -->
     <div
-      v-if="(chatMode === 'normal' || chatMode === 'soul' || chatMode === 'timemachine')"
+      v-if="chatMode === 'normal' || chatMode === 'soul' || chatMode === 'timemachine' || chatMode === 'rating'"
       class="chat-bg-switcher"
     >
       <button class="bg-btn" @click="prevBg" title="上一张背景">‹</button>
-      <span class="bg-index">{{ normalBgIndex + 1 }}/{{ normalBgList.length }}</span>
+      <span class="bg-index">
+        {{
+          chatMode === 'normal'
+            ? normalBgIndex + 1 + '/' + normalBgList.length
+            : chatMode === 'soul'
+            ? soulBgIndex + 1 + '/' + soulBgList.length
+            : chatMode === 'rating'
+            ? ratingBgIndex + 1 + '/' + ratingBgList.length
+            : timeMachineBgIndex + 1 + '/' + timeMachineBgList.length
+        }}
+      </span>
       <button class="bg-btn" @click="nextBg" title="下一张背景">›</button>
     </div>
   </div>
@@ -200,12 +232,26 @@ import soulbg1 from '@/assets/chatbackground/soulbg1.jpg'
 import soulbg2 from '@/assets/chatbackground/soulbg2.jpg'
 import soulbg3 from '@/assets/chatbackground/soulbg3.jpg'
 
+import ratebg1 from '@/assets/chatbackground/ratebg1.jpeg'
+import ratebg2 from '@/assets/chatbackground/ratebg2.jpeg'
+import ratebg3 from '@/assets/chatbackground/ratebg3.jpeg'
+
+import timebg1 from '@/assets/chatbackground/timebg1.jpeg'
+import timebg2 from '@/assets/chatbackground/timebg2.jpeg'
+import timebg3 from '@/assets/chatbackground/timebg3.jpeg'
+import timebg4 from '@/assets/chatbackground/timebg4.jpeg'
+import timebg5 from '@/assets/chatbackground/timebg5.jpeg'
+
 const normalBgList = [bg1, bg2, bg3, bg4, bg5, bg6, bg7, bg8, bg9, bg10, bg11]
 const soulBgList = [soulbg1, soulbg2, soulbg3]
+const ratingBgList = [ratebg1, ratebg2, ratebg3]
+const timeMachineBgList = [timebg1, timebg2, timebg3, timebg4, timebg5]
 
-// normal和soul模式下的背景索引
+// normal、soul、rating 和 timemachine 模式下的背景索引
 const normalBgIndex = ref(0)
 const soulBgIndex = ref(0)
+const ratingBgIndex = ref(0)
+const timeMachineBgIndex = ref(0)
 
 const poetBgMap = {
   '李白': libaiBg,
@@ -223,8 +269,6 @@ const poetAvatarMap = {
   '辛弃疾': xinqijiImg,
   '陶渊明': taoyuanmingImg
 }
-
-
 
 const input = ref('')
 const chatList = ref([]) // 多轮对话历史
@@ -267,8 +311,14 @@ const chatBg = computed(() => {
   if (chatMode.value === 'ancient' && selectedRole.value && poetBgMap[selectedRole.value]) {
     return `url('${poetBgMap[selectedRole.value]}')`
   }
-  if (chatMode.value === 'normal' || chatMode.value === 'rating') {
+  if (chatMode.value === 'normal') {
     return `url('${normalBgList[normalBgIndex.value]}')`
+  }
+  if (chatMode.value === 'rating') {
+    return `url('${ratingBgList[ratingBgIndex.value]}')`
+  }
+  if (chatMode.value === 'timemachine') {
+    return `url('${timeMachineBgList[timeMachineBgIndex.value]}')`
   }
   if (chatMode.value === 'soul') {
     return `url('${soulBgList[soulBgIndex.value]}')`
@@ -281,13 +331,22 @@ function prevBg() {
     normalBgIndex.value = (normalBgIndex.value + normalBgList.length - 1) % normalBgList.length
   } else if (chatMode.value === 'soul') {
     soulBgIndex.value = (soulBgIndex.value + soulBgList.length - 1) % soulBgList.length
+  } else if (chatMode.value === 'rating') {
+    ratingBgIndex.value = (ratingBgIndex.value + ratingBgList.length - 1) % ratingBgList.length
+  } else if (chatMode.value === 'timemachine') {
+    timeMachineBgIndex.value = (timeMachineBgIndex.value + timeMachineBgList.length - 1) % timeMachineBgList.length
   }
 }
+
 function nextBg() {
   if (chatMode.value === 'normal') {
     normalBgIndex.value = (normalBgIndex.value + 1) % normalBgList.length
   } else if (chatMode.value === 'soul') {
     soulBgIndex.value = (soulBgIndex.value + 1) % soulBgList.length
+  } else if (chatMode.value === 'rating') {
+    ratingBgIndex.value = (ratingBgIndex.value + 1) % ratingBgList.length
+  } else if (chatMode.value === 'timemachine') {
+    timeMachineBgIndex.value = (timeMachineBgIndex.value + 1) % timeMachineBgList.length
   }
 }
 // 格式化输出
@@ -365,6 +424,12 @@ async function startChat() {
   await nextTick()
   scrollToBottom()
 
+  // 重置输入框高度
+  const textarea = document.querySelector('.chat-input')
+  if (textarea) {
+    textarea.style.height = '48px' // 恢复到默认高度
+  }
+
   // 构造历史
   const history = chatList.value
     .map(msg => ({
@@ -397,7 +462,7 @@ async function startChat() {
       }
     }
     if (chatMode.value === 'timemachine') {
-      url = `h${API_BASE_URL}/ai/easy/time-machine/stream`
+      url = `${API_BASE_URL}/ai/easy/time-machine/stream`
       body = {
         question: input.value, // 添加当前输入
         history: history
@@ -465,6 +530,11 @@ async function startChat() {
   }
 }
 
+function adjustInputHeight(event) {
+  const textarea = event.target;
+  textarea.style.height = 'auto'; // 先重置高度
+  textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`; // 动态调整高度，限制最大高度
+}
 
 function scrollToBottom() {
   if (chatHistory.value) {
@@ -604,6 +674,97 @@ const timeMachineTips = [
   '明朝-江南才女',
   '清朝-宫廷画师'
 ]
+
+// 语音输入相关状态
+const isRecording = ref(false)
+const recognition = ref(null)
+const speechSupported = ref(false)
+
+// 检查浏览器语音识别支持
+onMounted(() => {
+  // 检查语音识别支持
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    speechSupported.value = true
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+    recognition.value = new SpeechRecognition()
+    
+    // 配置语音识别
+    recognition.value.continuous = false
+    recognition.value.interimResults = false
+    recognition.value.lang = 'zh-CN' // 设置为中文
+    
+    // 识别结果处理
+    recognition.value.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      input.value = transcript
+      isRecording.value = false
+      
+      // 自动调整输入框高度
+      nextTick(() => {
+        const textarea = document.querySelector('.chat-input')
+        if (textarea) {
+          textarea.style.height = 'auto'
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
+        }
+      })
+    }
+    
+    // 识别结束处理
+    recognition.value.onend = () => {
+      isRecording.value = false
+    }
+    
+    // 识别错误处理
+    recognition.value.onerror = (event) => {
+      console.error('语音识别错误:', event.error)
+      isRecording.value = false
+      
+      let errorMessage = '语音识别失败'
+      switch (event.error) {
+        case 'no-speech':
+          errorMessage = '未检测到语音，请重试'
+          break
+        case 'audio-capture':
+          errorMessage = '无法访问麦克风，请检查权限'
+          break
+        case 'not-allowed':
+          errorMessage = '麦克风权限被拒绝，请在浏览器设置中允许麦克风访问'
+          break
+        case 'network':
+          errorMessage = '网络错误，请检查网络连接'
+          break
+        default:
+          errorMessage = `语音识别错误: ${event.error}`
+      }
+      
+      // 显示错误提示（可以用一个简单的alert或者更好的提示组件）
+      alert(errorMessage)
+    }
+  }
+})
+
+// 切换语音输入
+function toggleVoiceInput() {
+  if (!speechSupported.value) {
+    alert('您的浏览器不支持语音识别功能，请使用Chrome、Edge等现代浏览器')
+    return
+  }
+  
+  if (isRecording.value) {
+    // 停止录音
+    recognition.value.stop()
+    isRecording.value = false
+  } else {
+    // 开始录音
+    try {
+      recognition.value.start()
+      isRecording.value = true
+    } catch (error) {
+      console.error('启动语音识别失败:', error)
+      alert('启动语音识别失败，请重试')
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -639,7 +800,7 @@ const timeMachineTips = [
   height: 100%;
   z-index: 1;
   pointer-events: none;
-  backdrop-filter: blur(0.5px) brightness(0.9);
+  backdrop-filter: blur(0.5px) brightness(0.85);
   background: rgba(231, 231, 231, 0);
 }
 
@@ -656,7 +817,7 @@ const timeMachineTips = [
   text-align: center;
   padding: 0.5rem;
   margin: 10px;
-  background:rgba(247, 247, 247, 0.545) ;
+  background:rgba(247, 247, 247, 0.685) ;
   color: #8c7853;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
@@ -665,7 +826,7 @@ const timeMachineTips = [
 }
 
 .ai-title-header h1 {
-  color: #e5e5e5f0;
+  color: #ffffff;
   font-family: eva, 'STKaiti', 'KaiTi', serif;
   font-size: 40px;
   text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
@@ -912,18 +1073,25 @@ const timeMachineTips = [
   line-height: 1.8;
   box-shadow: 0 2px 8px rgba(140, 120, 83, 0.07);
   word-break: break-word;
+  transition: background 0.3s, transform 0.2s, box-shadow 0.2s;
+  background: #ffffff;
 }
 
+.msg-content:hover {
+  background: #ffffff; /* 背景变全白 */
+  transform: translateY(-4px); /* 稍微悬浮 */
+  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.15); /* 增加阴影 */
+}
 
 .user-msg .msg-content {
-  background: #ffffff90;
   color: #6e5773;
   align-self: flex-end;
+  font-size: 18px;
   padding: 0rem 1.2rem;
 }
 
 .ai-msg .msg-content {
-  background: #ffffffba;
+  font-size: 18px;
   color: #8c7853;
 }
 
@@ -945,14 +1113,14 @@ const timeMachineTips = [
   padding: 1rem 2.5rem;
   background: #f9f8f513;
   border-radius: 18px;
-  gap: 1rem;
+  gap: 0.8rem; /* 调整间距以适应新按钮 */
   
 }
 
 .chat-input {
   flex: 1 1 auto;
   min-height: 48px;
-  max-height: 120px;
+  max-height: 120px; /* 最大高度限制 */
   border-radius: 12px;
   padding: 0.5rem 1rem;
   font-size: 1.08rem;
@@ -963,12 +1131,12 @@ const timeMachineTips = [
   font-family: 'STKaiti', 'KaiTi', serif;
   border: 1.5px dashed #cbbba0;
   color: #5a4634;
-  resize: vertical;
+  resize: none; /* 禁止用户手动调整大小 */
   outline: none;
   box-sizing: border-box;
   line-height: 1.8;
   transition: border 0.3s, box-shadow 0.3s;
-
+  overflow-y: auto; /* 添加滚动条 */
 }
 
 .chat-input:focus {
@@ -1316,5 +1484,73 @@ const timeMachineTips = [
   font-size: 1rem;
   color: #8c7853;
   font-family: monospace;
+}
+
+.voice-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f3f0eb, #e7e0d0);
+  color: #8c7853;
+  border: 1.5px solid #e7e0d0;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(140, 120, 83, 0.07);
+  position: relative;
+  min-width: 45px;
+  justify-content: center;
+}
+
+.voice-btn:hover {
+  background: linear-gradient(135deg, #e7e0d0, #d4c7b0);
+  border-color: #8c7853;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.15);
+}
+
+.voice-btn.recording {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white;
+  border-color: #ff6b6b;
+  animation: recording-pulse 1.5s ease-in-out infinite;
+}
+
+.voice-btn.recording:hover {
+  background: linear-gradient(135deg, #ff5252, #e53935);
+}
+
+@keyframes recording-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.6);
+    transform: scale(1.02);
+  }
+}
+
+.voice-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* 移动端适配 */
+@media (max-width: 900px) {
+  .voice-btn {
+    min-width: 40px;
+    padding: 0.8rem 0.6rem;
+  }
+  
+  .voice-status {
+    display: none; /* 移动端隐藏文字状态 */
+  }
+  
+  .chat-input-row {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
 }
 </style>
