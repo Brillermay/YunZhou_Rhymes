@@ -383,21 +383,22 @@ async function startChat() {
     if (chatMode.value === 'soul') {
       url = 'http://localhost:8081/ai/easy/soul-matcher/stream'
       body = {
-        history: history // 只传history，不传question
+        question: input.value, // 添加当前输入
+        history: history
       }
     }
     if (chatMode.value === 'rating') {
       url = 'http://localhost:8081/ai/easy/poetry/rating'
-      let ratingHistory = history
       body = {
-        history: ratingHistory
+        question: input.value, // 添加当前输入
+        history: history
       }
     }
-    // 修改：timemachine模式
     if (chatMode.value === 'timemachine') {
       url = 'http://localhost:8081/ai/easy/time-machine/stream'
       body = {
-        history
+        question: input.value, // 添加当前输入
+        history: history
       }
     }
 
@@ -507,9 +508,9 @@ function switchMode(mode) {
     chatList.value.push({
       role: 'ai',
       html: formatOutput(
-        '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
+        '欢迎来到“前世诗魂配对”！我将通过几道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
       ),
-      content: '欢迎来到“前世诗魂配对”！我将通过10道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
+      content: '欢迎来到“前世诗魂配对”！我将通过几道趣味题，帮你匹配一位与你灵魂契合的古人或诗句。准备好开始了吗？（回复“开始”即可进入测试）'
     })
   } else if (mode === 'rating') {
     showRoleSelect.value = false
