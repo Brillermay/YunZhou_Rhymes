@@ -15,15 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@CrossOrigin(
-        origins = {"http://localhost:8080", "http://localhost:8081",
-                "http://127.0.0.1:8081", "http://117.72.88.23:8081"},
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
-                RequestMethod.DELETE, RequestMethod.OPTIONS},
-        maxAge = 3600,
-        allowCredentials = "true"
-)
+
 @RestController
 @RequestMapping("/user")
 public class UserController {

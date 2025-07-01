@@ -8,18 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.InputStream;
 import java.util.List;
 
-@CrossOrigin(
-        origins = {
-                "http://localhost:8080",
-                "http://localhost:8081",
-                "http://127.0.0.1:8081",
-                "http://117.72.88.23:8081",
-        },
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS},
-        maxAge = 3600,
-        allowCredentials = "true"
-)
+
 @RestController
 @RequestMapping(value = "/compRec")
 public class compRecOp extends ConnetMySQL {

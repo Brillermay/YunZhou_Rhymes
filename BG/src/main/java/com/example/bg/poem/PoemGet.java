@@ -21,18 +21,7 @@ import com.example.bg.ConnetMySQL;
 import io.swagger.v3.oas.annotations.Operation;
 
 
-@CrossOrigin(
-        origins = {
-                "http://localhost:8080",
-                "http://localhost:8081",
-                "http://127.0.0.1:8081",  // 显式添加此项
-                "http://117.72.88.23:8081",
-        },
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}, // 添加 OPTIONS
-        maxAge = 3600,
-        allowCredentials = "true"
-)
+
 @RestController
 @RequestMapping(value = "/poem")
 public class PoemGet extends ConnetMySQL {
