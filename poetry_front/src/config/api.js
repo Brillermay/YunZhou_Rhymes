@@ -1,7 +1,7 @@
 // 简单的API端口配置
 
 // 当前使用的环境 - 只需要修改这一行
-const CURRENT_ENV = 'production'; // 'local' 或 'production'
+const CURRENT_ENV = 'local'; // 'local' 或 'production'
 
 // 端口配置
 const API_CONFIG = {
