@@ -1319,7 +1319,7 @@ onMounted(async () => {
   const containerHeight = container.clientHeight
 
   // 设置自动保存定时器（每60秒保存一次）
-  const saveInterval = setInterval(autoSave, 60000)
+  const saveInterval = setInterval(autoSave, 1000)
   
   // 在组件销毁时清理定时器
   onBeforeUnmount(() => {
