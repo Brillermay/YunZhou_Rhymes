@@ -226,7 +226,7 @@ export default {
     this.newPost.author = username;
 
     // 从后端加载帖子数据并转换UID为用户名
-    axios.get('${API_BASE_URL}/comment/init')
+    axios.get(`${API_BASE_URL}/comment/init`)
       .then(async (response) => {
         const postsData = response.data;
 
@@ -406,7 +406,7 @@ export default {
       }
 
       try {
-        const res = await axios.post('${API_BASE_URL}/comment/addComment', data);
+        const res = await axios.post(`${API_BASE_URL}/comment/addComment`, data);
         //console.log(res.data);
 
         if (res.data.status === "SUCCESS") {
