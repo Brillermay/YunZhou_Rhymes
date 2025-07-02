@@ -186,6 +186,19 @@ const games = reactive([
     sealText: '趣',
     visible: false,
     isHovered: false
+  },
+  {
+    id: 'multiplay',
+    title: '多人对战',
+    description: '诗词卡牌对战游戏，考验诗词理解和博弈策略',
+    icon: 'fas fa-feather-alt',
+    iconClass: 'icon-feihua',
+    path: '/multiplay',
+    tags: ['对战', '古典', '挑战'],
+    difficulty: 4,
+    sealText: '雅',
+    visible: false,
+    isHovered: false
   }
 ])
 

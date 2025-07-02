@@ -15,6 +15,7 @@ import AdminDashboard from '../components/admin/AdminDashboard.vue'
 
 // 🔧 修复：HomePage.vue 而不是 Homepage.vue
 import HomePage from '@/components/homepage/HomePage.vue'
+import multiPlayPage from '@/components/multiplayerAll/Multiplayer.vue'
 
 // 🆕 导入游戏中心组件
 import GameCenter from '@/components/GameCenter.vue'
@@ -57,7 +58,9 @@ const router = createRouter({
         layout: 'blank'
       }
     },
-
+     {
+       path:'/multiplay',component:multiPlayPage
+     },
     // 管理员路由
     {
       path: '/admin',
