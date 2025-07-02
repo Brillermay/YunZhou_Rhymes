@@ -88,6 +88,16 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Phaser from 'phaser'
 import { gsap } from 'gsap'
+import axios from 'axios'
+import { getCurrentUid } from '@/utils/auth'
+
+const purchaseCount = ref(0)  // 购买卡包计数
+const sellCount = ref(0)      // 出售卡片计数
+const mergeCount = ref(0)     // 合成次数计数
+const factoryCount = ref(0)   // 建造书斋计数
+const workerCount = ref(0)    // 雇佣书生计数
+
+//const coins = ref(100) // 初始金币数量
 
 // 添加边栏相关的数据
 const activeTab = ref('achievements')
@@ -123,6 +133,137 @@ const switchTab = (tab) => {
 const isStackingMode = ref(false)
 const basicAchievementsExpanded = ref(true)
 const poemAchievementsExpanded = ref(true)
+const unlockedRecipes = ref(new Set()) // 存储已解锁的配方
+
+// 修改合成表数据初始化
+const recipes = ref([])
+
+//存档用
+const gameState = ref({
+  cardList: [], // 初始为空数组
+  achievements: "", // 存储已解锁成就的id字符串
+  gold: 0 // 存储金币数量
+})
+// 存档相关的数据结构
+const saveData = ref({
+  achievements: "",
+  gold: 100,
+  UID: getCurrentUid(),
+  cardList: [],
+  lastPlayTime: "",
+  pid: 1,
+  uid: getCurrentUid(),
+})
+
+// 添加自动保存函数
+const autoSave = async () => {
+  try {
+    // 构建存档数据
+    const currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19)
+    const currentUid = getCurrentUid() // 获取当前用户 ID
+    
+    saveData.value = {
+      achievements: gameState.value.achievements,
+      gold: coins.value,
+      UID: currentUid,
+      cardList: gameState.value.cardList,
+      lastPlayTime: currentTime,
+      pid: 1,
+      uid: currentUid
+    }
+
+    // 发送到后端
+    const response = await axios.post(`${API_CONFIG}/WriteTemp`, saveData.value)
+    
+    if (response.data.success) {
+      console.log('游戏已自动保存')
+    } else {
+      console.error('保存失败:', response.data.message)
+    }
+  } catch (error) {
+    console.error('保存出错:', error)
+  }
+}
+
+// 添加加载存档函数
+const loadSaveData = async () => {
+  try {
+    const currentUid = getCurrentUid() // 获取当前用户 ID
+    
+    // 构建请求参数
+    const requestData = {
+      UID: currentUid,
+      PID: 1 // 可以根据需要修改PID
+    }
+    
+    // 从后端获取存档数据
+    const response = await axios.post(`${API_CONFIG}/loadTemp`, requestData)
+
+    if (response.data && response.data.length > 0) {
+      // 获取最新的存档数据(假设按时间排序，最新的在第一个)
+      const saveData = response.data[0]
+      
+      // 更新游戏状态
+      gameState.value.achievements = saveData.achievements || ""
+      gameState.value.cardList = saveData.cardList || []
+      coins.value = saveData.gold || 100 // 如果没有存档数据则使用默认值100
+
+      // 更新成就状态
+      if (saveData.achievements) {
+        const achievementIds = saveData.achievements.split(',').filter(id => id)
+        achievementIds.forEach(id => {
+          const idNum = parseInt(id)
+          if (idNum <= 10) {
+            const achievement = basicAchievements.value.find(a => a.id === idNum)
+            if (achievement) achievement.unlocked = true
+          } else {
+            const achievement = poemAchievements.value.find(a => a.id === idNum)
+            if (achievement) achievement.unlocked = true
+          }
+        })
+      }
+
+      console.log('存档已加载:', saveData)
+    } else {
+      console.log('没有找到存档数据，使用默认值')
+    }
+  } catch (error) {
+    console.error('加载存档出错:', error)
+  }
+}
+
+// 添加一个更新卡片收藏的函数
+const updatecardList = (cardType, amount = 1) => {
+  // 查找是否已存在该类型卡片的记录
+  let cardRecord = gameState.value.cardList.find(card => card.cardType === cardType)
+  
+  if (cardRecord) {
+    // 如果已存在,更新数量
+    cardRecord.cardNum += amount
+    if (cardRecord.cardNum < 0) cardRecord.cardNum = 0
+  } else if (amount > 0) {
+    // 如果不存在且数量为正,添加新记录
+    gameState.value.cardList.push({
+      cardType,
+      cardNum: amount
+    })
+  }
+}
+
+// 添加更新成就的函数
+const updateAchievements = (achievementId) => {
+  if (!gameState.value.achievements.includes(achievementId + ",")) {
+    gameState.value.achievements += achievementId + ","
+    console.log('成就已更新:', gameState.value.achievements)
+  }
+}
+
+// 添加更新金币的函数
+const updateGold = (amount) => {
+  gameState.value.gold += amount
+  if (gameState.value.gold < 0) gameState.value.gold = 0
+  console.log('当前金币:', gameState.value.gold)
+}
 
 // 折叠/展开控制函数
 // 折叠/展开控制函数
@@ -205,11 +346,11 @@ const togglePoemAchievements = () => {
   }
 }
 
-const purchaseCount = ref(0)  // 购买卡包计数
-const sellCount = ref(0)      // 出售卡片计数
-const mergeCount = ref(0)     // 合成次数计数
-const factoryCount = ref(0)   // 建造书斋计数
-const workerCount = ref(0)    // 雇佣书生计数
+// const purchaseCount = ref(0)  // 购买卡包计数
+// const sellCount = ref(0)      // 出售卡片计数
+// const mergeCount = ref(0)     // 合成次数计数
+// const factoryCount = ref(0)   // 建造书斋计数
+// const workerCount = ref(0)    // 雇佣书生计数
 
 // 添加DOM引用
 const sideBar = ref(null)
@@ -353,7 +494,9 @@ const poemAchievements = ref([
 const unlockAchievement = (achievementId) => {
   // 将 achievementId 转换为数字类型
   const idNum = parseInt(achievementId)
-  
+
+  updateAchievements(achievementId)
+
   if (idNum <= 10) {
     // 基础成就解锁逻辑
     const basicAchievement = basicAchievements.value.find(a => a.id === idNum)
@@ -540,7 +683,6 @@ const checkLoveAchievement = (cardType) => {
   }
 }
 
-
 // 在合成诗词成功时调用
 const unlockPoemAchievement = (poemName) => {
   const achievement = poemAchievements.value.find(a => a.name === poemName)
@@ -719,7 +861,7 @@ const craftingRecipes = {
   'home_libai_moon': 'jingyesi',
   'byebye_libai_longriver': 'huanghelousongmenghaoranzhiguangling',
   'libai_mountain_water': 'wanglushanpubu',
-  'autumn_libai_wine': 'xinglunan',
+  'libai_mountain_wine': 'xinglunan',
   'libai_wine_yellowriver': 'jiangjinjiu',
 
   'autumn_dufu_rain': 'maowuweiqiufengsuopoerge',
@@ -732,7 +874,7 @@ const craftingRecipes = {
 
   'goose_wangwei_yellowriver': 'shizhisaishang',
   'friend_wangwei_wine': 'songyuanershianxi',
-  'spring_missing_wangwei': 'xiangsi',
+  'missing_spring_wangwei': 'xiangsi',
   'home_missing_wangwei': 'jiuyuejiuriyishandongxiongdi',
   'byebye_friend_wangwei': 'weichengqu',
   'autumn_rain_wangwei': 'shanjuqiuming',
@@ -810,10 +952,6 @@ const craftingRecipes = {
   'factory_zhuangzhinanchou_zhuangzhinanchou': 'factory_zhuangzhinanchou',
 
 };
-const unlockedRecipes = ref(new Set()) // 存储已解锁的配方
-
-// 修改合成表数据初始化
-const recipes = ref([])
 
 // 基于 recipeMapping 初始化所有配方为未知状态
 const initializeRecipes = () => {
@@ -833,7 +971,6 @@ const initializeRecipes = () => {
 }
 
 // 解锁配方的函数
-
 const unlockRecipe = (card1Type, card2Type, resultType) => {
   const types = [card1Type, card2Type].sort()
   const recipeKey = types.join('_')
@@ -1036,6 +1173,8 @@ const handleBuyPack = () => {
   if (coins.value >= packPrice) {
     coins.value -= packPrice
 
+    updateGold(-packPrice)
+
     // 更新购买计数并检查成就
     purchaseCount.value++
     
@@ -1140,6 +1279,9 @@ const handleBuyPack = () => {
             const radius = 80
             const randomCard = allCards[Math.floor(Math.random() * allCards.length)]
 
+            // 更新收藏
+            updatecardList(randomCard)
+
             checkLoveAchievement(randomCard) // 检查是否获得love卡片
 
             const newX = cardPack.x + Math.cos(angle) * radius
@@ -1189,6 +1331,7 @@ const handleBuyAdvancedPack = () => {
   if (coins.value >= packPrice) {
     //coins.value -= packPrice
 
+    updateGold(-packPrice)
     // 更新购买计数并检查成就，与普通卡包共用计数
     purchaseCount.value++
     
@@ -1269,10 +1412,13 @@ const handleBuyAdvancedPack = () => {
           const angle = (i / numCards) * Math.PI * 2
           const radius = 80
           const randomCard = advancedCards[Math.floor(Math.random() * advancedCards.length)]
-          
+
           const newX = advancedPack.x + Math.cos(angle) * radius
           const newY = advancedPack.y + Math.sin(angle) * radius
           
+          // 更新收藏
+          updatecardList(randomCard)
+
           const card = scene.physics.add.image(advancedPack.x, advancedPack.y, randomCard)
             .setDisplaySize(100, 140)
             .setInteractive({ cursor: 'pointer', useHandCursor: true })
@@ -1333,7 +1479,8 @@ const gameCanvas = ref(null)
 let game = null
 
 // 游戏主要逻辑
-onMounted(() => {
+onMounted(async () => {
+  await loadSaveData() // 加载存档
   nextTick(() => {
     gsap.fromTo(sideBar.value, 
       { x: -250, opacity: 0 },
@@ -1348,6 +1495,14 @@ onMounted(() => {
   const container = gameCanvas.value
   const containerWidth = container.clientWidth
   const containerHeight = container.clientHeight
+
+  // 设置自动保存定时器（每60秒保存一次）
+  const saveInterval = setInterval(autoSave, 1000)
+  
+  // 在组件销毁时清理定时器
+  onBeforeUnmount(() => {
+    clearInterval(saveInterval)
+  })
 
   const config = {
     type: Phaser.AUTO,
@@ -2016,6 +2171,10 @@ onMounted(() => {
             yoyo: true
           })
           
+          // 创建工人卡后更新收藏
+          updatecardList('card_worker', 1)
+
+          // 添加点击反馈动画
           this.tweens.add({
             targets: [buyIcon3, buyText3],
             scale: 0.9,
@@ -2116,6 +2275,10 @@ onMounted(() => {
       const handleBuyFactory = () => {
         if (coins.value >= 10) {
           coins.value -= 10
+          updateGold(-10)
+
+          // 创建书斋卡后更新收藏
+          updatecardList('factory', 1)
 
           // 简单的按下反馈
           this.tweens.add({
@@ -2389,6 +2552,14 @@ onMounted(() => {
               if (poemName) {
                 unlockPoemAchievement(poemName)
               }
+
+              materials.forEach(card => {
+                const cardType = card.getData('type');
+                updatecardList(cardType, -1); // 减少使用的材料卡片
+              });
+
+              // 增加结果卡片数量
+              updatecardList(resultType, 1); // 添加合成获得的卡片
             }
             
             if (resultType) {
@@ -2601,32 +2772,45 @@ onMounted(() => {
     });
 
     // 创建初始卡片
-    const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain','water','moon']
-    for (let i = 0; i < initialCards.length; i++) {
-      const cardKey = initialCards[i]
-      const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
-        .setDisplaySize(100, 140)
-        .setInteractive({ cursor: 'pointer', useHandCursor: true })
-        .setCollideWorldBounds(true)
-        .setBounce(0.8)
-        .setData('type', cardKey)
-        .setData('id', cardId++)
-        .setAlpha(0)
+    // 从存档数据创建卡片
+    if (gameState.value.cardList && gameState.value.cardList.length > 0) {
+      gameState.value.cardList.forEach((cardData, index) => {
+        // 为每张卡片创建多个实例,数量由 cardNum 决定
+        for (let i = 0; i < cardData.cardNum; i++) {
+          // 计算每张卡片的随机位置
+          const x = Math.random() * (this.scale.width - 100) + 50
+          const y = Math.random() * (this.scale.height - 140 - 180) + 250
 
-      this.input.setDraggable(card)
-      this.cards.push(card)
-      
-      // 卡片进入动画
-      this.time.delayedCall(i * 150, () => {
-        this.tweens.add({
-          targets: card,
-          alpha: 1,
-          y: card.y - 20,
-          duration: 600,
-          ease: 'Back.easeOut'
-        })
+          const card = this.physics.add.image(x, y, cardData.cardType)
+            .setDisplaySize(100, 140)
+            .setInteractive({ cursor: 'pointer', useHandCursor: true })
+            .setCollideWorldBounds(true)
+            .setBounce(0.8)
+            .setData('type', cardData.cardType)
+            .setData('id', Date.now().toString() + i)
+
+          this.input.setDraggable(card)
+          this.cards.push(card)
+        }
       })
+    } else {
+      // 如果没有存档数据,创建默认的初始卡片
+      const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
+      for (let i = 0; i < initialCards.length; i++) {
+        const cardKey = initialCards[i]
+        const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
+          .setDisplaySize(100, 140)
+          .setInteractive({ cursor: 'pointer', useHandCursor: true })
+          .setCollideWorldBounds(true)
+          .setBounce(0.8)
+          .setData('type', cardKey)
+          .setData('id', cardId++)
+
+        this.input.setDraggable(card)
+        this.cards.push(card)
+      }
     }
+
 
     // 设置游戏区域边界
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height)
@@ -2739,13 +2923,14 @@ onMounted(() => {
         let totalPrice = 0
         cardsToSell.forEach(card => {
           const cardType = card.getData('type')
+          updatecardList(cardType, -1) // 更新卡片收集数量
           const price = cardPrices[cardType] || 0
           totalPrice += price
         })
 
         if (totalPrice > 0) {
           coins.value += totalPrice
-
+          updateGold(totalPrice)
           sellSlot.setStrokeStyle(2, 0x6e5773)
 
           // 添加金币动画
@@ -2816,6 +3001,13 @@ onMounted(() => {
 
             if (resultType) {
               checkLoveAchievement(resultType)
+
+              // 更新收藏
+              updatecardList(resultType)
+              
+              // 移除用于合成的卡片
+              updatecardList(card1Type, -1)
+              updatecardList(card2Type, -1)
 
               // 更新合成次数并检查成就
               mergeCount.value++
@@ -3166,6 +3358,8 @@ onMounted(() => {
         .setAlpha(0.8)
         .setTint(0xffd700)
         .setBlendMode(Phaser.BlendModes.ADD);
+
+      updatecardList(factory.productType, 1)
       
       this.tweens.add({
         targets: flash,

@@ -1,7 +1,6 @@
 package com.example.bg.admin;
 
 import com.example.bg.poem.Poem;
-import com.example.bg.poem.PoemGetMapper;
 import com.example.bg.ConnetMySQL;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
@@ -15,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/poem")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdminPoemController extends ConnetMySQL {
 
     /**

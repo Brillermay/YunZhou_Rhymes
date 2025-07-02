@@ -14,12 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/sensitive-word")
-@CrossOrigin(origins = {
-        "http://localhost:8080",
-        "http://localhost:5173",
-        "http://127.0.0.1:8080",
-        "http://127.0.0.1:5173"
-}, allowCredentials = "true")
+
 public class AdminSensitiveWordController extends ConnetMySQL {
 
     @Autowired
