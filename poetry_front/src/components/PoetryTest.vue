@@ -688,7 +688,7 @@ export default {
           uid = null;
         }
         // 请求排行榜
-        const resp = await fetch('${API_BASE_URL}/compRec/rank', {
+        const resp = await fetch(`${API_BASE_URL}/compRec/rank`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -761,7 +761,7 @@ export default {
       // 查询历史最高分
       let oldMax = 0;
       try {
-        const resp = await fetch('${API_BASE_URL}/compRec/rank', {
+        const resp = await fetch(`${API_BASE_URL}/compRec/rank`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -791,7 +791,7 @@ export default {
       };
       console.log(record);
       try {
-        await fetch('${API_BASE_URL}/compRec/submit', {
+        await fetch(`${API_BASE_URL}/compRec/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(record)
