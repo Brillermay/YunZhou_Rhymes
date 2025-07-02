@@ -451,8 +451,8 @@ public class EasyRAGController extends ConnetMySQL {
                 return emitter;
             }
             // 只允许五个角色
-            if (!com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles().contains(role)) {
-                emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.util.RoleProfileUtil.getSupportedRoles()));
+            if (!com.example.bg.ai.RoleProfileUtil.getSupportedRoles().contains(role)) {
+                emitter.send(SseEmitter.event().data("仅支持角色：" + com.example.bg.ai.RoleProfileUtil.getSupportedRoles()));
                 emitter.complete();
                 return emitter;
             }
