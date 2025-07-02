@@ -15,7 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/poem")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdminPoemController extends ConnetMySQL {
 
     /**

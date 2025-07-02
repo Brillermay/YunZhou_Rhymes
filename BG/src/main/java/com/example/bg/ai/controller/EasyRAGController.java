@@ -17,18 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Easy RAG", description = "简单易用的 RAG 诗词问答系统")
-@CrossOrigin(
-        origins = {
-                "http://localhost:8080",
-                "http://localhost:8081",
-                "http://127.0.0.1:8081",
-                "http://117.72.88.23:8081",
-        },
-        allowedHeaders = "*",
-        methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS},
-        maxAge = 3600,
-        allowCredentials = "true"
-)
+
 @RestController
 @RequestMapping(value = "/ai/easy")
 public class EasyRAGController extends ConnetMySQL {
