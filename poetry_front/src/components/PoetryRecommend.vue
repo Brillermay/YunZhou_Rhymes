@@ -382,6 +382,7 @@ onMounted(async () => {
   pointer-events: none;
   backdrop-filter: blur(1px);
 }
+
 /* 头部区域 */
 .poetry-header {
   text-align: center;
@@ -569,7 +570,7 @@ onMounted(async () => {
   filter: blur(3px);
 }
 
-/* 卡片内容 */
+/* 卡片内容 - 基础样式 */
 .card-inner {
   border-radius: 24px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
@@ -580,16 +581,12 @@ onMounted(async () => {
   height: 650px;
   position: relative;
   background: white;
-  
-  /* 添加边框效果 */
   border: 3px solid transparent;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  
-  /* 添加背景渐变边框 */
   background-clip: padding-box;
 }
 
-/* 卡片背景遮罩 */
+/* 🎯 非active卡片的基础蒙版（透明度较低） */
 .card-inner::before {
   content: '';
   position: absolute;
@@ -599,31 +596,24 @@ onMounted(async () => {
   bottom: 0;
   background: linear-gradient(
     135deg, 
-    rgba(255, 255, 255, 0.241) 0%,
-    rgba(248, 244, 237, 0.276) 50%,
-    rgba(255, 255, 255, 0.326) 100%
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(248, 244, 237, 0.15) 50%,
+    rgba(255, 255, 255, 0.2) 100%
   );
   z-index: 1;
   pointer-events: none;
   transition: all 0.3s ease;
   border-radius: 21px;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(1px);
 }
 
-
-
-
-
-/* 悬停效果 */
-.poem-card.active .card-inner:hover {
-  transform: translateY(-8px) scale(1.02);
+/* 🎯 Active卡片默认应用强蒙版效果 */
+.poem-card.active .card-inner {
   border-color: #8c7853;
   box-shadow: 0 20px 60px rgba(140, 120, 83, 0.25);
 }
 
-
-
-.poem-card.active .card-inner:hover::before {
+.poem-card.active .card-inner::before {
   background: linear-gradient(
     135deg, 
     rgba(255, 255, 255, 0.9) 0%,
@@ -632,20 +622,30 @@ onMounted(async () => {
   );
   backdrop-filter: blur(3px);
 }
-/* 侧边卡片悬停效果 */
-.poem-card.prev .card-inner:hover,
-.poem-card.next .card-inner:hover {
-  transform: scale(0.88);
-  border-color: rgba(140, 120, 83, 0.6);
-  box-shadow: 0 15px 45px rgba(140, 120, 83, 0.2);
+
+/* 🎯 Active卡片的文字样式优化 */
+.poem-card.active .card-header h3 {
+  color: #6e5773;
 }
 
-/* 卡片头部和内容 */
-.card-header, 
-.card-body {
-  position: relative;
-  z-index: 2;
-  transition: transform 0.3s ease;
+.poem-card.active .author {
+  color: #4a3624;
+  opacity: 1;
+}
+
+.poem-card.active .poem-line {
+  color: #1a0e08;
+}
+
+.poem-card.active .poem-info {
+  background: linear-gradient(135deg, rgba(140, 120, 83, 0.15), rgba(110, 87, 115, 0.15));
+  border-color: rgba(140, 120, 83, 0.3);
+}
+
+/* 🎯 Active卡片悬停时的微调效果 */
+.poem-card.active .card-inner:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 25px 70px rgba(140, 120, 83, 0.3);
 }
 
 .poem-card.active .card-inner:hover .card-header {
@@ -656,12 +656,29 @@ onMounted(async () => {
   transform: translateY(-2px);
 }
 
+.poem-card.active .card-inner:hover .card-header h3 {
+  transform: scale(1.05);
+}
+
+.poem-card.active .card-inner:hover .poem-line {
+  transform: translateX(2px);
+}
+
+/* 侧边卡片悬停效果 */
+.poem-card.prev .card-inner:hover,
+.poem-card.next .card-inner:hover {
+  transform: scale(0.88);
+  border-color: rgba(140, 120, 83, 0.6);
+  box-shadow: 0 15px 45px rgba(140, 120, 83, 0.2);
+}
+
+/* 卡片头部 */
 .card-header {
   padding: 2rem 2rem 1.5rem;
   border-bottom: 2px dashed rgba(140, 120, 83, 0.3);
   text-align: center;
-  /*background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 244, 237, 0.9));*/
-  /*backdrop-filter: blur(10px);*/
+  position: relative;
+  z-index: 2;
 }
 
 .card-header h3 {
@@ -675,11 +692,6 @@ onMounted(async () => {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.poem-card.active .card-inner:hover .card-header h3 {
-  color: #6e5773;
-  transform: scale(1.05);
-}
-
 .author {
   margin-top: 0.8rem;
   font-size: 1.1rem;
@@ -690,11 +702,6 @@ onMounted(async () => {
   opacity: 0.9;
 }
 
-.poem-card.active .card-inner:hover .author {
-  color: #4a3624;
-  opacity: 1;
-}
-
 /* 卡片主体 */
 .card-body {
   flex: 1;
@@ -702,8 +709,8 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  /*background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(5px);*/
+  position: relative;
+  z-index: 2;
 }
 
 .poem-content {
@@ -726,11 +733,6 @@ onMounted(async () => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.poem-card.active .card-inner:hover .poem-line {
-  color: #1a0e08;
-  transform: translateX(2px);
-}
-
 .poem-placeholder {
   text-align: center;
   color: #8c7853;
@@ -748,11 +750,6 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid rgba(140, 120, 83, 0.2);
   transition: all 0.3s ease;
-}
-
-.poem-card.active .card-inner:hover .poem-info {
-  background: linear-gradient(135deg, rgba(140, 120, 83, 0.15), rgba(110, 87, 115, 0.15));
-  border-color: rgba(140, 120, 83, 0.3);
 }
 
 .poem-info h4 {

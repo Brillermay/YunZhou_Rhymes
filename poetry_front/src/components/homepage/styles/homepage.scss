@@ -1,0 +1,521 @@
+// ===== 🎨 首页样式系统 =====
+
+// 颜色变量
+$primary-text: #2c3e50;
+$secondary-text: #7f8c8d;
+$accent-color: #8c7853;
+$ink-color: #34495e;
+$background-light: #f8f9fa;
+$shadow-light: rgba(0, 0, 0, 0.1);
+$shadow-medium: rgba(0, 0, 0, 0.2);
+$shadow-heavy: rgba(0, 0, 0, 0.3);
+
+// 字体定义
+$font-chinese: 'STKaiti', 'KaiTi', '楷体', serif;
+$font-english: 'Georgia', 'Times New Roman', serif;
+$font-modern: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+// 尺寸变量
+$content-max-width: 1200px;
+$border-radius: 8px;
+$spacing-xs: 0.5rem;
+$spacing-sm: 1rem;
+$spacing-md: 2rem;
+$spacing-lg: 3rem;
+$spacing-xl: 4rem;
+
+// Z-index层级
+$z-background: 1;
+$z-particles: 5;
+$z-content: 10;
+$z-decorative: 15;
+$z-ui: 20;
+$z-loading: 100;
+
+// ===== 🏠 主容器样式 =====
+
+.homepage-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: $font-chinese;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%);
+  
+  // 防止用户选择文本
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+// ===== 📝 内容区域样式 =====
+
+.content-wrapper {
+  position: relative;
+  z-index: $z-content;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: $spacing-md;
+  text-align: center;
+}
+
+.subtitle-container {
+  margin: $spacing-md 0;
+  opacity: 0; // 初始隐藏，等待动画
+}
+
+.subtitle-line {
+  font-size: clamp(1rem, 2.5vw, 1.8rem);
+  color: $secondary-text;
+  margin: $spacing-xs 0;
+  font-weight: 300;
+  letter-spacing: 0.3em;
+  line-height: 1.6;
+  
+  &:first-child {
+    color: $accent-color;
+    font-weight: 400;
+  }
+}
+
+// ===== 🎭 装饰元素样式 =====
+
+.decorative-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: $z-decorative;
+}
+
+.ink-dot {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.6;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: inherit;
+    border-radius: 50%;
+    opacity: 0.3;
+    filter: blur(1px);
+  }
+}
+
+.ancient-seal {
+  position: absolute;
+  bottom: 10%;
+  right: 10%;
+  width: 80px;
+  height: 80px;
+  border: 3px solid $accent-color;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 25px $shadow-medium;
+  backdrop-filter: blur(10px);
+  opacity: 0; // 初始隐藏
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    bottom: 6px;
+    border: 1px solid rgba($accent-color, 0.5);
+    border-radius: 50%;
+  }
+}
+
+.seal-content {
+  font-size: 1rem;
+  color: $accent-color;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+// ===== 🔊 音频控制器样式 =====
+
+.audio-controller {
+  position: fixed;
+  top: $spacing-md;
+  right: $spacing-md;
+  z-index: $z-ui;
+  opacity: 0; // 初始隐藏
+}
+
+.audio-btn {
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: $accent-color;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 6px 20px $shadow-light;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba($accent-color, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 8px 30px $shadow-medium;
+    transform: scale(1.05);
+    border-color: $accent-color;
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  &.muted {
+    background: rgba(200, 200, 200, 0.9);
+    color: #95a5a6;
+    
+    &:hover {
+      background: rgba(200, 200, 200, 1);
+    }
+  }
+}
+
+// ===== 💧 加载界面样式 =====
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, $background-light 0%, #e9ecef 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: $z-loading;
+  transition: opacity 1s ease-out;
+  
+  &.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.loading-content {
+  text-align: center;
+  color: $primary-text;
+}
+
+.ink-drop-loader {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto $spacing-md;
+}
+
+.drop {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, $accent-color, $ink-color);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: drop-pulse 2s ease-in-out infinite;
+}
+
+.ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  border: 2px solid rgba($accent-color, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-expand 2s ease-in-out infinite;
+}
+
+.loading-text {
+  font-size: 1.2rem;
+  margin-bottom: $spacing-md;
+  color: $secondary-text;
+  letter-spacing: 0.2em;
+}
+
+.loading-progress {
+  width: 200px;
+  height: 4px;
+  background: rgba($accent-color, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, $accent-color, $ink-color);
+  border-radius: 2px;
+  transition: width 0.3s ease-out;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    animation: progress-shimmer 1.5s ease-in-out infinite;
+  }
+}
+
+// ===== 🐭 鼠标轨迹样式 =====
+
+.mouse-trail-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: $z-particles;
+}
+
+.mouse-trail-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(
+    circle,
+    rgba($accent-color, 0.8) 0%,
+    rgba($ink-color, 0.4) 50%,
+    transparent 100%
+  );
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+// ===== 📱 响应式设计 =====
+
+@media (max-width: 1024px) {
+  .content-wrapper {
+    padding: $spacing-sm;
+  }
+  
+  .subtitle-line {
+    font-size: clamp(0.9rem, 2.2vw, 1.5rem);
+    letter-spacing: 0.2em;
+  }
+  
+  .ancient-seal {
+    width: 70px;
+    height: 70px;
+    bottom: 8%;
+    right: 8%;
+  }
+  
+  .seal-content {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .subtitle-container {
+    margin: $spacing-sm 0;
+  }
+  
+  .subtitle-line {
+    font-size: clamp(0.8rem, 2vw, 1.2rem);
+    margin: 0.3rem 0;
+  }
+  
+  .audio-controller {
+    top: $spacing-sm;
+    right: $spacing-sm;
+  }
+  
+  .audio-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  
+  .ancient-seal {
+    width: 60px;
+    height: 60px;
+    bottom: 6%;
+    right: 6%;
+  }
+  
+  .seal-content {
+    font-size: 0.8rem;
+  }
+  
+  .loading-content {
+    padding: 0 $spacing-sm;
+  }
+  
+  .loading-text {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .content-wrapper {
+    padding: $spacing-xs;
+  }
+  
+  .subtitle-line {
+    font-size: clamp(0.7rem, 1.8vw, 1rem);
+    letter-spacing: 0.1em;
+  }
+  
+  .ancient-seal {
+    display: none; // 在很小的屏幕上隐藏印章
+  }
+  
+  .audio-btn {
+    width: 45px;
+    height: 45px;
+    font-size: 1rem;
+  }
+  
+  .ink-drop-loader {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .drop {
+    width: 15px;
+    height: 15px;
+  }
+  
+  .ripple {
+    width: 45px;
+    height: 45px;
+  }
+}
+
+// ===== 🎨 深色模式支持 =====
+
+@media (prefers-color-scheme: dark) {
+  .homepage-container {
+    background: linear-gradient(135deg, #1a252f 0%, #2c3e50 50%, #34495e 100%);
+  }
+  
+  .subtitle-line {
+    color: #bdc3c7;
+    
+    &:first-child {
+      color: #f39c12;
+    }
+  }
+  
+  .ancient-seal {
+    background: rgba(44, 62, 80, 0.9);
+    border-color: #f39c12;
+    
+    &::before {
+      border-color: rgba(#f39c12, 0.5);
+    }
+  }
+  
+  .seal-content {
+    color: #f39c12;
+  }
+  
+  .audio-btn {
+    background: rgba(44, 62, 80, 0.9);
+    color: #f39c12;
+    border-color: rgba(#f39c12, 0.2);
+    
+    &:hover {
+      background: rgba(44, 62, 80, 1);
+      border-color: #f39c12;
+    }
+    
+    &.muted {
+      background: rgba(80, 90, 100, 0.9);
+      color: #7f8c8d;
+    }
+  }
+  
+  .loading-overlay {
+    background: linear-gradient(135deg, #1a252f 0%, #2c3e50 100%);
+  }
+  
+  .loading-text {
+    color: #bdc3c7;
+  }
+  
+  .mouse-trail-dot {
+    background: radial-gradient(
+      circle,
+      rgba(#f39c12, 0.8) 0%,
+      rgba(#e67e22, 0.4) 50%,
+      transparent 100%
+    );
+  }
+}
+
+// ===== 🎯 可访问性优化 =====
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .drop,
+  .ripple {
+    animation: none;
+  }
+  
+  .progress-bar::after {
+    animation: none;
+  }
+}
+
+// 高对比度模式
+@media (prefers-contrast: high) {
+  .subtitle-line {
+    color: #000;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+  }
+  
+  .audio-btn {
+    border-width: 3px;
+  }
+  
+  .ancient-seal {
+    border-width: 4px;
+  }
+}
