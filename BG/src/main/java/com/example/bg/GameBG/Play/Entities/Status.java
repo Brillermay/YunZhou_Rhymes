@@ -1,4 +1,4 @@
-package com.example.bg.GameBG.Play;
+package com.example.bg.GameBG.Play.Entities;
 
 import lombok.Data;
 
@@ -11,5 +11,5 @@ public class Status {
     *
     * */
     private String name;
-    private String consistTime;
+    private int consistTime;
 }

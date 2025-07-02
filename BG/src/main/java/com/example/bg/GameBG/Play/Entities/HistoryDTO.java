@@ -1,4 +1,4 @@
-package com.example.bg.GameBG.Play;
+package com.example.bg.GameBG.Play.Entities;
 
 import lombok.Data;
 

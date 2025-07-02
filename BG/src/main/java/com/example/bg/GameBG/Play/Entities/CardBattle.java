@@ -1,4 +1,4 @@
-package com.example.bg.GameBG.Play;
+package com.example.bg.GameBG.Play.Entities;
 
 import lombok.Data;
 
@@ -10,7 +10,8 @@ public class CardBattle {
 
 
     */
-    private String cardType;
+    private int cardType;
     private int cardNum;
+    private String cardName;
 
 }

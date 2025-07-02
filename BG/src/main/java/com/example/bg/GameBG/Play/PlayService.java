@@ -1,9 +1,12 @@
 package com.example.bg.GameBG.Play;
 
+import com.example.bg.GameBG.Play.Entities.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 @Service
@@ -18,7 +21,7 @@ public class PlayService {
     @Autowired
     BattleMapper battleMapper;
     Map<String, Room> roomMap = new ConcurrentHashMap<>();
-    Map<Integer,PlayerAgainst>playerAgainstMap = new ConcurrentHashMap<>();
+    Map<Integer, PlayerAgainst>playerAgainstMap = new ConcurrentHashMap<>();
     public Room CreateRoom(int uid1)
     {
         Room now=new Room();
@@ -42,5 +45,20 @@ public class PlayService {
         now.setUid2(uid2);
         return now;
     }
-    
+    public PlayerAgainst init(String roomId,int userId,String role)
+    {
+        List<CardBattle>cardList=new ArrayList<>();
+        List<Status>statuses=new ArrayList<>();
+        //初始化cardList
+
+        PlayerAgainst playerAgainst =new PlayerAgainst();
+        playerAgainst.setHp(100);
+        playerAgainst.setCards(cardList);
+        playerAgainst.setRoomNumber(roomId);
+        playerAgainst.setWealthy(100);
+        playerAgainst.setStatuses(statuses);
+
+        return playerAgainst;
+    }
+
 }
