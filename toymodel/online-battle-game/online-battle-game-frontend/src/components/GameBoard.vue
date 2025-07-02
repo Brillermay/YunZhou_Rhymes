@@ -20,7 +20,7 @@
 
 <script lang="ts">
 import { defineComponent, onMounted, ref } from 'vue';
-import { gameState, sendMove, resetGame } from '../utils/socket';
+import { gameState, sendMove, resetGame } from '@/utils/socket';
 
 export default defineComponent({
   name: 'GameBoard',

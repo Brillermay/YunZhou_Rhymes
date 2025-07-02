@@ -1846,26 +1846,6 @@ onMounted(async () => {
       });
 
 
-    // 创建金币显示背景并添加交互效果
-    const coinBackground = this.add.rectangle(
-      this.scale.width - padding - 100,
-      padding,
-      100,
-      40,
-      0x8c7853
-    )
-      .setOrigin(1, 0)
-      .setDepth(100)  // 改为100，与topBar相同
-      .setAlpha(0.9)
-      .setStrokeStyle(1, 0x6e5773)
-      .setInteractive()
-      .on('pointerover', () => {
-        coinBackground.setAlpha(1)
-      })
-      .on('pointerout', () => {
-        coinBackground.setAlpha(0.9)
-      });
-
     // 对应地修改金币文本的深度值
     const coinDisplay = this.add.text(
       this.scale.width - padding - 10, 
@@ -1931,7 +1911,6 @@ onMounted(async () => {
 
       // 更新金币显示位置
       coinDisplay.x = gameSize.width - padding - 10;
-      coinBackground.x = gameSize.width - padding;
 
       modeHintBackground.x = gameSize.width - padding ;
       modeHintText.x = gameSize.width - padding -10;

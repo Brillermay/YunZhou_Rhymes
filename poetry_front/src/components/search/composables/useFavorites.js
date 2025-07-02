@@ -1,4 +1,5 @@
 import { ref, computed, watch, onMounted } from 'vue'
+import API_BASE_URL from '@/config/api';
 
 export function useFavorites(userStore) {
   const favoriteIds = ref(new Set())
@@ -6,7 +7,6 @@ export function useFavorites(userStore) {
   const loading = ref(false)
 
   // 🔧 修正API基础URL - 改为8081端口
-  const API_BASE = 'http://localhost:8081'
   const STORAGE_KEY = 'poetrySearchFavorites'
 
   // 🔧 检查用户是否完全登录（包括uid）
@@ -34,7 +34,7 @@ export function useFavorites(userStore) {
     console.log('📚 从服务器加载收藏列表, UID:', userStore.uid)
     
     try {
-      const url = `${API_BASE}/star/list/${userStore.uid}`
+      const url = `${API_BASE_URL}/star/list/${userStore.uid}`
       console.log('🔗 请求URL:', url)
       
       const response = await fetch(url, {
@@ -104,7 +104,7 @@ export function useFavorites(userStore) {
         throw new Error('诗词ID无效')
       }
 
-      const response = await fetch(`${API_BASE}/star/add`, {
+      const response = await fetch(`${API_BASE_URL}/star/add`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -152,7 +152,7 @@ export function useFavorites(userStore) {
         throw new Error('诗词ID无效')
       }
 
-      const response = await fetch(`${API_BASE}/star/remove`, {
+      const response = await fetch(`${API_BASE_URL}/star/remove`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {

@@ -84,13 +84,14 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue';
 import gsap from 'gsap';
+import API_BASE_URL from '@/config/api';
 
 // DOM 引用
 const titleRef = ref(null);
 const subtitleRef = ref(null);
 
 const MAX_POEMS = 10;
-const API_BASE_URL = 'http://localhost:8081/poem';
+
 const allPoems = reactive([]);
 const currentIndex = ref(0);
 const loading = ref(false);
@@ -185,7 +186,7 @@ const formatPoemText = (text) => {
 const fetchPoemById = async (id) => {
   try {
     console.log(`正在获取诗词ID: ${id}`);
-    const response = await fetch(`${API_BASE_URL}/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/poem/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -245,6 +245,7 @@
 
 <script>
 import axios from 'axios';
+import API_BASE_URL from '@/config/api';
 export default {
   name: "mtApp",
   data() {
@@ -401,6 +402,7 @@ export default {
         this.submitRecordToBackend();
       }
     },
+
     changeScore(btnId1, btnId2, btnId3, btnId4) {
       if (!this.showResultsFlag) {
         this.buttonStates[btnId1] = "color-change clicked";
@@ -647,7 +649,7 @@ export default {
     },
     async getUserName(uid) {
       try {
-        const response = await fetch(`http://127.0.0.1:8081/user/loginName/${uid}`, {
+        const response = await fetch(`${API_BASE_URL}/user/loginName/${uid}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -680,13 +682,13 @@ export default {
         // 获取当前用户UID
         let uid = null;
         try {
-          const res = await fetch(`http://127.0.0.1:8081/user/loginID/${username}`);
+          const res = await fetch(`${API_BASE_URL}/user/loginID/${username}`);
           uid = await res.text();
         } catch (e) {
           uid = null;
         }
         // 请求排行榜
-        const resp = await fetch('http://127.0.0.1:8081/compRec/rank', {
+        const resp = await fetch(`${API_BASE_URL}/compRec/rank`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -751,7 +753,7 @@ export default {
       if (!username) return;
       let uid = null;
       try {
-        const res = await fetch(`http://127.0.0.1:8081/user/loginID/${username}`);
+        const res = await fetch(`${API_BASE_URL}/user/loginID/${username}`);
         uid = await res.text();
       } catch (e) {
         uid = null;
@@ -759,7 +761,7 @@ export default {
       // 查询历史最高分
       let oldMax = 0;
       try {
-        const resp = await fetch('http://127.0.0.1:8081/compRec/rank', {
+        const resp = await fetch(`${API_BASE_URL}/compRec/rank`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -789,7 +791,7 @@ export default {
       };
       console.log(record);
       try {
-        await fetch('http://127.0.0.1:8081/compRec/submit', {
+        await fetch(`${API_BASE_URL}/compRec/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(record)

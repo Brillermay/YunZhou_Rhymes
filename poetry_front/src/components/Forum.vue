@@ -181,6 +181,7 @@
 <script>
 import axios from 'axios';
 import { useUserStore } from '@/stores/user';
+import API_BASE_URL from '@/config/api';
 
 export default {
   name: 'PoetryForum',
@@ -192,7 +193,7 @@ export default {
       username,
       isAdmin,
       isLoggedIn: !!username,
-      API_BASE_URL: 'http://localhost:8081/user', // 添加这一行
+      API_BASE_URL: '${API_BASE_URL}/user', // 添加这一行
 
       showPostForm: false,
       selectedCategory: '全部',
@@ -225,7 +226,7 @@ export default {
     this.newPost.author = username;
 
     // 从后端加载帖子数据并转换UID为用户名
-    axios.get('http://localhost:8081/comment/init')
+    axios.get(`${API_BASE_URL}/comment/init`)
       .then(async (response) => {
         const postsData = response.data;
 
@@ -233,7 +234,7 @@ export default {
         let likedCommentIds = [];
         if (userId) {
           try {
-            const likedResponse = await axios.get(`http://localhost:8081/comment/getLikeIDs/${userId}`);
+            const likedResponse = await axios.get(`${API_BASE_URL}/comment/getLikeIDs/${userId}`);
             likedCommentIds = likedResponse.data; // 获取喜欢的评论 ID 列表
 
           } catch (error) {
@@ -405,7 +406,7 @@ export default {
       }
 
       try {
-        const res = await axios.post('http://127.0.0.1:8081/comment/addComment', data);
+        const res = await axios.post(`${API_BASE_URL}/comment/addComment`, data);
         //console.log(res.data);
 
         if (res.data.status === "SUCCESS") {
@@ -455,7 +456,7 @@ export default {
       }
 
       // 调用后端删除接口
-      axios.delete(`http://127.0.0.1:8081/del/${postId}`)
+      axios.delete(`${API_BASE_URL}/del/${postId}`)
         .then(() => {
           // 删除成功后从本地 posts 中移除该帖子
           this.posts = this.posts.filter(post => post.id !== postId);
@@ -480,8 +481,8 @@ export default {
 
       // 根据当前点赞状态调用不同的接口
       const url = post.liked
-        ? `http://127.0.0.1:8081/comment/delLikeComment/${userId}/${post.id}`
-        : `http://127.0.0.1:8081/comment/likeComment/${userId}/${post.id}`;
+        ? `${API_BASE_URL}/comment/delLikeComment/${userId}/${post.id}`
+        : `${API_BASE_URL}/comment/likeComment/${userId}/${post.id}`;
 
       axios.get(url)
         .then((response) => {

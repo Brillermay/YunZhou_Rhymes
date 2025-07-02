@@ -527,9 +527,10 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import API_BASE_URL from '@/config/api';
 
 const router = useRouter();
-const API_BASE_URL = 'http://localhost:8081';
+
 
 // 响应式数据
 const activeTab = ref('overview');

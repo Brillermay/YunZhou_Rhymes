@@ -148,6 +148,7 @@
 <script>
 
 import axios from 'axios';
+import API_BASE_URL from '@/config/api';
 
 export default {
   name: 'FeiHuaLingChat',
@@ -552,7 +553,7 @@ export default {
     },
  
     async fetchRelatedVerse(keyword) {
-      const url = `http://localhost:8081/poem/keyword/${encodeURIComponent(keyword)}`;
+      const url = `${API_BASE_URL}/poem/keyword/${encodeURIComponent(keyword)}`;
       try {
         const response = await axios.get(url);
         // 提取返回的Poem对象数组中的text字段组成字符串数组

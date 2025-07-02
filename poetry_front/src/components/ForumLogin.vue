@@ -47,6 +47,7 @@
 <script>
 import { useUserStore } from '@/stores/user';
 import axios from "axios";
+import API_BASE_URL from '@/config/api';
 
 export default {
   name: 'ForumLogin',
@@ -57,7 +58,7 @@ export default {
       password: '',
       confirmPassword: '',
       loading: false, // 加载状态
-      API_BASE_URL: 'http://localhost:8081/user' // 后端API基础URL
+      API_BASE_URL: '${API_BASE_URL}' // 后端API基础URL
     };
   },
   methods: {

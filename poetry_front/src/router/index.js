@@ -6,7 +6,7 @@ import Forum from '@/components/Forum.vue'
 import ForumLogin from '@/components/ForumLogin.vue'
 import FeiHua from '@/components/FeiHuaLing.vue'
 import GameAll from "../components/gameAll.vue";
-import UserInfo from "@/components/userinfo/UserInfo.vue";
+import UserInfo from "@/components/userinfo/Userinfo.vue";
 import QwenLLM  from "@/components/QwenLLM.vue";
 
 // 导入管理员组件

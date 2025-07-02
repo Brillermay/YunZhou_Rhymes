@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\userinfo\components\AuthModal.vue -->
 <template>
   <div class="modal-overlay" @click="$emit('close')">
     <div class="auth-modal-content" @click.stop>
@@ -119,7 +118,8 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'submit', 'switch-mode'])
+// 🔧 修复：更新事件发射列表
+const emit = defineEmits(['close', 'login', 'register', 'switch-mode'])
 
 const form = reactive({
   username: '',
@@ -159,7 +159,7 @@ const resetForm = () => {
   form.email = ''
 }
 
-// 处理提交
+// 🔧 修复：处理提交事件
 const handleSubmit = () => {
   if (!canSubmit.value) return
   
@@ -173,7 +173,12 @@ const handleSubmit = () => {
     submitData.email = form.email.trim()
   }
   
-  emit('submit', submitData)
+  // 🔧 修复：根据模式发射正确的事件
+  if (props.isLoginMode) {
+    emit('login', submitData)
+  } else {
+    emit('register', submitData)
+  }
 }
 
 // 暴露重置方法给父组件
@@ -181,6 +186,8 @@ defineExpose({
   resetForm
 })
 </script>
+
+
 
 <style scoped>
 .modal-overlay {

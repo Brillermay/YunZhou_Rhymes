@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 
-const WS_URL = 'ws://192.168.121.49:8081/ws/game';
+const WS_URL = 'ws://192.168.142.49:8081/ws/game';
 
 let socket: WebSocket;
 const gameState = ref(Array(9).fill(''));

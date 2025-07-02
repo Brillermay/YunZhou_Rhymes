@@ -20,7 +20,11 @@
                 <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
                 <property name="url" value="jdbc:mysql://localhost:3306/es"/>
                 <property name="username" value="root"/>
-                <property name="password" value="npnpnpnow"/>
+                <property name="password" value="QAZ123wsx#"/>
+<!--                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>-->
+<!--                <property name="url" value="jdbc:mysql://localhost:3306/es"/>-->
+<!--                <property name="username" value="root"/>-->
+<!--                <property name="password" value="npnpnpnow"/>-->
             </dataSource>
         </environment>
     </environments>
@@ -31,6 +35,7 @@
         <mapper resource="com/example/bg/poem/PoemGetMapper.xml"/>
         <mapper resource="com/example/bg/poem/PoetGetMapper.xml"/>
         <mapper resource="com/example/bg/user/UserMapper.xml"/>
+        <mapper resource="com/example/bg/user/UserStarMapper.xml"/>
         <mapper resource="com/example/bg/ai/RAGMapper.xml"/>
         <mapper resource="com/example/bg/admin/AdminCommentMapper.xml"/>
         <mapper resource="com/example/bg/admin/AdminPoemMapper.xml"/>
