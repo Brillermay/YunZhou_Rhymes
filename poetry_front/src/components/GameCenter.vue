@@ -154,7 +154,7 @@ const games = reactive([
     description: '经典诗词对战游戏，考验诗词积累与反应速度',
     icon: 'fas fa-feather-alt',
     iconClass: 'icon-feihua',
-    path: '/feihualing',
+    path: '/feihua',
     tags: ['对战', '古典', '挑战'],
     difficulty: 4,
     sealText: '雅',

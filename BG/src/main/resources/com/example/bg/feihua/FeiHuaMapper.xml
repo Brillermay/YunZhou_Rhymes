@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.bg.feihua.FeiHuaMapper">
+
+    <!-- 插入游戏记录 -->
+    <insert id="insertGameRecord" parameterType="com.example.bg.feihua.FeiHua">
+        INSERT INTO feihua_records (user_id, player_name, score, mode, difficulty, keywords_used, play_date, created_at)
+        VALUES (#{userId}, #{playerName}, #{score}, #{mode}, #{difficulty}, #{keywordsUsed}, #{playDate}, NOW())
+    </insert>
+
+    <!-- 获取今日挑战人数 -->
+    <select id="getTodayPlayerCount" resultType="int">
+        SELECT COUNT(DISTINCT COALESCE(user_id, player_name)) 
+        FROM feihua_records 
+        WHERE play_date = #{date}
+    </select>
+
+    <!-- 获取平均分数 -->
+    <select id="getAverageScore" resultType="double">
+        SELECT AVG(score) FROM feihua_records
+    </select>
+
+    <!-- 获取总游戏次数 -->
+    <select id="getTotalGames" resultType="int">
+        SELECT COUNT(*) FROM feihua_records
+    </select>
+
+    <!-- 获取排行榜 -->
+    <select id="getLeaderboard" resultType="map">
+        SELECT 
+            player_name as playerName,
+            MAX(score) as score,
+            mode,
+            difficulty,
+            DATE(created_at) as achievedAt
+        FROM feihua_records 
+        GROUP BY player_name, mode, difficulty
+        ORDER BY MAX(score) DESC 
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取用户排名 -->
+    <select id="getUserRank" resultType="int">
+        SELECT COUNT(*) + 1 
+        FROM (
+            SELECT MAX(score) as max_score 
+            FROM feihua_records 
+            WHERE user_id IS NOT NULL 
+            GROUP BY user_id
+        ) t 
+        WHERE t.max_score > (
+            SELECT MAX(score) 
+            FROM feihua_records 
+            WHERE user_id = #{userId}
+        )
+    </select>
+
+    <!-- 获取用户最佳分数 -->
+    <select id="getUserBestScore" resultType="int">
+        SELECT feihua_best_score FROM user WHERE UID = #{userId}
+    </select>
+
+    <!-- 获取用户总游戏次数 -->
+    <select id="getUserTotalGames" resultType="int">
+        SELECT feihua_total_games FROM user WHERE UID = #{userId}
+    </select>
+
+    <!-- 更新用户最佳分数 -->
+    <update id="updateUserBestScore">
+        UPDATE user SET feihua_best_score = #{score} WHERE UID = #{userId}
+    </update>
+
+    <!-- 增加用户游戏次数 -->
+    <update id="incrementUserGames">
+        UPDATE user SET feihua_total_games = feihua_total_games + 1 WHERE UID = #{userId}
+    </update>
+
+    <!-- 更新用户成就 -->
+    <update id="updateUserAchievements">
+        UPDATE user SET feihua_achievements = #{achievements} WHERE UID = #{userId}
+    </update>
+
+</mapper>

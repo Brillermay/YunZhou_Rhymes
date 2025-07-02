@@ -1,0 +1,155 @@
+// 古典色彩变量
+$ancient-primary: #8c7853;
+$ancient-secondary: #6e5773;
+$ancient-bg: #f5efe6;
+$ancient-card: #f8f4ed;
+$ancient-text: #5a4634;
+$ancient-border: #d6cab4;
+
+// 古典装饰元素
+@mixin ancient-border {
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(45deg, $ancient-primary, $ancient-secondary) border-box;
+  border-radius: 12px;
+}
+
+@mixin ancient-scroll {
+  position: relative;
+  
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, $ancient-primary, transparent);
+    border-radius: 50%;
+    opacity: 0.3;
+  }
+  
+  &::before {
+    top: -10px;
+    left: -10px;
+  }
+  
+  &::after {
+    bottom: -10px;
+    right: -10px;
+  }
+}
+
+@mixin ancient-seal {
+  position: relative;
+  
+  &::after {
+    content: attr(data-seal);
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(45deg, #c41e3a, #8b0000);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(196, 30, 58, 0.4);
+    transform: rotate(15deg);
+  }
+}
+
+// 墨迹效果
+@mixin ink-wash {
+  background: linear-gradient(
+    135deg,
+    rgba(140, 120, 83, 0.1) 0%,
+    rgba(248, 244, 237, 0.3) 50%,
+    rgba(110, 87, 115, 0.1) 100%
+  );
+  backdrop-filter: blur(2px);
+}
+
+// 古典阴影
+@mixin ancient-shadow {
+  box-shadow: 
+    0 4px 12px rgba(140, 120, 83, 0.15),
+    0 2px 4px rgba(110, 87, 115, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+// 古典按钮
+@mixin ancient-button {
+  background: linear-gradient(135deg, $ancient-primary, $ancient-secondary);
+  border: none;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  font-family: 'KaiTi', '楷体', serif;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(140, 120, 83, 0.3);
+    background: linear-gradient(135deg, lighten($ancient-primary, 10%), lighten($ancient-secondary, 10%));
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// 古典卡片
+@mixin ancient-card {
+  background: white;
+  border-radius: 16px;
+  @include ancient-shadow;
+  @include ancient-scroll;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, $ancient-primary, $ancient-secondary);
+    opacity: 0.8;
+  }
+}
+
+// 古典文字
+@mixin ancient-text {
+  font-family: 'KaiTi', '楷体', 'STKaiti', serif;
+  color: $ancient-text;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+
+// 古典标题
+@mixin ancient-title {
+  @include ancient-text;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $ancient-primary;
+  text-align: center;
+  margin-bottom: 1rem;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, $ancient-primary, transparent);
+  }
+}

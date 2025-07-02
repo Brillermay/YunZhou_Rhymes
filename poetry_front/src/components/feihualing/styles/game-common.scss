@@ -1,0 +1,205 @@
+// 导入子样式文件
+@import './ancient-theme.scss';
+@import './modern-elements.scss';
+
+// CSS 变量定义 - 确保所有变量都有定义
+:root {
+  --background-color: linear-gradient(135deg, #f5f3e6 0%, #e8e4d9 50%, #ddd6c8 100%);
+  --card-background: rgba(255, 255, 255, 0.9);
+  --primary-color: #8c7853;
+  --secondary-color: #6e5773;
+  --accent-color: #a67c52;
+  --text-color: #2c3e50;
+  --border-color: rgba(140, 120, 83, 0.3);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --success-color: #27ae60;
+  --warning-color: #f39c12;
+  --error-color: #e74c3c;
+}
+
+// 🎨 背景样式 - 添加诗词韵味的背景
+.feihua-component {
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(140, 120, 83, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(110, 87, 115, 0.05) 0%, transparent 50%),
+    linear-gradient(135deg, #f5f3e6 0%, #e8e4d9 50%, #ddd6c8 100%);
+  min-height: 100vh;
+  position: relative;
+  
+  // 添加诗词背景纹理
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(140, 120, 83, 0.03) 0%, transparent 25%),
+      radial-gradient(circle at 75% 75%, rgba(110, 87, 115, 0.03) 0%, transparent 25%);
+    background-size: 200px 200px, 150px 150px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  // 确保内容在背景之上
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// 组件容器
+.component-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+// 组件标题
+.component-header {
+  @include ancient-title;
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  text-shadow: 0 2px 4px rgba(140, 120, 83, 0.2);
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+}
+
+// 🔧 修复按钮样式 - 确保按钮可见
+.btn {
+  @include modern-button;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  outline: none;
+  
+  // 主要按钮样式
+  &.btn-primary {
+    background: linear-gradient(135deg, #8c7853, #6e5773);
+    color: white;
+    box-shadow: 0 4px 15px rgba(140, 120, 83, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, #9d8964, #7f6884);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(140, 120, 83, 0.4);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 10px rgba(140, 120, 83, 0.3);
+    }
+  }
+  
+  // 次要按钮样式
+  &.btn-secondary {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+    border: 2px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    
+    &:hover {
+      background: white;
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  // 禁用状态
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+}
+
+// 加载动画
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(140, 120, 83, 0.2);
+  border-left-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// 响应式设计
+@media (max-width: 1024px) {
+  .component-container {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .component-container {
+    padding: 1rem;
+  }
+  
+  .component-header {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+// 🎨 添加更丰富的背景装饰
+.floating-poetry-chars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+  
+  .poetry-char {
+    position: absolute;
+    font-family: 'KaiTi', '楷体', serif;
+    font-size: 1.5rem;
+    color: rgba(140, 120, 83, 0.1);
+    animation: float-poetry 20s infinite linear;
+    user-select: none;
+  }
+}
+
+@keyframes float-poetry {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
