@@ -1,0 +1,284 @@
+// 现代化动画
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(140, 120, 83, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(140, 120, 83, 0.8);
+  }
+}
+
+@keyframes numberCountUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// 现代化卡片
+@mixin modern-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(140, 120, 83, 0.2);
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 4px 16px rgba(140, 120, 83, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.15),
+      0 6px 20px rgba(140, 120, 83, 0.2);
+  }
+}
+
+// 玻璃拟态效果
+@mixin glass-morphism {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+// 现代化按钮
+@mixin modern-button {
+  background: linear-gradient(135deg, #8c7853, #6e5773);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(140, 120, 83, 0.4);
+  }
+}
+
+// 数据展示卡片
+@mixin stats-card {
+  @include modern-card;
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  .stats-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #8c7853;
+    margin-bottom: 0.5rem;
+    animation: numberCountUp 0.8s ease-out;
+  }
+  
+  .stats-label {
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #8c7853, #6e5773);
+  }
+}
+
+// 成就徽章
+@mixin achievement-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &.bronze {
+    background: linear-gradient(135deg, #cd7f32, #b87333);
+    box-shadow: 0 4px 15px rgba(205, 127, 50, 0.3);
+  }
+  
+  &.silver {
+    background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
+    box-shadow: 0 4px 15px rgba(192, 192, 192, 0.3);
+  }
+  
+  &.gold {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    animation: pulseGlow 2s infinite;
+  }
+  
+  &.locked {
+    background: #ddd;
+    box-shadow: none;
+    opacity: 0.5;
+  }
+  
+  &:hover:not(.locked) {
+    transform: scale(1.1) rotate(5deg);
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+// 进度条
+@mixin progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(140, 120, 83, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8c7853, #6e5773);
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+      );
+      animation: shimmer 2s infinite;
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// 排行榜样式
+@mixin leaderboard-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin-bottom: 0.5rem;
+  
+  &:hover {
+    background: rgba(140, 120, 83, 0.05);
+    transform: translateX(4px);
+  }
+  
+  .rank {
+    min-width: 40px;
+    font-weight: bold;
+    color: #8c7853;
+    
+    &.top-3 {
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+  }
+  
+  .player-name {
+    flex: 1;
+    font-weight: 500;
+    margin-left: 1rem;
+  }
+  
+  .score {
+    font-weight: bold;
+    color: #6e5773;
+  }
+}
+
+// 🔧 修复响应式设计 - 将所有声明放在嵌套规则之前
+@mixin responsive-grid {
+  display: grid;
+  gap: 1rem;
+  
+  // 所有的 @media 查询放在最后
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (min-width: 1025px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
