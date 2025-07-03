@@ -8,7 +8,13 @@ import com.example.bg.GameBG.Player.Player;
 
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+interface CardAction{
+    void execute(PlayerAgainst player, CardBattle card);
+}
 
 public class PlayerService {
     /*
@@ -16,6 +22,89 @@ public class PlayerService {
     * 分成总MainService，里面用switch切换到各种，最后返回user
     * 还有一个关键点就是：这里只负责处理
     * */
+    //这个的设计思路就是只传受影响的玩家和影响他的卡牌
+    private final Map<String, CardAction> cardActions = new HashMap<>();
+
+    private void initializeCardActions() {
+        cardActions.put("spring", this::Action_Spring);
+        cardActions.put("fire", this::Action_Fire);
+        cardActions.put("bird", this::Action_Bird);
+        cardActions.put("autumn", this::Action_Autumn);
+        cardActions.put("mountain", this::Action_Mountain);
+        cardActions.put("water", this::Action_Water);
+        cardActions.put("moon", this::Action_Moon);
+        cardActions.put("sad", this::Action_Sad);
+        cardActions.put("home", this::Action_Home);
+        cardActions.put("wine", this::Action_Wine);
+        cardActions.put("liu", this::Action_Liu);
+        cardActions.put("sun", this::Action_Sun);
+        cardActions.put("goose", this::Action_Goose);
+        cardActions.put("friend", this::Action_Friend);
+        cardActions.put("rain", this::Action_Rain);
+        cardActions.put("war", this::Action_War);
+        cardActions.put("nature", this::Action_Nature);
+        cardActions.put("byebye", this::Action_Byebye);
+        cardActions.put("flower", this::Action_Flower);
+        cardActions.put("bamboo", this::Action_Bamboo);
+        cardActions.put("zhuangzhinanchou", this::Action_Zhuangzhinanchou);
+        cardActions.put("danbo", this::Action_Danbo);
+        cardActions.put("yellowriver", this::Action_Yellowriver);
+        cardActions.put("missing", this::Action_Missing);
+        cardActions.put("longriver", this::Action_Longriver);
+        cardActions.put("love", this::Action_Love);
+    }
+
+    private void Action_Spring(PlayerAgainst playerAgainst, CardBattle cardBattle) {
+        //实现效果：恢复1点血量。若本回合未受伤害，下回合获得3金币，且抽1张牌。
+
+    }
+    private void Action_Fire(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Bird(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Autumn(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Mountain(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Water(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Moon(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Sad(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Home(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Wine(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Liu(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Sun(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Goose(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Friend(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Rain(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_War(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Nature(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Byebye(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Flower(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Bamboo(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Zhuangzhinanchou(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Danbo(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Yellowriver(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Missing(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Longriver(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
+    private void Action_Love(PlayerAgainst playerAgainst, CardBattle cardBattle){}
+    public PlayerService(){
+        initializeCardActions();
+    }
+
+    /**
+     * 主服务方法：根据卡牌名称执行对应的动作
+     * @param playerAgainst 目标玩家
+     * @param cardBattle 使用的卡牌
+     */
+    public void MainService(PlayerAgainst playerAgainst,CardBattle cardBattle)
+    {
+        String cardName = cardBattle.getCardName();
+        CardAction action = cardActions.get(cardName);
+
+        if (action != null) {
+            action.execute(playerAgainst, cardBattle);
+        } else {
+            // 处理未知卡牌
+            System.out.println("未知卡牌: " + cardName);
+        }
+
+    }
 
 
 

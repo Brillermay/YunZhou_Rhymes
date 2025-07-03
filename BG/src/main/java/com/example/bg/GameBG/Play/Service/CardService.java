@@ -2,6 +2,7 @@ package com.example.bg.GameBG.Play.Service;
 
 import com.example.bg.GameBG.Play.Entities.CardBattle;
 import dev.langchain4j.agent.tool.P;
+import kotlin.Pair;
 import org.apache.ibatis.jdbc.Null;
 
 import java.util.*;
@@ -55,6 +56,7 @@ public class CardService {
                 return card;
             }
         }
+
         return null; // 未找到返回null
     }
     /**
