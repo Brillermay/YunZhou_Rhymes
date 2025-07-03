@@ -31,12 +31,14 @@ public class InitService {
     {
         PlayerAgainst playerAgainst =new PlayerAgainst();
         playerAgainst.setHp(20);
+        playerAgainst.setHpMax(20);
+        playerAgainst.setShieldMax(20);
         playerAgainst.setRoomNumber(roomId);
         List<CardBattle> cardList=new ArrayList<>();
         playerAgainst.setCards(cardList);
         playerAgainst.setWealthy(10);
         List<Status>statuses=new ArrayList<>();
-        playerAgainst.setStatuses(statuses);
+        playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
         playerAgainst.setShield(20);
         return playerAgainst;

@@ -1,19 +1,15 @@
 package com.example.bg.GameBG.Play.Service;
 
-import com.example.bg.GameBG.Play.BattleMapper;
 import com.example.bg.GameBG.Play.Entities.CardBattle;
 import com.example.bg.GameBG.Play.Entities.PlayerAgainst;
 import com.example.bg.GameBG.Play.Entities.Status;
-import com.example.bg.GameBG.Player.Player;
 
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static java.lang.Math.max;
 
 interface CardAction{
-    void execute(PlayerAgainst player, CardBattle card);
+    void execute(PlayerAgainst user,PlayerAgainst target, CardBattle card);
 }
 
 public class PlayerService {
@@ -21,7 +17,10 @@ public class PlayerService {
     * 这里进行各种对战结算函数
     * 分成总MainService，里面用switch切换到各种，最后返回user
     * 还有一个关键点就是：这里只负责处理
+    * 对于状态：所有状态一律加到statusesEnd中，在结束的Main里处理End为begin，begin才是真正有用的buff
+    *
     * */
+
     //这个的设计思路就是只传受影响的玩家和影响他的卡牌
     private final Map<String, CardAction> cardActions = new HashMap<>();
 
@@ -54,58 +53,106 @@ public class PlayerService {
         cardActions.put("love", this::Action_Love);
     }
 
-    private void Action_Spring(PlayerAgainst playerAgainst, CardBattle cardBattle) {
+    private void Action_Spring(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //实现效果：恢复1点血量。若本回合未受伤害，下回合获得3金币，且抽1张牌。
+        //添加的spring_judge:
+        //如果本回合没受到攻击，那么添加spring状态到statusBegin
+        AddHP(user,1);
+        AddStatus(user, new ArrayList<Status>(List.of(new Status("spring_judge",1))));
+    }
+    private void Action_Fire(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //造成1点伤害。
+        // 若对方无护盾，抽1张牌并使其下回合战斗类卡牌费用+1。
+        if(target.getShield() == 0)
+        {
+            AddStatus(user, new ArrayList<Status>(List.of(new Status("fire",1))));
+        }
+        AddShield(target,-1);
+    }
+    private void Action_Bird(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //造成1点伤害。若本回合对面使用防守类卡，追加1点真实伤害。
+        AddShield(target,-1);
+        AddStatus(target, new ArrayList<Status>(List.of(new Status("bird_judge",1))));
+    }
+    private void Action_Autumn(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //对手金币-2。若其本回合未获得新护盾，弃2张牌并失去1点护盾。
+        AddCoins(target,-2);
+        AddStatus(target, new ArrayList<Status>(List.of(new Status("autumn_judge",1))));
 
     }
-    private void Action_Fire(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Bird(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Autumn(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Mountain(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Water(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Moon(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Sad(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Home(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Wine(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Liu(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Sun(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Goose(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Friend(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Rain(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_War(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Nature(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Byebye(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Flower(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Bamboo(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Zhuangzhinanchou(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Danbo(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Yellowriver(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Missing(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Longriver(PlayerAgainst playerAgainst, CardBattle cardBattle) {}
-    private void Action_Love(PlayerAgainst playerAgainst, CardBattle cardBattle){}
+    private void Action_Mountain(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //获得1点护盾。若本回合未受伤害，下三回合各+1护盾。
+        AddShield(user,1);
+        AddStatus(user, new ArrayList<Status>(List.of(new Status("mountain_judge",1))));
+
+    }
+    private void Action_Water(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //获得1点护盾。若未使用战斗类卡牌，恢复2点血量。
+        AddShield(user,1);
+        AddStatus(target, new ArrayList<Status>(List.of(new Status("water_judge",1))));
+
+    }
+    private void Action_Moon(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //令对手失去1点护盾并随机弃1张牌。
+        killShield(target,-1);
+        cardService.RandomDiscardCardsList(target.getCards(),1);
+    }
+    private void Action_Sad(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
+        //令对手弃1张手牌。
+        // 若手牌少于3张，失去3点护盾且下一回合无法获得护盾。
+        cardService.RandomDiscardCardsList(target.getCards(),1);
+        if(target.getCards().size()<3)
+        {
+            killShield(target,-3);
+            AddStatus(target, new ArrayList<Status>(List.of(new Status("sad",1))));
+
+        }
+    }
+    private void Action_Home(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Wine(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Liu(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Sun(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Goose(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Friend(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Rain(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_War(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Nature(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Byebye(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Flower(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Bamboo(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Zhuangzhinanchou(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Danbo(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Yellowriver(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Missing(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Longriver(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {}
+    private void Action_Love(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle){}
     public PlayerService(){
         initializeCardActions();
     }
 
     /**
      * 主服务方法：根据卡牌名称执行对应的动作
-     * @param playerAgainst 目标玩家
+     * @param user 使用者
+     * @param target 目标玩家
      * @param cardBattle 使用的卡牌
      */
-    public void MainService(PlayerAgainst playerAgainst,CardBattle cardBattle)
+    public void MainService(PlayerAgainst user,PlayerAgainst target,CardBattle cardBattle)
     {
         String cardName = cardBattle.getCardName();
         CardAction action = cardActions.get(cardName);
 
         if (action != null) {
-            action.execute(playerAgainst, cardBattle);
+            action.execute(user,target, cardBattle);
         } else {
             // 处理未知卡牌
             System.out.println("未知卡牌: " + cardName);
         }
 
     }
+    private void BeginService(PlayerAgainst user)
+    {
 
+    }
 
 
 
@@ -116,9 +163,10 @@ public class PlayerService {
      * @param playerAgainst 目标玩家对象（注意：此方法会直接修改传入的对象）
      * @param coins 要增加的金币数量，正数表示增加，负数表示减少
      */
-    public void AddCoins(PlayerAgainst playerAgainst, int coins) {
+    public void AddCoins(PlayerAgainst playerAgainst , int coins) {
         //修改player的金币
         playerAgainst.setWealthy(playerAgainst.getWealthy() + coins);
+        if(playerAgainst.getWealthy()<0)playerAgainst.setWealthy(0);
     }
 
     /**
@@ -126,21 +174,42 @@ public class PlayerService {
      * @param playerAgainst 目标玩家对象（注意：此方法会直接修改传入的对象）
      * @param hp 要增加的血量，正数表示恢复血量，负数表示扣除血量
      */
-    public void AddHP(PlayerAgainst playerAgainst, int hp) {
+    public void AddHP(PlayerAgainst playerAgainst , int hp) {
         //修改player的血量
         playerAgainst.setHp(playerAgainst.getHp() + hp);
+        if(playerAgainst.getHp()>playerAgainst.getHpMax())
+        {
+            AddCoins(playerAgainst,2*(playerAgainst.getHp()-playerAgainst.getHpMax()));
+            playerAgainst.setHp(playerAgainst.getHpMax());
+        }
     }
 
     /**
      * 为玩家增加或减少护盾
+     * 改成为玩家造成的伤害
      * @param playerAgainst 目标玩家对象（注意：此方法会直接修改传入的对象）
      * @param shield 要增加的护盾数量，正数表示增加护盾，负数表示减少护盾
      */
-    public void AddShield(PlayerAgainst playerAgainst, int shield) {
+    public void AddShield(PlayerAgainst playerAgainst , int shield) {
         //修改player的护盾
         playerAgainst.setShield(playerAgainst.getShield() + shield);
+
+        if(playerAgainst.getShield()<0)
+        {
+            AddHP(playerAgainst,playerAgainst.getShield());
+            playerAgainst.setShield(0);
+        }
+        else if(playerAgainst.getShield() >playerAgainst.getShieldMax())
+        {
+            AddCoins(playerAgainst,playerAgainst.getShield()-playerAgainst.getShieldMax());
+            playerAgainst.setShield(playerAgainst.getShieldMax());
+        }
     }
 
+    public void killShield(PlayerAgainst playerAgainst , int shield){
+        playerAgainst.setShield(playerAgainst.getShield()+shield);
+        playerAgainst.setShield(max(playerAgainst.getShield(),0));
+    }
     /**
      * 修改卡牌的面值大小
      * @param cardBattle 要修改的卡牌对象（注意：此方法会直接修改传入的对象）
@@ -157,7 +226,7 @@ public class PlayerService {
      * @param addNum 要添加的卡牌数量，如果小于等于0则不添加任何卡牌
      * @param costs 卡牌面值上限，如果为-1则不限制面值
      */
-    public void AddPlayerCards(PlayerAgainst playerAgainst, int addNum, int costs) {
+    public void AddPlayerCards(PlayerAgainst playerAgainst , int addNum, int costs) {
         //给用户添加卡牌
         List<CardBattle> old = playerAgainst.getCards();
         List<CardBattle> added = cardService.RandomGetCardsByNumAndCost(addNum, costs);
@@ -169,7 +238,7 @@ public class PlayerService {
      * @param playerAgainst 目标玩家对象（注意：此方法会直接修改传入对象的卡牌列表）
      * @param num 要丢弃的卡牌数量，如果小于等于0则不丢弃任何卡牌，如果大于玩家拥有的卡牌总数则丢弃全部卡牌
      */
-    public void DiscardPlayerCards(PlayerAgainst playerAgainst, int num) {
+    public void DiscardPlayerCards(PlayerAgainst playerAgainst , int num) {
         //给用户随机删除num张卡牌
         playerAgainst.setCards(cardService.RandomDiscardCardsList(playerAgainst.getCards(), num));
     }
@@ -179,21 +248,21 @@ public class PlayerService {
      * @param playerAgainst 目标玩家对象（注意：此方法会直接修改传入对象的状态列表）
      * @param statuses 要添加的状态列表，如果为null或空列表则不添加任何状态
      */
-    public void AddStatus(PlayerAgainst playerAgainst, List<Status> statuses) {
+    public void AddStatus(PlayerAgainst playerAgainst , List<Status> statuses) {
         // 空值检查
         if (statuses == null || statuses.isEmpty()) {
             return;
         }
 
         // 确保玩家的状态列表不为null
-        if (playerAgainst.getStatuses() == null) {
-            playerAgainst.setStatuses(new ArrayList<>());
+        if (playerAgainst.getStatusesEnd() == null) {
+            playerAgainst.setStatusesEnd(new ArrayList<>());
         }
 
         // 添加所有状态
-        playerAgainst.getStatuses().addAll(statuses);
+        playerAgainst.getStatusesEnd().addAll(statuses);
     }
 
     //结算status
-    public void CalStatus(PlayerAgainst playerAgainst){}
+    public void CalStatus(PlayerAgainst playerAgainst ){}
 }
