@@ -867,10 +867,10 @@ export default {
   width: 56px;
   height: 56px;
   background: linear-gradient(135deg, 
-    rgba(139, 149, 137, 0.9) 0%,
-    rgba(105, 117, 102, 0.85) 30%,
-    rgba(76, 86, 73, 0.8) 70%,
-    rgba(47, 54, 44, 0.9) 100%);
+    rgba(139, 149, 137, 0.435) 0%,
+    rgba(105, 117, 102, 0.255) 30%,
+    rgba(76, 86, 73, 0.251) 70%,
+    rgba(47, 54, 44, 0.139) 100%);
   border: 2px solid rgba(205, 214, 190, 0.3);
   border-radius: 50%;
   display: flex;
