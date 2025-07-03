@@ -96,6 +96,11 @@ const sellCount = ref(0)      // 出售卡片计数
 const mergeCount = ref(0)     // 合成次数计数
 const factoryCount = ref(0)   // 建造书斋计数
 const workerCount = ref(0)    // 雇佣书生计数
+let buySlot1Animating = false
+let buySlot2Animating = false  
+let buySlot3Animating = false
+let buySlot4Animating = false
+let buySlot1OriginalX, buySlot2OriginalX, buySlot3OriginalX, buySlot4OriginalX
 
 //const coins = ref(100) // 初始金币数量
 
@@ -1585,6 +1590,7 @@ onMounted(async () => {
       .setInteractive({ useHandCursor: true })
       .setStrokeStyle(3, 0x8c7853, 0.9)
 
+    buySlot1OriginalX = buySlot.x
     // 购买槽文本 - 直接使用最终位置
     const buyIcon = this.add.text(padding * 2 + 100 + 50, padding + 40 - 200, '🎁', {
       fontSize: '32px',
@@ -1713,6 +1719,10 @@ onMounted(async () => {
     // 第一个购买槽处理函数
     const handleBuyClick = () => {
       if (coins.value >= 10) {
+        this.tweens.killTweensOf([buySlot, buyIcon, buyText])
+        buySlot.setScale(1)
+        buyIcon.setScale(1)
+        buyText.setScale(1)
         handleBuyPack()
         
         // 简单的按下反馈
@@ -1722,7 +1732,10 @@ onMounted(async () => {
           scaleY: 0.95,
           duration: 100,
           ease: 'Power2.easeOut',
-          yoyo: true
+          yoyo: true,
+          onComplete: () => {
+            buySlot.setScale(1) // 确保动画完成后重置
+          }
         })
         
         // 简单的文字反馈
@@ -1731,7 +1744,11 @@ onMounted(async () => {
           scale: 0.9,
           duration: 100,
           ease: 'Power2.easeOut',
-          yoyo: true
+          yoyo: true,
+          onComplete: () => {
+            buyIcon.setScale(1) // 确保动画完成后重置
+            buyText.setScale(1)
+          }
         })
         
         // 简洁的边框闪烁
@@ -1763,23 +1780,43 @@ onMounted(async () => {
         })
         
       } else {
+        if (buySlot1Animating) return
+        buySlot1Animating = true
+
+        buySlot.x = buySlot1OriginalX
+
+        buySlot.setScale(1)
+        buyIcon.setScale(1)
+        buyText.setScale(1)
         // 简化的金币不足反馈
         this.tweens.add({
           targets: buySlot,
-          x: buySlot.x + 3,
+          x: buySlot1OriginalX + 3,
+          scaleX: 0.95, // 添加缩放动画
+          scaleY: 0.95,
           duration: 100,
           ease: 'Power2',
           yoyo: true,
-          repeat: 2
+          repeat: 2,
+          onComplete: () => {
+            buySlot.x = buySlot1OriginalX
+            buySlot.setScale(1)
+            buySlot1Animating = false
+          }
         })
         
         this.tweens.add({
           targets: [buyIcon, buyText],
           x: '+=3',
+          scale: 0.9,
           duration: 100,
           ease: 'Power2',
           yoyo: true,
-          repeat: 2
+          repeat: 2,
+          onComplete: () => {
+            buyIcon.setScale(1) // 确保回到原始缩放
+            buyText.setScale(1)
+          }
         })
         
         // 简单的警告提示
@@ -1829,6 +1866,7 @@ onMounted(async () => {
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(3, 0x8c7853, 0.9)
 
+      buySlot2OriginalX = buySlot2.x
       // 第二个购买槽的文本和图标 - 直接使用最终位置
       const buyIcon2 = this.add.text(padding * 3 + 200 + 50, padding + 40 - 200, '📦', {
         fontSize: '32px',
@@ -1902,6 +1940,10 @@ onMounted(async () => {
       // 第二个购买槽的处理函数
       const handleBuyClick2 = () => {
         if (coins.value >= 15) {
+          this.tweens.killTweensOf([buySlot2, buyIcon2, buyText2])
+          buySlot2.setScale(1)
+          buyIcon2.setScale(1)
+          buyText2.setScale(1)
           coins.value -= 15
           
           this.tweens.add({
@@ -1910,7 +1952,10 @@ onMounted(async () => {
             scaleY: 0.95,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buySlot2.setScale(1) // 确保动画完成后重置
+            }
           })
           
           this.tweens.add({
@@ -1918,7 +1963,11 @@ onMounted(async () => {
             scale: 0.9,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buyIcon.setScale(1) // 确保动画完成后重置
+              buyText.setScale(1)
+            }
           })
           
           buySlot2.setStrokeStyle(3, 0xffffff)
@@ -1949,16 +1998,49 @@ onMounted(async () => {
           
           handleBuyAdvancedPack()
         } else {
+          if (buySlot2Animating) return
+          buySlot2Animating = true
+    
+          // 确保从原始位置开始动画
+          buySlot2.x = buySlot2OriginalX
+          buySlot2.setScale(1)
+          buyIcon2.setScale(1)
+          buyText2.setScale(1)
           // 简化的金币不足反馈（与第一个槽位相同）
           this.tweens.add({
             targets: buySlot2,
-            x: buySlot2.x + 3,
+            x: buySlot2OriginalX + 3,
+            scaleX: 0.95,
+            scaleY: 0.95,
             duration: 100,
             ease: 'Power2',
             yoyo: true,
-            repeat: 2
+            repeat: 2,
+            onComplete: () => {
+              buySlot2.x = buySlot2OriginalX  // 确保回到原始位置
+              buySlot2.setScale(1)
+              buySlot2Animating = false  // 重置防抖标记
+            }
           })
           
+          buyIcon2.x = buySlot2OriginalX + 50
+          buyText2.x = buySlot2OriginalX + 50
+          
+          this.tweens.add({
+            targets: [buyIcon2, buyText2],
+            x: buySlot2OriginalX + 50 + 3,
+            scale: 0.9,
+            duration: 100,
+            ease: 'Power2',
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+              buyIcon2.x = buySlot2OriginalX + 50
+              buyText2.x = buySlot2OriginalX + 50
+              buyIcon2.setScale(1)
+              buyText2.setScale(1)
+            }
+          })
           const warningText = this.add.text(
             buySlot2.x + 50,
             buySlot2.y + 120,
@@ -2006,6 +2088,7 @@ onMounted(async () => {
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(3, 0x8c7853, 0.9)
 
+      buySlot3OriginalX = buySlot3.x  
       // 第三个购买槽的文本和图标 - 直接使用最终位置
       const buyIcon3 = this.add.text(padding * 4 + 300 + 50, padding + 40 - 200, '🧙', {
         fontSize: '32px',
@@ -2082,6 +2165,7 @@ onMounted(async () => {
         .setInteractive({ useHandCursor: true })
         .setStrokeStyle(3, 0x8c7853, 0.9)
 
+      buySlot4OriginalX = buySlot4.x
       // 第四个购买槽的文本和图标 - 直接使用最终位置
       const buyIcon4 = this.add.text(padding * 5 + 400 + 50, padding + 40 - 200, '⛩️', {
         fontSize: '32px',
@@ -2155,6 +2239,11 @@ onMounted(async () => {
       // 第三个购买槽的处理函数（购买工人卡）- 完整版本
       const handleBuyWorker = () => {
         if (coins.value >= 10) {
+          this.tweens.killTweensOf([buySlot3, buyIcon3, buyText3])
+          buySlot3.setScale(1)
+          buyIcon3.setScale(1)
+          buyText3.setScale(1)
+
           coins.value -= 10
           workerCount.value++
           if (workerCount.value === 1) {
@@ -2168,7 +2257,10 @@ onMounted(async () => {
             scaleY: 0.95,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buySlot3.setScale(1) // 确保动画完成后重置
+            }
           })
           
           // 创建工人卡后更新收藏
@@ -2180,7 +2272,11 @@ onMounted(async () => {
             scale: 0.9,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buyIcon3.setScale(1) // 确保动画完成后重置
+              buyText3.setScale(1)
+            }
           })
           
           buySlot3.setStrokeStyle(3, 0xffffff)
@@ -2224,23 +2320,47 @@ onMounted(async () => {
           this.input.setDraggable(workerCard)
           this.cards.push(workerCard)
         } else {
+          if (buySlot3Animating) return
+          buySlot3Animating = true
+          
+          buySlot3.x = buySlot3OriginalX
+          buySlot3.setScale(1)
+          buyIcon2.setScale(1)
+          buyText3.setScale(1)
           // 金币不足的简化反馈
           this.tweens.add({
             targets: buySlot3,
-            x: buySlot3.x + 3,
+            x: buySlot3OriginalX + 3,
+            scaleX: 0.95,
+            scaleY: 0.95,
             duration: 100,
             ease: 'Power2',
             yoyo: true,
-            repeat: 2
+            repeat: 2,
+            onComplete: () => {
+              buySlot3.x = buySlot3OriginalX  // 确保回到原始位置
+              buySlot2.setScale(1)
+              buySlot3Animating = false  // 重置防抖标记
+            }
           })
+          
+          buyIcon3.x = buySlot3OriginalX + 50
+          buyText3.x = buySlot3OriginalX + 50
           
           this.tweens.add({
             targets: [buyIcon3, buyText3],
-            x: '+=3',
+            x: buySlot3OriginalX + 50 + 3,
+            scale: 0.9,
             duration: 100,
             ease: 'Power2',
             yoyo: true,
-            repeat: 2
+            repeat: 2,
+            onComplete: () => {
+              buyIcon3.x = buySlot3OriginalX + 50
+              buyText3.x = buySlot3OriginalX + 50
+              buyIcon2.setScale(1)
+              buyText2.setScale(1)
+            }
           })
           
           const warningText = this.add.text(
@@ -2274,6 +2394,11 @@ onMounted(async () => {
       // 第四个购买槽的处理函数（购买工厂卡）- 完整版本
       const handleBuyFactory = () => {
         if (coins.value >= 10) {
+          this.tweens.killTweensOf([buySlot4, buyIcon4, buyText4])
+          buySlot4.setScale(1)
+          buyIcon4.setScale(1)
+          buyText4.setScale(1)
+
           coins.value -= 10
           updateGold(-10)
 
@@ -2287,7 +2412,10 @@ onMounted(async () => {
             scaleY: 0.95,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buySlot4.setScale(1) // 确保动画完成后重置
+            }
           })
           
           this.tweens.add({
@@ -2295,7 +2423,11 @@ onMounted(async () => {
             scale: 0.9,
             duration: 100,
             ease: 'Power2.easeOut',
-            yoyo: true
+            yoyo: true,
+            onComplete: () => {
+              buyIcon4.setScale(1) // 确保动画完成后重置
+              buyText4.setScale(1)
+            }
           })
           
           buySlot4.setStrokeStyle(3, 0xffffff)
@@ -2339,23 +2471,49 @@ onMounted(async () => {
           this.input.setDraggable(factoryCard)
           this.cards.push(factoryCard)
         } else {
+          if (buySlot4Animating) return
+          buySlot4Animating = true
+          
+          // 确保从原始位置开始动画
+          buySlot4.x = buySlot4OriginalX
+          buySlot4.setScale(1)
+          buyIcon4.setScale(1)
+          buyText4.setScale(1)
+
           // 金币不足的简化反馈
           this.tweens.add({
             targets: buySlot4,
-            x: buySlot4.x + 3,
+            x: buySlot4OriginalX + 3,
+            scaleX: 0.95,
+            scaleY: 0.95,
             duration: 100,
             ease: 'Power2',
             yoyo: true,
-            repeat: 2
+            repeat: 2,
+            onComplete: () => {
+              buySlot4.x = buySlot4OriginalX  // 确保回到原始位置
+              buySlot4.setScale(1)
+              buySlot4Animating = false  // 重置防抖标记
+            }
           })
+          
+          buyIcon4.x = buySlot4OriginalX + 50
+          buyText4.x = buySlot4OriginalX + 50
           
           this.tweens.add({
             targets: [buyIcon4, buyText4],
-            x: '+=3',
+            x: buySlot4OriginalX + 50 + 3,
+            scale: 0.9,
             duration: 100,
             ease: 'Power2',
             yoyo: true,
-            repeat: 2
+            repeat: 2,
+            onComplete: () => {
+              buyIcon4.x = buySlot4OriginalX + 50
+              buyText4.x = buySlot4OriginalX + 50
+              buyIcon4.setScale(1)
+              buyText4.setScale(1)
+            }
           })
           
           const warningText = this.add.text(
