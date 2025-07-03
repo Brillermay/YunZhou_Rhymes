@@ -11,19 +11,6 @@
         </button>
       </div>
       
-      <!-- 排行榜类型切换 -->
-      <div class="leaderboard-tabs">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.value"
-          class="tab-button"
-          :class="{ active: activeTab === tab.value }"
-          @click="switchTab(tab.value)"
-        >
-          <i :class="tab.icon"></i>
-          <span>{{ tab.label }}</span>
-        </button>
-      </div>
       
       <!-- 我的排名 -->
       <div class="my-rank-section" v-if="userRank && !loading">
@@ -158,28 +145,10 @@ export default {
   data() {
     return {
       loading: true,
-      activeTab: 'all',
       leaderboardData: [],
       userRank: null,
       totalPlayers: 0,
-      lastUpdateTime: '',
-      tabs: [
-        {
-          value: 'all',
-          label: '总榜',
-          icon: 'icon-trophy'
-        },
-        {
-          value: 'today',
-          label: '今日',
-          icon: 'icon-calendar'
-        },
-        {
-          value: 'week',
-          label: '本周',
-          icon: 'icon-chart-bar'
-        }
-      ]
+      lastUpdateTime: ''
     }
   },
   watch: {
@@ -192,9 +161,7 @@ export default {
       }
     },
     
-    activeTab() {
-      this.loadLeaderboard()
-    }
+
   },
   beforeUnmount() {
     document.body.style.overflow = ''
@@ -206,8 +173,7 @@ export default {
         // 加载排行榜数据
         const response = await axios.get(`${API_BASE_URL}/api/feihua/leaderboard`, {
           params: {
-            limit: 50,
-            type: this.activeTab
+            limit: 50
           }
         })
         
@@ -241,9 +207,6 @@ export default {
       }
     },
     
-    switchTab(tab) {
-      this.activeTab = tab
-    },
     
     closeModal() {
       this.$emit('close')
@@ -342,113 +305,245 @@ export default {
 }
 </script>
 
+<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\feihualing\LeaderboardModal.vue -->
+<!-- 保持 template 和 script 不变，完全重构样式 -->
+
 <style lang="scss" scoped>
 @import './styles/game-common.scss';
 
+// 🚀 重构弹窗覆盖层 - 添加背景效果
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: 
+    radial-gradient(circle at 30% 40%, rgba(140, 120, 83, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(110, 87, 115, 0.15) 0%, transparent 50%),
+    rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: 1rem !important;
+  overflow-y: auto !important;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.modal-content {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.98) 0%, 
+      rgba(248, 245, 240, 0.95) 100%
+    ) !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(140, 120, 83, 0.2) !important;
+  position: relative !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  z-index: 10000 !important;
+  animation: scaleIn 0.4s ease-out;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { 
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .leaderboard-modal {
   width: 90vw;
-  max-width: 800px;
-  max-height: 90vh;
+  max-width: 900px;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
+  padding: 2rem;
+  position: relative;
+  
+  // 🎨 添加装饰性背景
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 20%, rgba(140, 120, 83, 0.03) 0%, transparent 30%),
+      radial-gradient(circle at 80% 80%, rgba(110, 87, 115, 0.03) 0%, transparent 30%);
+    pointer-events: none;
+    border-radius: 16px;
+    z-index: 0;
+  }
+  
+  // 确保内容在装饰背景之上
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid var(--border-color);
-  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid rgba(140, 120, 83, 0.2);
+  margin-bottom: 2rem;
+  background: 
+    linear-gradient(90deg, 
+      rgba(140, 120, 83, 0.05) 0%, 
+      rgba(110, 87, 115, 0.05) 100%
+    );
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  margin: -0.5rem -0.5rem 2rem -0.5rem;
 }
 
 .modal-title {
   @include ancient-title;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
+  color: var(--text-color);
+  font-weight: 700;
   
   i {
     color: #ffd700;
-    font-size: 1.8rem;
+    font-size: 2rem;
+    text-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
   }
 }
 
-.leaderboard-tabs {
+.modal-close {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: 
+    linear-gradient(135deg, 
+      #e74c3c 0%, 
+      #c0392b 100%
+    );
+  color: #e74c3c;
+  cursor: pointer;
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  
-  .tab-button {
-    @include modern-button;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    background: rgba(140, 120, 83, 0.1);
-    color: var(--text-color);
-    
-    &.active {
-      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-      color: white;
-    }
-    
-    &:hover:not(.active) {
-      background: rgba(140, 120, 83, 0.2);
-    }
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-size: 1.3rem;
+  font-weight: bold;
+  box-shadow: 0 3px 10px rgba(231, 76, 60, 0.4);
+
+  &:hover {
+    background: 
+      linear-gradient(135deg, 
+        #c0392b 0%, 
+        #a93226 100%
+      );
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
   }
 }
+
+
 
 .my-rank-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .my-rank-card {
   @include modern-card;
-  padding: 1rem 1.5rem;
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  background: linear-gradient(135deg, 
-    rgba(140, 120, 83, 0.05), 
-    rgba(110, 87, 115, 0.05)
-  );
+  gap: 1.5rem;
+  background: 
+    linear-gradient(135deg, 
+      rgba(140, 120, 83, 0.08) 0%, 
+      rgba(110, 87, 115, 0.08) 100%
+    );
   border: 2px solid rgba(140, 120, 83, 0.2);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+  }
 }
 
 .rank-badge {
   @include achievement-badge;
-  width: 60px;
-  height: 60px;
-  font-size: 1rem;
+  width: 70px;
+  height: 70px;
+  font-size: 1.2rem;
   font-weight: bold;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   
   &.gold {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
     color: #8b4513;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
   }
   
   &.silver {
-    background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
+    background: linear-gradient(135deg, #c0c0c0 0%, #a8a8a8 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(192, 192, 192, 0.4);
   }
   
   &.bronze {
-    background: linear-gradient(135deg, #cd7f32, #b87333);
+    background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
   }
   
   &.top-10 {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(140, 120, 83, 0.4);
   }
   
   &.normal {
-    background: #ddd;
+    background: linear-gradient(135deg, #ddd 0%, #ccc 100%);
     color: #666;
+    box-shadow: 0 4px 12px rgba(221, 221, 221, 0.4);
+  }
+  
+  .rank-number {
+    font-size: 1.3rem;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   }
 }
 
@@ -457,34 +552,56 @@ export default {
   
   .player-name {
     display: block;
-    font-weight: 600;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 1.3rem;
     color: var(--text-color);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.5rem;
   }
   
   .player-score {
     color: var(--primary-color);
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 1.1rem;
   }
 }
 
 .rank-trend {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.9rem;
+  gap: 0.5rem;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-weight: 600;
   
   &.up {
     color: #27ae60;
+    background: 
+      linear-gradient(135deg, 
+        rgba(39, 174, 96, 0.15) 0%, 
+        rgba(39, 174, 96, 0.1) 100%
+      );
+    border: 1px solid rgba(39, 174, 96, 0.2);
   }
   
   &.down {
     color: #e74c3c;
+    background: 
+      linear-gradient(135deg, 
+        rgba(231, 76, 60, 0.15) 0%, 
+        rgba(231, 76, 60, 0.1) 100%
+      );
+    border: 1px solid rgba(231, 76, 60, 0.2);
   }
   
   &.stable {
     color: #666;
+    background: 
+      linear-gradient(135deg, 
+        rgba(102, 102, 102, 0.15) 0%, 
+        rgba(102, 102, 102, 0.1) 100%
+      );
+    border: 1px solid rgba(102, 102, 102, 0.2);
   }
 }
 
@@ -492,36 +609,86 @@ export default {
   flex: 1;
   overflow-y: auto;
   min-height: 300px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(140, 120, 83, 0.1);
   
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 10px;
   }
   
   &::-webkit-scrollbar-track {
     background: rgba(140, 120, 83, 0.1);
-    border-radius: 3px;
+    border-radius: 5px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(140, 120, 83, 0.3);
-    border-radius: 3px;
+    background: 
+      linear-gradient(180deg, 
+        rgba(140, 120, 83, 0.4) 0%, 
+        rgba(110, 87, 115, 0.4) 100%
+      );
+    border-radius: 5px;
+    
+    &:hover {
+      background: 
+        linear-gradient(180deg, 
+          rgba(140, 120, 83, 0.6) 0%, 
+          rgba(110, 87, 115, 0.6) 100%
+        );
+    }
   }
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(140, 120, 83, 0.1);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+  
+  p {
+    color: #666;
+    font-size: 1.1rem;
+    font-weight: 500;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .list-header {
   display: grid;
-  grid-template-columns: 80px 1fr 100px 120px;
+  grid-template-columns: 90px 1fr 110px 130px;
   gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: rgba(140, 120, 83, 0.1);
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  font-size: 0.9rem;
+  padding: 1rem 1.5rem;
+  background: 
+    linear-gradient(135deg, 
+      rgba(140, 120, 83, 0.15) 0%, 
+      rgba(110, 87, 115, 0.15) 100%
+    );
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  font-size: 1rem;
   color: var(--primary-color);
+  border: 1px solid rgba(140, 120, 83, 0.2);
   
   @media (max-width: 768px) {
-    grid-template-columns: 60px 1fr 80px;
+    grid-template-columns: 70px 1fr 90px;
     
     .header-time {
       display: none;
@@ -534,27 +701,66 @@ export default {
 }
 
 .leaderboard-row {
-  @include leaderboard-row;
   display: grid;
-  grid-template-columns: 80px 1fr 100px 120px;
+  grid-template-columns: 90px 1fr 110px 130px;
   gap: 1rem;
   align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 0.8rem;
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.8) 0%, 
+      rgba(248, 245, 240, 0.6) 100%
+    );
+  border: 1px solid rgba(140, 120, 83, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    background: 
+      linear-gradient(135deg, 
+        rgba(140, 120, 83, 0.08) 0%, 
+        rgba(110, 87, 115, 0.08) 100%
+      );
+    transform: translateX(8px);
+    box-shadow: 0 4px 15px rgba(140, 120, 83, 0.2);
+    border-color: rgba(140, 120, 83, 0.3);
+  }
   
   &.highlight {
-    background: rgba(140, 120, 83, 0.1);
-    border: 2px solid rgba(140, 120, 83, 0.3);
-    border-radius: 8px;
+    background: 
+      linear-gradient(135deg, 
+        rgba(140, 120, 83, 0.12) 0%, 
+        rgba(110, 87, 115, 0.12) 100%
+      );
+    border: 2px solid var(--primary-color);
+    transform: translateX(8px);
+    box-shadow: 0 6px 20px rgba(140, 120, 83, 0.25);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+      border-radius: 0 2px 2px 0;
+    }
   }
   
   &.top-3 {
-    background: linear-gradient(90deg, 
-      rgba(255, 215, 0, 0.1), 
-      rgba(255, 215, 0, 0.05)
-    );
+    background: 
+      linear-gradient(135deg, 
+        rgba(255, 215, 0, 0.15) 0%, 
+        rgba(255, 215, 0, 0.08) 100%
+      );
+    border-color: rgba(255, 215, 0, 0.3);
   }
   
   @media (max-width: 768px) {
-    grid-template-columns: 60px 1fr 80px;
+    grid-template-columns: 70px 1fr 90px;
     
     .time-column {
       display: none;
@@ -568,24 +774,59 @@ export default {
 }
 
 .rank-display {
-  @include achievement-badge;
-  width: 40px;
-  height: 40px;
-  font-size: 0.9rem;
+  width: 50px;
+  height: 50px;
+  font-size: 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
   
-  &.gold i {
-    color: #ffd700;
-    font-size: 1.2rem;
+  &.gold {
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    color: #8b4513;
+    
+    i {
+      color: #8b4513;
+      font-size: 1.4rem;
+    }
   }
   
-  &.silver i {
-    color: #c0c0c0;
+  &.silver {
+    background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
+    color: white;
+    
+    i {
+      color: white;
+      font-size: 1.3rem;
+    }
+  }
+  
+  &.bronze {
+    background: linear-gradient(135deg, #cd7f32, #b87333);
+    color: white;
+    
+    i {
+      color: white;
+      font-size: 1.2rem;
+    }
+  }
+  
+  &.top-10 {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+  }
+  
+  &.normal {
+    background: linear-gradient(135deg, #ddd, #ccc);
+    color: #666;
+  }
+  
+  .rank-number {
+    font-weight: bold;
     font-size: 1.1rem;
-  }
-  
-  &.bronze i {
-    color: #cd7f32;
-    font-size: 1rem;
   }
 }
 
@@ -593,40 +834,42 @@ export default {
   .player-info {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
   }
   
   .player-name {
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-color);
+    font-size: 1.1rem;
   }
   
   .player-badges {
     display: flex;
-    gap: 0.2rem;
+    gap: 0.3rem;
   }
   
   .badge {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: bold;
     
     &.champion {
-      background: #ffd700;
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
       color: #8b4513;
     }
     
     &.master {
-      background: #8b008b;
+      background: linear-gradient(135deg, #8b008b, #9932cc);
       color: white;
     }
     
     &.expert {
-      background: #4169e1;
+      background: linear-gradient(135deg, #4169e1, #1e90ff);
       color: white;
     }
   }
@@ -637,12 +880,12 @@ export default {
   
   .score-value {
     font-weight: bold;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: var(--primary-color);
   }
   
   .score-unit {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: #666;
     margin-left: 0.2rem;
   }
@@ -653,35 +896,40 @@ export default {
   
   .achieved-time {
     display: block;
-    font-size: 0.9rem;
+    font-size: 1rem;
     color: var(--text-color);
+    font-weight: 500;
   }
   
   .game-mode {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     color: #666;
     text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 0.2rem;
   }
 }
 
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 4rem 2rem;
   color: #666;
   
   .empty-icon {
-    font-size: 4rem;
-    color: #ddd;
-    margin-bottom: 1rem;
+    font-size: 5rem;
+    color: rgba(140, 120, 83, 0.3);
+    margin-bottom: 1.5rem;
   }
   
   .empty-text {
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+    color: var(--text-color);
   }
   
   .empty-subtitle {
-    font-size: 0.9rem;
+    font-size: 1rem;
     opacity: 0.8;
   }
 }
@@ -690,9 +938,9 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
-  margin-top: 1rem;
+  padding: 1.5rem 0 0.5rem 0;
+  border-top: 2px solid rgba(140, 120, 83, 0.2);
+  margin-top: 1.5rem;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -702,7 +950,7 @@ export default {
 
 .footer-stats {
   display: flex;
-  gap: 1.5rem;
+  gap: 2rem;
   
   @media (max-width: 768px) {
     gap: 1rem;
@@ -712,44 +960,118 @@ export default {
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
+  gap: 0.5rem;
+  font-size: 0.9rem;
   color: #666;
+  font-weight: 500;
   
   i {
     color: var(--primary-color);
+    font-size: 1rem;
   }
 }
 
 .footer-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  
+  .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    
+    &.btn-secondary {
+      background: 
+        linear-gradient(135deg, 
+          rgba(255, 255, 255, 0.9) 0%, 
+          rgba(248, 245, 240, 0.8) 100%
+        );
+      color: var(--primary-color);
+      border: 2px solid rgba(140, 120, 83, 0.3);
+      
+      &:hover {
+        background: 
+          linear-gradient(135deg, 
+            rgba(140, 120, 83, 0.1) 0%, 
+            rgba(110, 87, 115, 0.1) 100%
+          );
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(140, 120, 83, 0.2);
+      }
+    }
+    
+    &.btn-primary {
+      background: 
+        linear-gradient(135deg, 
+          var(--primary-color) 0%, 
+          var(--secondary-color) 100%
+        );
+      color: white;
+      border: none;
+      
+      &:hover {
+        background: 
+          linear-gradient(135deg, 
+            #9d8964 0%, 
+            #7f6884 100%
+          );
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+      }
+    }
+  }
 }
 
+// 动画效果
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 移动端适配
 @media (max-width: 768px) {
   .leaderboard-modal {
     width: 95vw;
-    margin: 1rem;
+    margin: 0.5rem;
+    padding: 1.5rem;
   }
   
   .modal-header {
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    padding: 1rem;
+    margin: -0.5rem -0.5rem 1.5rem -0.5rem;
   }
   
   .modal-title {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
   }
   
+  
   .my-rank-card {
-    padding: 0.75rem 1rem;
-    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    gap: 1rem;
   }
   
   .rank-badge {
-    width: 50px;
-    height: 50px;
-    font-size: 0.9rem;
+    width: 60px;
+    height: 60px;
+    font-size: 1rem;
+  }
+  
+  .footer-actions {
+    width: 100%;
+    
+    .btn {
+      flex: 1;
+      justify-content: center;
+    }
   }
 }
 </style>
