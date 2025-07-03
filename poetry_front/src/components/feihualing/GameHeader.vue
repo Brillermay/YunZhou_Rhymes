@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\feihualing\GameHeader.vue -->
 <template>
   <div class="game-header-compact">
     <div class="header-content">
@@ -13,10 +12,29 @@
         <span class="keyword-char" :class="{ pulsing: isNewKeyword }">{{ currentKeyword }}</span>
       </div>
       
+      <!-- 🔧 游戏控制按钮 -->
+      <div class="game-controls">
+        <button 
+          class="control-btn pause-btn"
+          @click="togglePause"
+          :title="isPaused ? '继续游戏' : '暂停游戏'"
+          :class="{ active: isPaused }"
+        >
+          <i :class="isPaused ? 'icon-play' : 'icon-pause'"></i>
+        </button>
+        <button 
+          class="control-btn exit-btn"
+          @click="showExitConfirm"
+          title="退出游戏"
+        >
+          <i class="icon-x"></i>
+        </button>
+      </div>
+      
       <!-- 倒计时 -->
       <div class="countdown-compact">
-        <div class="countdown-circle" :class="{ warning: countdown <= 10, danger: countdown <= 5 }">
-          <span class="countdown-num">{{ countdown }}</span>
+        <div class="countdown-circle" :class="{ warning: countdown <= 10, danger: countdown <= 5, paused: isPaused }">
+          <span class="countdown-num">{{ isPaused ? '⏸' : countdown }}</span>
         </div>
       </div>
       
@@ -43,8 +61,13 @@ export default {
     roundProgress: { type: Number, default: 0 },
     roundTarget: { type: Number, default: 3 },
     gameTime: { type: Number, default: 0 },
-    keywordStats: { type: Object, default: null }
+    keywordStats: { type: Object, default: null },
+    isPaused: { type: Boolean, default: false }
   },
+  emits: [
+    'toggle-pause', 
+    'show-exit-confirm'  // 🔧 修改：只发送显示退出确认事件
+  ],
   data() {
     return {
       isNewKeyword: false
@@ -69,6 +92,16 @@ export default {
       const mins = Math.floor(seconds / 60)
       const secs = seconds % 60
       return `${mins}:${secs.toString().padStart(2, '0')}`
+    },
+    
+    // 🔧 切换暂停状态
+    togglePause() {
+      this.$emit('toggle-pause')
+    },
+    
+    // 🔧 修改：显示退出确认 - 发送事件给父组件
+    showExitConfirm() {
+      this.$emit('show-exit-confirm')
     }
   }
 }
@@ -79,7 +112,6 @@ export default {
 
 // 🚀 超紧凑头部设计 - 固定高度
 .game-header-compact {
-  // 🔧 关键修复：确保头部高度严格控制
   height: 80px;
   min-height: 80px;
   max-height: 80px;
@@ -89,6 +121,7 @@ export default {
   display: flex;
   align-items: center;
   overflow: hidden;
+  position: relative;
   
   @media (max-width: 768px) {
     height: 65px;
@@ -101,7 +134,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   width: 100%;
   padding: 0 1rem;
   height: 100%;
@@ -158,6 +191,58 @@ export default {
   }
 }
 
+// 🔧 游戏控制按钮区域
+.game-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.control-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  
+  &.pause-btn {
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    
+    &:hover {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+      transform: scale(1.1);
+    }
+    
+    &.active {
+      background: linear-gradient(135deg, #27ae60, #229954);
+      animation: pulseGreen 2s infinite;
+    }
+  }
+  
+  &.exit-btn {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    
+    &:hover {
+      background: linear-gradient(135deg, #c0392b, #a93226);
+      transform: scale(1.1);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+}
+
 .countdown-compact {
   flex-shrink: 0;
 }
@@ -181,6 +266,11 @@ export default {
   &.danger {
     background: linear-gradient(135deg, #e74c3c, #c0392b);
     animation: pulseDanger 1s infinite;
+  }
+  
+  &.paused {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    animation: pulsePaused 2s infinite;
   }
   
   @media (max-width: 768px) {
@@ -221,6 +311,7 @@ export default {
   white-space: nowrap;
 }
 
+// 动画效果
 @keyframes keywordPulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.1); }
@@ -244,26 +335,32 @@ export default {
   }
 }
 
+@keyframes pulseGreen {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.7);
+  }
+  50% { 
+    box-shadow: 0 0 0 6px rgba(39, 174, 96, 0);
+  }
+}
+
+@keyframes pulsePaused {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 rgba(149, 165, 166, 0.7);
+  }
+  50% { 
+    box-shadow: 0 0 0 6px rgba(149, 165, 166, 0);
+  }
+}
+
+// 移动端适配
 @media (max-width: 768px) {
   .header-content {
-    justify-content: space-around;
+    justify-content: space-between;
   }
   
-  .game-info {
-    order: 1;
-  }
-  
-  .keyword-display {
-    order: 2;
-    flex: none;
-  }
-  
-  .countdown-section {
-    order: 3;
-  }
-  
-  .game-status {
-    order: 4;
+  .game-controls {
+    gap: 0.25rem;
   }
 }
 </style>

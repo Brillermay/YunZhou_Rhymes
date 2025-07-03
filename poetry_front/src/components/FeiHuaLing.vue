@@ -7,11 +7,12 @@
       :is-loading="isLoadingStats"
       @mode-selected="onModeSelected"
       @start-game="startGame"
+      @return-to-center="handleReturnToCenter"
     />
     
     <!-- 游戏进行阶段 -->
     <div v-else-if="gameState === 'playing'" class="game-playing-layout">
-      <!-- 🔧 游戏头部 - 固定在顶部 -->
+      <!-- 🔧 游戏头部 - 添加暂停状态和事件处理 -->
       <div class="game-header-fixed">
         <GameHeader
           :game-mode="selectedMode"
@@ -25,6 +26,9 @@
           :round-target="roundTarget"
           :game-time="gameTime"
           :keyword-stats="keywordStats"
+          :is-paused="isPaused"
+          @toggle-pause="togglePause"
+          @show-exit-confirm="showExitConfirm"
         />
       </div>
       
@@ -38,6 +42,7 @@
             :game-ended="gameState === 'ended'"
             :is-validating="isValidating"
             :hint-count="hintCount"
+            :is-paused="isPaused"
             @send-message="handleMessage"
             @request-hint="requestHint"
           />
@@ -103,6 +108,35 @@
       @share-rank="shareRank"
     />
     
+    <!-- 🔧 新增：登录提示弹窗 -->
+    <div v-if="showLoginPrompt" class="login-prompt-overlay" @click="closeLoginPrompt">
+      <div class="login-prompt-modal" @click.stop>
+        <div class="login-prompt-header">
+          <h3>需要登录</h3>
+          <button class="close-btn" @click="closeLoginPrompt">✕</button>
+        </div>
+        <div class="login-prompt-content">
+          <div class="login-prompt-icon">🔐</div>
+          <h4>游戏需要登录才能开始</h4>
+          <p>登录后您可以：</p>
+          <ul>
+            <li>📊 保存游戏成绩和进度</li>
+            <li>🏆 参与排行榜竞争</li>
+            <li>🎯 解锁更多成就</li>
+            <li>📈 查看详细的游戏统计</li>
+          </ul>
+          <div class="login-prompt-actions">
+            <button class="btn btn-primary" @click="goToUserCenter">
+              🚀 去登录
+            </button>
+            <button class="btn btn-secondary" @click="closeLoginPrompt">
+              稍后再说
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 浮动装饰元素 -->
     <div class="floating-decorations">
       <div 
@@ -115,13 +149,60 @@
       </div>
     </div>
   </div>
+
+  <!-- 在模板最后，添加退出确认弹窗 -->
+<!-- 🔧 新增：退出确认弹窗 - 移到最外层 -->
+<div v-if="showExitModal" class="exit-modal-overlay" @click="closeExitModal">
+  <div class="exit-modal" @click.stop>
+    <div class="exit-modal-header">
+      <h3>确认退出游戏？</h3>
+    </div>
+    <div class="exit-modal-content">
+      <div class="exit-warning">
+        <i class="icon-alert-triangle"></i>
+        <p>退出游戏将丢失当前进度和分数</p>
+      </div>
+      <div class="current-progress">
+        <div class="progress-item">
+          <span class="label">已答题数：</span>
+          <span class="value">{{ answerCount }} 题</span>
+        </div>
+        <div class="progress-item">
+          <span class="label">游戏时长：</span>
+          <span class="value">{{ formatTime(gameTime) }}</span>
+        </div>
+        <div class="progress-item">
+          <span class="label">当前关键词：</span>
+          <span class="value">{{ currentKeyword }}</span>
+        </div>
+        <div class="progress-item">
+          <span class="label">游戏模式：</span>
+          <span class="value">{{ getModeLabel(selectedMode) }} - {{ getDifficultyLabel(selectedDifficulty) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="exit-modal-actions">
+      <button class="btn btn-secondary" @click="closeExitModal">
+        <i class="icon-arrow-left"></i>
+        继续游戏
+      </button>
+      <button class="btn btn-danger" @click="confirmExit">
+        <i class="icon-x"></i>
+        确认退出
+      </button>
+    </div>
+  </div>
+</div>
+
 </template>
 
 <!-- script 部分保持不变 -->
 <script>
 import axios from 'axios'
 import API_BASE_URL from '@/config/api'
-
+// 🔧 新增导入
+import { useUserStore } from '@/stores/user'
+import { isLoggedIn, getCurrentUid } from '@/utils/auth'
 // 导入子组件
 import GameModeSelector from './feihualing/GameModeSelector.vue'
 import GameHeader from './feihualing/GameHeader.vue'
@@ -138,11 +219,28 @@ export default {
     GameStatsPanel,
     LeaderboardModal
   },
+    // 🔧 新增 setup 来使用 Pinia store
+  setup() {
+    const userStore = useUserStore()
+    return {
+      userStore
+    }
+  },
   data() {
     return {
       // 游戏状态
       gameState: 'mode-selection', // 'mode-selection', 'playing', 'ended'
-      
+    
+      // 🔧 新增：暂停状态
+       isPaused: false,
+           // 🔧 新增：退出确认弹窗状态
+      showExitModal: false,
+          // 🔧 新增：退出前的暂停状态记录
+    wasGamePausedBeforeExit: false,
+
+      // 🔧 新增登录检查状态
+      showLoginPrompt: false,
+
       // 游戏配置
       selectedMode: '',
       selectedDifficulty: '',
@@ -181,15 +279,44 @@ export default {
       countdownTimer: null
     }
   },
+    // 🔧 新增计算属性
+  computed: {
+    isUserLoggedIn() {
+      return this.userStore.isAuthenticated
+    },
+    currentUserId() {
+      return this.userStore.uid
+    }
+  },
   async mounted() {
     await this.loadGameStats()
     this.initFloatingElements()
-    this.userId = this.getCurrentUserId() // 获取当前用户ID
+        // 🔧 修改：使用 store 中的用户ID
+    this.userId = this.currentUserId
   },
   beforeUnmount() {
     this.clearTimers()
   },
   methods: {
+        // 🔧 新增：登录检查方法
+    checkLoginBeforeGame() {
+      if (!this.isUserLoggedIn) {
+        this.showLoginPrompt = true
+        return false
+      }
+      return true
+    },
+    
+    // 🔧 新增：跳转到用户中心登录
+    goToUserCenter() {
+      this.showLoginPrompt = false
+      this.$router.push('/userinfo')
+    },
+    
+    // 🔧 新增：关闭登录提示
+    closeLoginPrompt() {
+      this.showLoginPrompt = false
+    },
     // 加载游戏统计数据
     async loadGameStats() {
       try {
@@ -204,21 +331,28 @@ export default {
       }
     },
     
-    // 模式选择处理
+    // 🔧 修改：模式选择处理 - 添加登录检查
     onModeSelected(selection) {
+      if (!this.checkLoginBeforeGame()) {
+        return
+      }
       this.selectedMode = selection.mode
       this.selectedDifficulty = selection.difficulty
     },
     
-    // 开始游戏
+    // 🔧 修改：开始游戏 - 添加登录检查
     startGame(gameConfig) {
+      if (!this.checkLoginBeforeGame()) {
+        return
+      }
+      
       this.selectedMode = gameConfig.mode
       this.selectedDifficulty = gameConfig.difficulty
       this.gameState = 'playing'
       
       // 设置难度参数
       const difficultySettings = {
-        easy: { time: 45, hints: 5 },
+        easy: { time: 4500, hints: 5 },
         normal: { time: 30, hints: 3 },
         hard: { time: 15, hints: 1 }
       }
@@ -245,18 +379,22 @@ export default {
       this.startTimers()
     },
     
-    // 开始计时器
+    // 🔧 修改：开始计时器 - 检查暂停状态
     startTimers() {
-      // 游戏总时间计时器
+      if (this.isPaused) return
+      
       this.gameTimer = setInterval(() => {
-        this.gameTime++
+        if (!this.isPaused) {
+          this.gameTime++
+        }
       }, 1000)
       
-      // 倒计时计时器
       this.countdownTimer = setInterval(() => {
-        this.countdown--
-        if (this.countdown <= 0) {
-          this.timeUp()
+        if (!this.isPaused) {
+          this.countdown--
+          if (this.countdown <= 0) {
+            this.timeUp()
+          }
         }
       }, 1000)
     },
@@ -273,16 +411,23 @@ export default {
       }
     },
     
-    // 处理用户消息
+    // 🔧 修改：处理用户消息 - 检查暂停状态
     async handleMessage(message) {
-      // 添加用户消息
+      if (this.isPaused) {
+        this.messages.push({
+          type: 'system',
+          text: '⏸️ 游戏已暂停，请先继续游戏再答题。',
+          timestamp: Date.now()
+        })
+        return
+      }
+      
       this.messages.push({
         type: 'user',
         text: message,
         timestamp: Date.now()
       })
       
-      // 验证诗句
       await this.validatePoetry(message)
     },
     
@@ -410,14 +555,17 @@ export default {
       return totalAttempts > 0 ? Math.round((this.answerCount / totalAttempts) * 100) : 100
     },
     
-    // 提交分数
+    // 🔧 修改：提交分数 - 使用 store 中的用户信息
     async submitScore() {
-      if (!this.userId) return
+      if (!this.currentUserId) {
+        console.warn('用户未登录，无法提交分数')
+        return
+      }
       
       try {
         const payload = {
-          userId: this.userId,
-          playerName: '用户' + this.userId, // 从用户信息获取
+          userId: this.currentUserId,
+          playerName: this.userStore.displayName,
           score: this.finalScore,
           mode: this.selectedMode,
           difficulty: this.selectedDifficulty,
@@ -425,27 +573,21 @@ export default {
         }
         
         await axios.post(`${API_BASE_URL}/api/feihua/submit-score`, payload)
+        console.log('✅ 分数提交成功')
       } catch (error) {
         console.error('提交分数失败:', error)
       }
     },
     
     // 请求提示
+    // 🔧 修改：请求提示 - 只在用户主动请求时消耗次数
     requestHint() {
       if (this.hintCount <= 0) return
       
       this.hintCount--
-      // 模拟提示
-      const hints = [
-        '明月几时有，把酒问青天',
-        '花间一壶酒，独酌无相亲',
-        '春眠不觉晓，处处闻啼鸟'
-      ]
-      
-      const hint = hints[Math.floor(Math.random() * hints.length)]
       this.messages.push({
         type: 'system',
-        text: `提示：${hint}`,
+        text: '诗句提示已显示在输入框上方，请查看参考。',
         timestamp: Date.now()
       })
     },
@@ -473,7 +615,7 @@ export default {
       this.$router.push('/game-center')
     },
     
-    // 重置游戏数据
+    // 🔧 修改：重置游戏数据
     resetGameData() {
       this.selectedMode = ''
       this.selectedDifficulty = ''
@@ -482,6 +624,9 @@ export default {
       this.gameTime = 0
       this.finalScore = 0
       this.messages = []
+      this.isPaused = false
+      this.showExitModal = false
+      this.wasGamePausedBeforeExit = false
       this.clearTimers()
     },
     
@@ -492,9 +637,9 @@ export default {
       return `${mins}:${secs.toString().padStart(2, '0')}`
     },
     
+    // 🔧 修改：获取当前用户ID方法
     getCurrentUserId() {
-      // 从 Vuex store 或 localStorage 获取用户ID
-      return localStorage.getItem('userId') ? parseInt(localStorage.getItem('userId')) : null
+      return this.currentUserId
     },
     
     // 初始化浮动装饰元素
@@ -512,8 +657,157 @@ export default {
           }
         })
       }
+    },
+
+  // 🔧 修改：切换暂停状态 - 如果退出弹窗打开，先关闭弹窗
+  togglePause() {
+    // 如果退出确认弹窗正在显示，先关闭它
+    if (this.showExitModal) {
+      this.closeExitModal()
+      return
     }
+    
+    this.isPaused = !this.isPaused
+    
+    if (this.isPaused) {
+      this.pauseGame()
+    } else {
+      this.resumeGame()
+    }
+  },
+  
+  // 🔧 新增：暂停游戏
+  pauseGame() {
+    this.clearTimers()
+    
+    // 添加暂停消息
+    this.messages.push({
+      type: 'system',
+      text: '🔔 游戏已暂停，点击继续按钮恢复游戏。',
+      timestamp: Date.now()
+    })
+  },
+  
+  // 🔧 新增：恢复游戏
+  resumeGame() {
+    this.startTimers()
+    
+    // 添加恢复消息
+    this.messages.push({
+      type: 'system',
+      text: '🎮 游戏已恢复，继续挑战吧！',
+      timestamp: Date.now()
+    })
+  },
+  
+  // 🔧 新增：退出游戏
+  exitGame() {
+    this.clearTimers()
+    this.isPaused = false
+    this.gameState = 'mode-selection'
+    this.resetGameData()
+    
+    // 添加退出提示
+    this.$nextTick(() => {
+      console.log('游戏已退出，返回主菜单')
+    })
+  },
+
+ // 🔧 修改：显示退出确认 - 自动暂停游戏
+  showExitConfirm() {
+    // 记录当前游戏是否已经暂停
+    this.wasGamePausedBeforeExit = this.isPaused
+    
+    // 如果游戏正在进行，则暂停游戏
+    if (!this.isPaused) {
+      this.pauseGameForExit()
+    }
+    
+    // 显示退出确认弹窗
+    this.showExitModal = true
+  },
+  
+  // 🔧 修改：关闭退出确认 - 恢复游戏状态
+  closeExitModal() {
+    this.showExitModal = false
+    
+    // 如果游戏在显示退出确认前没有暂停，则恢复游戏
+    if (!this.wasGamePausedBeforeExit) {
+      this.resumeGameFromExit()
+    }
+    
+    // 重置记录状态
+    this.wasGamePausedBeforeExit = false
+  },
+  // 🔧 修改：确认退出 - 直接退出，不需要恢复
+  confirmExit() {
+    this.showExitModal = false
+    this.wasGamePausedBeforeExit = false
+    this.exitGame()
+  },
+    // 🔧 新增：为退出确认暂停游戏（不显示暂停消息）
+  pauseGameForExit() {
+    this.isPaused = true
+    this.clearTimers()
+    
+    // 添加退出确认提示消息
+    this.messages.push({
+      type: 'system',
+      text: '⏸️ 游戏已暂停，正在等待您的选择...',
+      timestamp: Date.now()
+    })
+  },
+
+    // 🔧 新增：从退出确认恢复游戏（不显示恢复消息）
+  resumeGameFromExit() {
+    this.isPaused = false
+    this.startTimers()
+    
+    // 添加恢复游戏消息
+    this.messages.push({
+      type: 'system',
+      text: '🎮 游戏已恢复，继续挑战吧！',
+      timestamp: Date.now()
+    })
+  },
+  // 🔧 修改：退出游戏方法
+  exitGame() {
+    this.clearTimers()
+    this.isPaused = false
+    this.showExitModal = false
+    this.wasGamePausedBeforeExit = false
+    this.gameState = 'mode-selection'
+    this.resetGameData()
+    
+    this.$nextTick(() => {
+      console.log('游戏已退出，返回主菜单')
+    })
+  },
+
+  // 🔧 新增：工具方法
+  getModeLabel(mode) {
+    return { endless: '无尽', challenge: '闯关' }[mode] || '未知'
+  },
+  
+  getDifficultyLabel(difficulty) {
+    return { easy: '简单', normal: '普通', hard: '困难' }[difficulty] || '未知'
+  },
+
+    // 🔧 新增：处理返回游戏中心
+  handleReturnToCenter() {
+    // 方法1：如果使用路由导航
+    this.$router.push('/game-center')
+    
+    // 方法2：如果使用事件向上传递给更上层的组件
+    // this.$emit('return-to-game-center')
+    
+    // 方法3：如果需要清理当前游戏状态
+    // this.resetGameData()
+    // this.$router.push('/game-center')
+  },
+
   }
+
 }
 </script>
 
@@ -528,6 +822,8 @@ export default {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
+    // 🔧 关键：降低容器层级
+  z-index: 1;
 }
 
 // 🚀 重构：游戏进行时的布局
@@ -537,6 +833,8 @@ export default {
   flex-direction: column;
   background: transparent;
   position: relative;
+    // 🔧 确保不会遮挡弹窗
+  z-index: 1;
 }
 
 // 🔧 固定头部 - 明确高度
@@ -573,6 +871,8 @@ export default {
   overflow: hidden;
   // 🔧 关键修复：确保内容不被头部遮挡
   position: relative;
+    // 🔧 确保不会遮挡弹窗
+  z-index: 10;
   
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -600,7 +900,7 @@ export default {
   background: rgba(255, 255, 255, 0.95);
   overflow: hidden;
   position: relative;
-  z-index: 10;
+  z-index: 5;
   // 🔧 确保边框清晰可见
   border: 2px solid var(--border-color);
 }
@@ -617,7 +917,7 @@ export default {
   height: 100%;
   min-height: 0;
   position: relative;
-  z-index: 10;
+  z-index: 5;
   // 🔧 确保边框清晰可见
   border: 2px solid var(--border-color);
 }
@@ -765,4 +1065,462 @@ export default {
     }
   }
 }
+// 在 FeiHuaLing.vue 的 <style> 部分最后添加
+
+// 🔧 新增：登录提示弹窗样式
+.login-prompt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.login-prompt-modal {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.98) 0%, 
+      rgba(248, 245, 240, 0.95) 100%
+    );
+  border-radius: 20px;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  overflow: hidden;
+  animation: scaleIn 0.3s ease-out;
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(140, 120, 83, 0.2);
+}
+
+.login-prompt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: 
+    linear-gradient(90deg, 
+      rgba(140, 120, 83, 0.1) 0%, 
+      rgba(110, 87, 115, 0.1) 100%
+    );
+  border-bottom: 2px solid rgba(140, 120, 83, 0.2);
+}
+
+.login-prompt-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.close-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: 
+    linear-gradient(135deg, 
+      #e74c3c 0%, 
+      #c0392b 100%
+    );
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(231, 76, 60, 0.4);
+  
+  &:hover {
+    background: 
+      linear-gradient(135deg, 
+        #c0392b 0%, 
+        #a93226 100%
+      );
+    transform: scale(1.1);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.6);
+  }
+}
+
+.login-prompt-content {
+  padding: 2rem;
+  text-align: center;
+}
+
+.login-prompt-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.login-prompt-content h4 {
+  color: var(--text-color);
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+}
+
+.login-prompt-content p {
+  color: #666;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+}
+
+.login-prompt-content ul {
+  text-align: left;
+  margin: 1rem 0 2rem 0;
+  padding: 1rem 1.5rem;
+  background: rgba(140, 120, 83, 0.05);
+  border-radius: 10px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.login-prompt-content li {
+  margin: 0.5rem 0;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.login-prompt-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.login-prompt-actions .btn {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.login-prompt-actions .btn.btn-primary {
+  background: 
+    linear-gradient(135deg, 
+      var(--primary-color) 0%, 
+      var(--secondary-color) 100%
+    );
+  color: white;
+  
+  &:hover {
+    background: 
+      linear-gradient(135deg, 
+        #9d8964 0%, 
+        #7f6884 100%
+      );
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(140, 120, 83, 0.3);
+  }
+}
+
+.login-prompt-actions .btn.btn-secondary {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.9) 0%, 
+      rgba(248, 245, 240, 0.8) 100%
+    );
+  color: var(--primary-color);
+  border: 2px solid rgba(140, 120, 83, 0.3);
+  
+  &:hover {
+    background: 
+      linear-gradient(135deg, 
+        rgba(140, 120, 83, 0.1) 0%, 
+        rgba(110, 87, 115, 0.1) 100%
+      );
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(140, 120, 83, 0.2);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { 
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to { 
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .login-prompt-modal {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+  }
+  
+  .login-prompt-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .login-prompt-content {
+    padding: 1.5rem;
+  }
+  
+  .login-prompt-actions {
+    flex-direction: column;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+}
+
+
+// 🔧 新增：退出确认弹窗样式 - 最外层覆盖
+.exit-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: 
+    radial-gradient(circle at 30% 40%, rgba(140, 120, 83, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(110, 87, 115, 0.15) 0%, transparent 50%),
+    rgba(0, 0, 0, 0.85) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  animation: fadeIn 0.3s ease-out;
+  padding: 1rem;
+  pointer-events: auto !important;
+  overflow-y: auto !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.exit-modal {
+  background: 
+    linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.98) 0%, 
+      rgba(248, 245, 240, 0.95) 100%
+    ) !important;
+  border-radius: 16px !important;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.4),
+    0 10px 25px rgba(140, 120, 83, 0.3),
+    0 0 0 1px rgba(140, 120, 83, 0.2) !important;
+  max-width: 450px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: scaleIn 0.3s ease-out;
+  backdrop-filter: blur(15px);
+  border: 2px solid rgba(140, 120, 83, 0.3);
+  position: relative !important;
+  z-index: 1000000 !important;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.exit-modal-header {
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(140, 120, 83, 0.15);
+  background: 
+    linear-gradient(90deg, 
+      rgba(140, 120, 83, 0.08) 0%, 
+      rgba(110, 87, 115, 0.08) 100%
+    );
+  
+  h3 {
+    margin: 0;
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    font-weight: 700;
+    @include ancient-title;
+  }
+}
+
+.exit-modal-content {
+  padding: 1.5rem;
+  
+  .exit-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(231, 76, 60, 0.12);
+    border-radius: 8px;
+    border-left: 4px solid #e74c3c;
+    margin-bottom: 1.5rem;
+    
+    i {
+      color: #e74c3c;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    
+    p {
+      margin: 0;
+      color: #c0392b;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+  }
+  
+  .current-progress {
+    background: rgba(140, 120, 83, 0.08);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(140, 120, 83, 0.15);
+    
+    .progress-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .label {
+        color: #666;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+      
+      .value {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+    }
+  }
+}
+
+.exit-modal-actions {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(140, 120, 83, 0.15);
+  background: rgba(248, 245, 240, 0.5);
+  
+  .btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 1000001 !important;
+  }
+  
+  .btn-secondary {
+    background: 
+      linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.95) 0%, 
+        rgba(248, 245, 240, 0.9) 100%
+      );
+    color: var(--primary-color);
+    border: 2px solid rgba(140, 120, 83, 0.4) !important;
+    
+    &:hover {
+      background: 
+        linear-gradient(135deg, 
+          rgba(140, 120, 83, 0.15) 0%, 
+          rgba(110, 87, 115, 0.15) 100%
+        );
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+    }
+  }
+  
+  .btn-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+    color: white !important;
+    
+    &:hover {
+      background: linear-gradient(135deg, #c0392b, #a93226) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+    }
+  }
+}
+
+// 动画效果
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    backdrop-filter: blur(0px);
+  }
+  to { 
+    opacity: 1; 
+    backdrop-filter: blur(15px);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.85) translateY(-20px);
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1) translateY(0);
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .exit-modal {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+    max-width: none;
+  }
+  
+  .exit-modal-actions {
+    flex-direction: column;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+  
+  .exit-modal-header {
+    padding: 1rem 1.5rem 0.75rem 1.5rem;
+    
+    h3 {
+      font-size: 1.1rem;
+    }
+  }
+  
+  .exit-modal-content {
+    padding: 1rem 1.5rem;
+  }
+}
+
 </style>
