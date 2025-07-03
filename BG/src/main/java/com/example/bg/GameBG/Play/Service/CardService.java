@@ -7,9 +7,13 @@ import org.apache.ibatis.jdbc.Null;
 import java.util.*;
 
 public class CardService {
-    //管理所有卡池
-    //进行随机取x张y费牌
-    // 组织形式：直接存所有的，后续再调整算法函数
+    /*
+    * 处理所有和卡牌相关的函数
+    * 查找卡牌
+    * 合并卡牌列表
+    * 随机获得x费卡
+    *
+    * */
     private static final List<CardBattle> arrayList = new ArrayList<>();
     static {
         arrayList.add(new CardBattle("profit", 1, "spring", 1));      // 春
@@ -150,7 +154,71 @@ public class CardService {
         return result;
     }
 
+    /**
+     * 随机删除列表中的指定数量卡牌，然后合并整理列表
+     * @param list 要处理的卡牌列表，可以为null
+     * @param x 要删除的卡牌数量，如果小于等于0则不删除任何卡牌
+     * @return 处理后的卡牌列表，相同名称的卡牌会被合并，数量为0的卡牌会被移除
+     */
+    public List<CardBattle> RandomDiscardCardsList(List<CardBattle> list, int x) {
+        // 处理边界情况
+        if (list == null || list.isEmpty() || x <= 0) {
+            return MergeCardList(list, null);
+        }
 
-    
+        // 创建一个临时列表来存储要删除的卡牌（负数表示删除）
+        List<CardBattle> discardList = new ArrayList<>();
+
+        // 统计总卡牌数量
+        int totalCards = 0;
+        for (CardBattle card : list) {
+            if (card != null) {
+                totalCards += card.getCardNum();
+            }
+        }
+
+        // 如果要删除的数量大于等于总数量，返回空列表
+        if (x >= totalCards) {
+            return new ArrayList<>();
+        }
+
+        // 创建一个展开的卡牌列表（每张卡牌按数量展开）
+        List<CardBattle> expandedList = new ArrayList<>();
+        for (CardBattle card : list) {
+            if (card != null) {
+                for (int i = 0; i < card.getCardNum(); i++) {
+                    expandedList.add(new CardBattle(
+                            card.getCardType(),
+                            1, // 每个展开的卡牌数量为1
+                            card.getCardName(),
+                            card.getCardSize()
+                    ));
+                }
+            }
+        }
+
+        // 随机删除x张卡牌
+        Random random = new Random();
+        for (int i = 0; i < x; i++) {
+            if (!expandedList.isEmpty()) {
+                int randomIndex = random.nextInt(expandedList.size());
+                CardBattle removedCard = expandedList.remove(randomIndex);
+
+                // 创建一个负数卡牌表示删除
+                discardList.add(new CardBattle(
+                        removedCard.getCardType(),
+                        -1, // 负数表示删除
+                        removedCard.getCardName(),
+                        removedCard.getCardSize()
+                ));
+            }
+        }
+
+        // 使用MergeCardList合并原列表和删除列表
+        return MergeCardList(list, discardList);
+    }
+
+
+
 
 }

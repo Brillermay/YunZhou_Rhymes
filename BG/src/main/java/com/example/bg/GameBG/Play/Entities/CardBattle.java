@@ -6,7 +6,8 @@ import lombok.Data;
 public class CardBattle {
     /*包含的字段
     public String CardType;
-    public int CardNum;
+    public int CardNum;有几张卡牌
+    private int cardSize:卡牌面值
 
     */
     /*
