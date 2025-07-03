@@ -1,0 +1,156 @@
+package com.example.bg.GameBG.Play.Service;
+
+import com.example.bg.GameBG.Play.Entities.CardBattle;
+import dev.langchain4j.agent.tool.P;
+import org.apache.ibatis.jdbc.Null;
+
+import java.util.*;
+
+public class CardService {
+    //管理所有卡池
+    //进行随机取x张y费牌
+    // 组织形式：直接存所有的，后续再调整算法函数
+    private static final List<CardBattle> arrayList = new ArrayList<>();
+    static {
+        arrayList.add(new CardBattle("profit", 1, "spring", 1));      // 春
+        arrayList.add(new CardBattle("battle", 1, "fire", 1));        // 火
+        arrayList.add(new CardBattle("battle", 1, "bird", 1));        // 鸟
+        arrayList.add(new CardBattle("decrease", 1, "autumn", 1));    // 秋
+        arrayList.add(new CardBattle("defense", 1, "mountain", 1));   // 山
+        arrayList.add(new CardBattle("defense", 1, "water", 1));      // 水
+        arrayList.add(new CardBattle("decrease", 1, "moon", 1));      // 月
+        arrayList.add(new CardBattle("decrease", 1, "sad", 2));       // 悲
+        arrayList.add(new CardBattle("profit", 1, "home", 2));        // 故乡
+        arrayList.add(new CardBattle("battle", 1, "wine", 2));        // 酒
+        arrayList.add(new CardBattle("defense", 1, "willow", 2));     // 柳
+        arrayList.add(new CardBattle("battle", 1, "sun", 2));         // 日
+        arrayList.add(new CardBattle("defense", 1, "wildgoose", 2));  // 雁
+        arrayList.add(new CardBattle("profit", 1, "friendship", 2));  // 友情
+        arrayList.add(new CardBattle("battle", 1, "rain", 2));        // 雨
+        arrayList.add(new CardBattle("battle", 1, "war", 2));         // 战争
+        arrayList.add(new CardBattle("defense", 1, "nature", 2));     // 自然
+        arrayList.add(new CardBattle("decrease", 1, "parting", 3));   // 离别
+        arrayList.add(new CardBattle("profit", 1, "peachblossom", 3));// 桃花
+        arrayList.add(new CardBattle("battle", 1, "bamboo", 3));      // 竹
+        arrayList.add(new CardBattle("defense", 1, "unfulfilled", 3));// 壮志难酬
+        arrayList.add(new CardBattle("defense", 1, "danbo", 4));      // 淡泊
+        arrayList.add(new CardBattle("battle", 1, "yellowriver", 4)); // 黄河
+        arrayList.add(new CardBattle("battle", 1, "missing", 5));     // 思念
+        arrayList.add(new CardBattle("defense", 1, "yangtze", 5));    // 长江
+        arrayList.add(new CardBattle("profit", 1, "love", 7));        // 爱情
+    }
+    /**
+     * 根据卡牌名称查找对应的卡牌
+     * @param cardName 要查找的卡牌名称（不区分大小写）
+     * @return 找到的卡牌对象，如果未找到则返回null
+     */
+    public static CardBattle getByName(String cardName) {
+        //实现功能：根据名字查找卡牌
+        for (CardBattle card : arrayList) {
+            if (card.getCardName().equalsIgnoreCase(cardName)) {
+                return card;
+            }
+        }
+        return null; // 未找到返回null
+    }
+    /**
+     * 合并两个卡牌列表，将相同名称的卡牌数量相加
+     * @param list1 第一个卡牌列表，可以为null
+     * @param list2 第二个卡牌列表，可以为null
+     * @return 合并后的卡牌列表，只包含数量大于0的卡牌，如果两个列表都为null则返回空列表
+     */
+    public List<CardBattle> MergeCardList(List<CardBattle> list1, List<CardBattle> list2) {
+        //实现功能：合并两个list
+        //具体来说：对里面的每一种CardBattle，如果名字一样，那么就只放入一个名字，然后把cardNum相加，如果cardNum为0，那么就不加入
+
+        Map<String, CardBattle> map = new HashMap<>();
+
+        // 合并list1（处理单个list内的合并）
+        mergeListIntoMap(list1, map);
+
+        // 合并list2（处理两个list间的合并）
+        mergeListIntoMap(list2, map);
+
+        // 过滤cardNum为0或负数的卡牌，返回结果
+        List<CardBattle> result = new ArrayList<>();
+        for (CardBattle card : map.values()) {
+            if (card.getCardNum() > 0) {
+                result.add(card);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 将list中的卡牌合并到map中
+     * @param list 要合并的卡牌列表
+     * @param map 目标map
+     */
+    private void mergeListIntoMap(List<CardBattle> list, Map<String, CardBattle> map) {
+        // 处理null list的情况
+        if (list == null) {
+            return;
+        }
+
+        for (CardBattle card : list) {
+            // 跳过null元素
+            if (card == null) {
+                continue;
+            }
+
+            String cardName = card.getCardName();
+
+            if (map.containsKey(cardName)) {
+                // 如果map中已存在该卡牌，累加cardNum
+                CardBattle existingCard = map.get(cardName);
+                existingCard.setCardNum(existingCard.getCardNum() + card.getCardNum());
+            } else {
+                // 如果map中不存在该卡牌，创建新的CardBattle对象
+                map.put(cardName, new CardBattle(
+                        card.getCardType(),
+                        card.getCardNum(),
+                        card.getCardName(),
+                        card.getCardSize()
+                ));
+            }
+        }
+    }
+    /**
+     * 随机抽取指定数量和面值限制的卡牌
+     * @param nums 要抽取的卡牌数量，如果小于等于0则返回空列表
+     * @param costs 卡牌面值上限，如果为-1则不限制面值
+     * @return 随机抽取的卡牌列表，每张卡牌都是深拷贝的新对象，可重复抽取
+     */
+    public List<CardBattle>RandomGetCardsByNumAndCost(int nums,int costs) {
+        //随机抽取nums张面值小于等于costs的卡牌
+        //如果costs是-1那么就是全体随机
+        // 1. 过滤符合条件的卡牌
+        List<CardBattle> candidates = new ArrayList<>();
+        for (CardBattle card : arrayList) {
+            if (costs == -1 || card.getCardSize() <= costs) {
+                candidates.add(card);
+            }
+        }
+        // 2. 随机抽取nums张（可重复，不移除原卡牌）
+        List<CardBattle> result = new ArrayList<>();
+        if (candidates.isEmpty() || nums <= 0) {
+            return result;
+        }
+        Random random = new Random();
+        for (int i = 0; i < nums; i++) {
+            CardBattle picked = candidates.get(random.nextInt(candidates.size()));
+            // 深拷贝，避免影响原卡牌
+            result.add(new CardBattle(
+                    picked.getCardType(),
+                    picked.getCardNum(),
+                    picked.getCardName(),
+                    picked.getCardSize()
+            ));
+        }
+        return result;
+    }
+
+
+    
+
+}
