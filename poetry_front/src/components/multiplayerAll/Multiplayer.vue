@@ -633,32 +633,38 @@ onMounted(() => {
         this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}%`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}%`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
           fontSize: '14px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
         this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}%`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}%`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
           fontSize: '14px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 渲染状态效果的函数
