@@ -1,0 +1,116 @@
+// 古典主题样式
+@mixin ancient-title {
+  font-family: 'KaiTi', 'STKaiti', serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--poetry-primary), transparent);
+  }
+}
+
+@mixin elegant-card {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      transparent 50%, 
+      rgba(140, 120, 83, 0.05) 100%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
+
+@mixin elegant-button {
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+}
+
+// 古典边框样式
+@mixin ancient-border {
+  border: 2px solid var(--poetry-primary);
+  border-radius: 12px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%, 
+    rgba(140, 120, 83, 0.05) 100%
+  );
+  box-shadow: 
+    0 4px 12px rgba(140, 120, 83, 0.2),
+    inset 0 1px 3px rgba(255, 255, 255, 0.7);
+}
+
+// 诗词文本样式
+@mixin poetry-text {
+  font-family: 'KaiTi', 'STKaiti', serif;
+  line-height: 1.8;
+  color: var(--poetry-text);
+  font-size: 1.1rem;
+}
+
+// 进度条样式
+@mixin progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(140, 120, 83, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--poetry-primary), var(--poetry-secondary));
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        transparent 100%
+      );
+      animation: shimmer 2s infinite;
+    }
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

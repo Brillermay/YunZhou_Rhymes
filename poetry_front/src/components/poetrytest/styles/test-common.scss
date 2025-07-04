@@ -1,0 +1,204 @@
+// 导入子样式文件
+@import './test-theme.scss';
+@import './test-elements.scss';
+
+// 🎯 直接使用飞花令的 CSS 变量
+:root {
+  --primary-color: #8c7853;
+  --secondary-color: #6e5773;
+  --accent-color: #a17f61;
+  --text-color: #333;
+  --light-bg: #f8f6f0;
+  --border-color: rgba(140, 120, 83, 0.3);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --success-color: #27ae60;
+  --warning-color: #f39c12;
+  --error-color: #e74c3c;
+  --modal-bg: rgba(0, 0, 0, 0.8);
+}
+
+// 🎨 主容器样式 - 完全使用飞花令的 feihua-component
+.feihua-component {
+  min-height: 100vh;
+  background: linear-gradient(135deg, 
+    rgba(248, 246, 240, 0.9) 0%, 
+    rgba(245, 241, 235, 0.95) 50%, 
+    rgba(240, 234, 225, 0.9) 100%
+  );
+  
+  // 🎨 背景纹理 - 仿照飞花令样式
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(140, 120, 83, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(110, 87, 115, 0.05) 0%, transparent 50%);
+  background-size: 600px 600px, 400px 400px;
+  background-position: 0 0, 200px 200px;
+  
+  position: relative;
+  overflow: hidden;
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  
+  // 🎨 装饰性背景层
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 100px,
+      rgba(140, 120, 83, 0.02) 100px,
+      rgba(140, 120, 83, 0.02) 102px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  // 确保内容在背景之上
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// 🎨 mixins - 从飞花令样式中导入
+@mixin ancient-title {
+  font-family: 'KaiTi', 'STKaiti', serif;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@mixin modern-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      transparent 50%, 
+      rgba(140, 120, 83, 0.05) 100%
+    );
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
+
+// 🎨 按钮样式 - 基于飞花令的 btn 类
+.btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  
+  // 🎨 主要按钮样式
+  &.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    box-shadow: 0 4px 16px rgba(140, 120, 83, 0.3);
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(140, 120, 83, 0.4);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+  
+  // 🎨 轮廓按钮样式
+  &.btn-outline {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid var(--border-color);
+    color: var(--primary-color);
+    
+    &:hover:not(:disabled) {
+      background: rgba(140, 120, 83, 0.1);
+      border-color: var(--primary-color);
+      transform: translateY(-2px);
+    }
+  }
+  
+  // 🎨 禁用状态
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+  
+  // 🎨 按钮动画效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+}
+
+// 🎨 文本样式 - 仿照飞花令的古典文本
+.ancient-text {
+  font-family: 'KaiTi', 'STKaiti', serif;
+  line-height: 1.8;
+  color: var(--text-color);
+}
+
+// 🎨 段落标题样式
+.section-title {
+  @include ancient-title;
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 2px;
+    background: var(--primary-color);
+  }
+}
+
+// 🎨 响应式设计
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
