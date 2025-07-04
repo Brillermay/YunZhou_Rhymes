@@ -26,6 +26,9 @@ public class PlayerAgainst {
     private String role;
     private int shield;
     private int hpMax,shieldMax;
+
+    private PlayerCondition playerCondition;
+
     //fire特性
     private int fireAdd;
 
