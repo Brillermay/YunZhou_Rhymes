@@ -86,7 +86,7 @@
             </div>
           </div>
           <ul>
-            <li v-for="(item, index) in navItems" :key="index" :style="{ '--delay': index * 0.15 + 's' }">
+            <li v-for="(item, index) in navItems" :key="index" :style="{ '--delay': index * 0.06 + 's' }">
               <router-link 
                 :to="item.path" 
                 class="nav-item"
@@ -540,7 +540,7 @@ export default {
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(139, 149, 137, 0.2);
-  animation: scrollItemSlide 0.8s ease-out forwards;
+  animation: scrollItemSlide 0.4s ease-out forwards;
   animation-delay: var(--delay);
   opacity: 0;
   transform: translateX(-40px);
@@ -1188,7 +1188,7 @@ export default {
 
 /* 卷轴展开动画 */
 .scroll-unfold-enter-active {
-  animation: scrollUnfold 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: scrollUnfold 0.62s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 .scroll-unfold-leave-active {
