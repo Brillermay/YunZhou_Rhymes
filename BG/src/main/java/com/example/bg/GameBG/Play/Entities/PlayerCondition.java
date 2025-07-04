@@ -4,13 +4,25 @@ import lombok.Data;
 
 @Data
 public class PlayerCondition {
-    boolean isAttacked;
+    public PlayerCondition(){
+        isAttacked=false;
+        isUsedBattleCard=false;
+        isUsedDefenseCard=false;
+        isUsedProfitOrDecreaseCard=false;
+        isRobbedHP=false;
+        isAddedShield=false;
+        isCured=false;
+    }
 
-    boolean isUsedDefenseCard;
-    boolean isUsedBattleCard;
-    boolean isUsedProfitOrDecreaseCard;
 
-    boolean isRobbedHP;
-    boolean isAddedShield;
+    private boolean isAttacked;
+
+    private boolean isUsedDefenseCard;
+    private boolean isUsedBattleCard;
+    private boolean isUsedProfitOrDecreaseCard;
+
+    private boolean isRobbedHP;
+    private boolean isAddedShield;
+    private boolean isCured;
 
 }
