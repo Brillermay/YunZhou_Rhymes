@@ -221,6 +221,38 @@ public class CardService {
     }
 
 
+    /**
+     * 丢弃指定名称的卡牌
+     * @param list 要处理的卡牌列表（注意：此方法会直接修改传入的列表）
+     * @param a 要丢弃的卡牌名称
+     * @return 处理后的卡牌列表，指定卡牌数量减少1张，数量为0的卡牌会被移除
+     */
+    public List<CardBattle> DiscardCard(List<CardBattle> list, String a) {
+        CardBattle templateA = getByName(a);
+        list.add(new CardBattle(
+                templateA.getCardType(),
+                -1,
+                a,
+                templateA.getCardSize()
+        ));
+        return MergeCardList(list, null);
+    }
+
+    /**
+     * 获得指定名称的卡牌
+     * @param list 要处理的卡牌列表（注意：此方法会直接修改传入的列表）
+     * @param a 要获得的卡牌名称
+     * @return 处理后的卡牌列表，指定卡牌数量增加1张
+     */
+    public List<CardBattle> GetCardByName(List<CardBattle> list, String a) {
+        CardBattle templateA = getByName(a);
+        list.add(templateA);
+        return MergeCardList(list, null);
+    }
+
+
+
+
 
 
 }

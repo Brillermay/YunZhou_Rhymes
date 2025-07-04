@@ -29,4 +29,13 @@ public class PlayerAgainst {
     //fire特性
     private int fireAdd;
 
+    public int countCardsNum()
+    {
+        int ans=0;
+        for(CardBattle cardBattle:cards){
+            ans+=cardBattle.getCardNum();
+        }
+        return ans;
+    }
+
 }

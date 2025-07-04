@@ -329,6 +329,64 @@ let game = null
 const currentScreen = ref(0);
 const isScrolling = ref(false);
 
+const buffs = [
+  { key: 'buff1', src: new URL('../../assets/cards/1.png', import.meta.url).href },
+  { key: 'buff2', src: new URL('../../assets/cards/2.png', import.meta.url).href },
+  { key: 'buff3', src: new URL('../../assets/cards/3.png', import.meta.url).href },
+  { key: 'buff4', src: new URL('../../assets/cards/4.png', import.meta.url).href },
+  { key: 'buff5', src: new URL('../../assets/cards/5.png', import.meta.url).href },
+]
+
+const gameState_one = ref({
+  // 己方角色状态
+  ally: {
+    health: 100,
+    maxHealth: 100,
+    armor: 80,
+    maxArmor: 100,
+    effects: ['buff1', 'buff2'], // 状态效果数组
+  },
+
+  // 敌方角色状态
+  enemy: {
+    health: 100,
+    maxHealth: 100,
+    armor: 80,
+    maxArmor: 100,
+    effects: ['buff3', 'buff4'], // 状态效果数组
+  },
+
+  // 卡牌网格 3*4，初始化为全是 'cardBack'
+  cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
+});
+
+//更新卡牌
+const updateCard = (row, col, cardType) => {
+  gameState_one.value.cardGrid[row][col] = cardType;
+  // 这里可以添加更新 Phaser 显示的逻辑
+};
+
+//更新血条护甲
+const updateStatus = (isAlly, newHealth, newArmor) => {
+  if (isAlly) {
+    gameState_one.value.ally.health = newHealth;
+    gameState_one.value.ally.armor = newArmor;
+  } else {
+    gameState_one.value.enemy.health = newHealth;
+    gameState_one.value.enemy.armor = newArmor;
+  }
+  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
+};
+
+const updateEffects = (isAlly, effects) => {
+  if (isAlly) {
+    gameState_one.value.ally.effects = effects;
+  } else {
+    gameState_one.value.enemy.effects = effects;
+  }
+  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
+};
+
 // 计算容器的 translateY，实现滚动切换
 const containerStyle = computed(() => ({
   transform: `translateY(-${currentScreen.value * 100}vh)`,
@@ -377,144 +435,276 @@ onMounted(() => {
       preload() {
         // 创建一个纹理生成器来绘制卡牌背面
         const graphics = this.add.graphics();
-        
+
         // 绘制卡牌背面的花纹
-        graphics.lineStyle(2, 0xd4af37); // 古金色边框
-        graphics.fillStyle(0x800020); // 酒红色背景
+        graphics.lineStyle(2, 0xC5A880); // 柔和古金边框
+        graphics.fillStyle(0x7D1D29); // 深酒红背景
         graphics.fillRect(0, 0, 100, 140);
         graphics.strokeRect(0, 0, 100, 140);
-        
+
         // 添加一些装饰图案
         graphics.lineStyle(1, 0xffd700);
         graphics.strokeRect(10, 10, 80, 120);
         graphics.beginPath();
         graphics.arc(50, 70, 30, 0, Math.PI * 2);
         graphics.strokePath();
-        
+
         // 将绘制的图形生成为纹理
         graphics.generateTexture('cardBack', 100, 140);
         graphics.destroy();
+
+        // 加载状态效果图片
+        buffs.forEach(buff => {
+          this.load.image(buff.key, buff.src);
+        });
       },
-    create() {
-      // 获取游戏画布的中心点和尺寸
-      const width = this.cameras.main.width;
-      const height = this.cameras.main.height;
-      const centerX = width / 2;
-      const centerY = height / 2;
+      create() {
+        // 获取游戏画布的中心点和尺寸
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
 
-      // 创建牌桌外边框（浅褐色）
-      const tableFrame = this.add.rectangle(
-        centerX, 
-        centerY, 
-        width - 60,  // 左右各留30px边距，比原来的100px更宽
-        height - 60, // 上下各留30px边距，比原来的100px更宽
-        0xD4C4A8  // 淡雅米褐色
-      ).setOrigin(0.5, 0.5);
+        // 创建牌桌外边框（浅褐色）
+        const tableFrame = this.add.rectangle(
+          centerX,
+          centerY,
+          width - 60,  // 左右各留30px边距，比原来的100px更宽
+          height - 60, // 上下各留30px边距，比原来的100px更宽
+          0xC5A880  // 淡雅米褐色
+        ).setOrigin(0.5, 0.5);
 
-      // 创建牌桌内部（米色）
-      const tableInner = this.add.rectangle(
-        centerX, 
-        centerY, 
-        width - 100, // 与外框保持20px的间距
-        height - 100,
-        0xF5E6D3  // 温暖米色
-      ).setOrigin(0.5, 0.5);
+        // 创建牌桌内部（米色）
+        const tableInner = this.add.rectangle(
+          centerX,
+          centerY,
+          width - 100, // 与外框保持20px的间距
+          height - 100,
+          0xF5EBE0  // 温暖米色
+        ).setOrigin(0.5, 0.5);
 
-      // 调整装饰边角的位置
-      const padding = 30; // 将padding调整为与新的边框对应
-      const cornerRadius = 15; // 稍微减小圆角半径
-      
-      // 绘制四个角的装饰
-      const graphics = this.add.graphics();
-      graphics.lineStyle(3, 0xd4af37); // 古金色装饰线
-      // 左上角
-      graphics.beginPath();
-      graphics.arc(padding + cornerRadius, padding + cornerRadius, cornerRadius, Math.PI, Math.PI * 1.5);
-      graphics.strokePath();
-      // 右上角
-      graphics.beginPath();
-      graphics.arc(width - padding - cornerRadius, padding + cornerRadius, cornerRadius, Math.PI * 1.5, 0);
-      graphics.strokePath();
-      // 左下角
-      graphics.beginPath();
-      graphics.arc(padding + cornerRadius, height - padding - cornerRadius, cornerRadius, Math.PI * 0.5, Math.PI);
-      graphics.strokePath();
-      // 右下角
-      graphics.beginPath();
-      graphics.arc(width - padding - cornerRadius, height - padding - cornerRadius, cornerRadius, 0, Math.PI * 0.5);
-      graphics.strokePath();
+        // 设置卡槽的尺寸和间距
+        const slotWidth = 100;
+        const slotHeight = 140;
+        const horizontalGap = 60;
+        const verticalGap = 20;
 
+        // 计算整个卡槽区域的尺寸
+        const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
+        const totalHeight = (slotHeight * 4) + (verticalGap * 3);
 
-        
-      // 设置卡槽的尺寸和间距
-      const slotWidth = 100;
-      const slotHeight = 140;
-      const horizontalGap = 60;
-      const verticalGap = 20;
+        // 计算起始位置（左上角第一个卡槽的位置）
+        const startX = centerX - (totalWidth / 2);
+        const startY = (height - totalHeight) / 2;
 
-      // 计算整个卡槽区域的尺寸
-      const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
-      const totalHeight = (slotHeight * 4) + (verticalGap * 3);
-
-      // 计算起始位置（左上角第一个卡槽的位置）
-      const startX = centerX - (totalWidth / 2);
-      const startY = (height - totalHeight) / 2;
-
-      for (let col = 0; col < 3; col++) {
-        let columnColor;
-        switch(col) {
-          case 0:
-            columnColor = 0x8b3a3a; // 红色
-            break;
-          case 1:
-            columnColor = 0x4a708b; // 蓝色
-            break;
-          case 2:
-            columnColor = 0x556b2f; // 绿色
-            break;
-        }
-
-        // 创建列背景
-        const columnX = startX-20 + (col * (slotWidth + horizontalGap));
-        const columnWidth = slotWidth+40;
-        const columnHeight = totalHeight+40;
-        
-        this.add.rectangle(
-          columnX, 
-          startY-20, 
-          columnWidth, 
-          columnHeight, 
-          columnColor
-        ).setOrigin(0, 0).setAlpha(0.6); // 设置半透明
-      }
-
-      // 创建卡槽网格
-      for (let row = 0; row < 4; row++) {
         for (let col = 0; col < 3; col++) {
-          const x = startX + (col * (slotWidth + horizontalGap));
-          const y = startY + (row * (slotHeight + verticalGap));
+          let columnColor;
+          switch (col) {
+            case 0:
+              columnColor = 0xA05252; // 红色
+              break;
+            case 1:
+              columnColor = 0x6A8A9E; // 蓝色
+              break;
+            case 2:
+              columnColor = 0x6E8B3D; // 绿色
+              break;
+          }
 
-          // 创建卡牌背面
-          const cardBack = this.add.image(x, y, 'cardBack')
-            .setOrigin(0, 0);
+          // 创建列背景
+          const columnX = startX - 20 + (col * (slotWidth + horizontalGap));
+          const columnWidth = slotWidth + 40;
+          const columnHeight = totalHeight + 40;
 
-          // 添加互动效果
-          cardBack.setInteractive()
-            .on('pointerover', () => {
-              cardBack.setTint(0xffff00);
-            })
-            .on('pointerout', () => {
-              cardBack.clearTint();
-            });
+          this.add.rectangle(
+            columnX,
+            startY - 20,
+            columnWidth,
+            columnHeight,
+            columnColor
+          ).setOrigin(0, 0).setAlpha(0.4); // 设置半透明
         }
-      }
-      
-      // 创建中央分界线
-      const dividerLine = this.add.rectangle(60, centerY, width - 120, 4, 0xd4af37)
-        .setOrigin(0, 0.5)
-        .setAlpha(0.5); // 降低分界线透明度使其不那么显眼
+
+        // 创建卡槽网格
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 3; col++) {
+            const x = startX + (col * (slotWidth + horizontalGap));
+            const y = startY + (row * (slotHeight + verticalGap));
+
+            // 根据 gameState_one 中的数据创建卡牌
+            const cardType = gameState_one.value.cardGrid[row][col];
+
+            // 创建卡牌图像
+            const card = this.add.image(x, y, cardType)
+              .setOrigin(0, 0);
+
+            // 添加互动效果
+            card.setInteractive()
+              .on('pointerover', () => {
+                card.setTint(0xffff00);
+              })
+              .on('pointerout', () => {
+                card.clearTint();
+              })
+              .on('pointerdown', () => {
+                // 可以在这里添加点击事件，比如更新 gameState_one
+                console.log(`Clicked card at row ${row}, col ${col}`);
+              });
+          }
+        }
+
+        // 创建中央分界线
+        const dividerLine = this.add.rectangle(60, centerY, width - 120, 4, 0xC5A880)
+          .setOrigin(0, 0.5)
+          .setAlpha(0.5); // 降低分界线透明度使其不那么显眼
+
+
+
+        // 2. 创建己方单位（左下角）
+        const allyAvatarY = height - 100;
+        const allyBarX = 250;
+
+        // 创建己方头像
+        const allyAvatar = this.add.circle(100, allyAvatarY, 40, 0x4A5568);
+
+        // 创建己方血条和护甲条
+        // 己方血条和护甲条
+        const allyHealthWidth = (gameState_one.value.ally.health / gameState_one.value.ally.maxHealth) * 200;
+        const allyArmorWidth = (gameState_one.value.ally.armor / gameState_one.value.ally.maxArmor) * 200;
+
+        const allyHealthBar = this.add.rectangle(allyBarX, allyAvatarY - 25, allyHealthWidth, 30, 0x38A169);
+        const allyArmorBar = this.add.rectangle(allyBarX, allyAvatarY + 25, allyArmorWidth, 30, 0x3182CE);
+        // 创建己方状态栏
+        const allyStatusBarY = allyAvatarY - 80;
+        const allyStatusBar = this.add.rectangle(
+          allyBarX,
+          allyStatusBarY,
+          400,
+          60,
+          0x2D3436
+        ).setOrigin(0.5, 0.5);
+
+        // 添加己方状态栏边框
+        this.add.rectangle(
+          allyBarX,
+          allyStatusBarY,
+          400,
+          60,
+          0xC5A880
+        ).setOrigin(0.5, 0.5)
+          .setStrokeStyle(1, 0xC5A880);
+
+        // 3. 创建敌方单位（右上角）
+        const enemyAvatarY = 100;
+        const enemyBarX = width - 250;
+
+        // 创建敌方头像
+        const enemyAvatar = this.add.circle(width - 100, enemyAvatarY, 40, 0xE53E3E);
+
+        // 敌方血条和护甲条
+        const enemyHealthWidth = (gameState_one.value.enemy.health / gameState_one.value.enemy.maxHealth) * 200;
+        const enemyArmorWidth = (gameState_one.value.enemy.armor / gameState_one.value.enemy.maxArmor) * 200;
+
+        const enemyHealthBar = this.add.rectangle(enemyBarX, enemyAvatarY - 25, enemyHealthWidth, 30, 0x38A169);
+        const enemyArmorBar = this.add.rectangle(enemyBarX, enemyAvatarY + 25, enemyArmorWidth, 30, 0x3182CE);
+
+        // 创建敌方状态栏
+        const enemyStatusBarY = enemyAvatarY + 80;
+        const enemyStatusBar = this.add.rectangle(
+          enemyBarX,
+          enemyStatusBarY,
+          400,
+          60,
+          0x2D3436
+        ).setOrigin(0.5, 0.5);
+
+        // 添加敌方状态栏边框
+        this.add.rectangle(
+          enemyBarX,
+          enemyStatusBarY,
+          400,
+          60,
+          0xC5A880
+        ).setOrigin(0.5, 0.5)
+          .setStrokeStyle(1, 0xC5A880);
+
+        // 4. 添加所有文本
+        // 己方文本显示
+        this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}%`, {
+          fontSize: '16px',
+          color: '#ffffff',
+        }).setOrigin(0.5);
+
+        this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}%`, {
+          fontSize: '16px',
+          color: '#ffffff',
+        }).setOrigin(0.5);
+
+        this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
+          fontSize: '14px',
+          color: '#ffffff',
+        }).setOrigin(0, 0.5);
+
+        // 敌方文本显示
+        this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}%`, {
+          fontSize: '16px',
+          color: '#ffffff',
+        }).setOrigin(0.5);
+
+        this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}%`, {
+          fontSize: '16px',
+          color: '#ffffff',
+        }).setOrigin(0.5);
+
+        this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
+          fontSize: '14px',
+          color: '#ffffff',
+        }).setOrigin(0, 0.5);
+
+        // 渲染状态效果的函数
+        const renderEffects = (effects, x, y, isAlly = true) => {
+          const spacing = 60; // 图标之间的间距
+          const iconSize = 50; // 图标大小
+
+          effects.forEach((effectKey, index) => {
+            // 查找对应的 buff 图片
+            const buff = buffs.find(b => b.key === effectKey);
+            if (buff) {
+              const iconX = isAlly ? x + (index * spacing)+100 : x - (index * spacing)+150;
+              const icon = this.add.image(iconX, y, buff.key)
+                .setDisplaySize(iconSize, iconSize)
+                .setOrigin(0.5, 0.5);
+
+              // 添加鼠标悬停效果
+              icon.setInteractive()
+                .on('pointerover', () => {
+                  icon.setScale(1.2);
+                })
+                .on('pointerout', () => {
+                  icon.setScale(1);
+                });
+            }
+          });
+        };
+
+        // 渲染己方状态效果
+        renderEffects(
+          gameState_one.value.ally.effects,
+          allyBarX - 160, // 状态栏文字右侧
+          allyStatusBarY,
+          true
+        );
+
+        // 渲染敌方状态效果
+        renderEffects(
+          gameState_one.value.enemy.effects,
+          enemyBarX - 160,
+          enemyStatusBarY,
+          false
+        );
+
+      },
     },
-  }, 
   });
 
   // 第二个 Phaser 实例
@@ -1694,8 +1884,9 @@ onBeforeUnmount(() => {
 }
 
 .screens {
-  width: 100vw;
-  height: 200vh;       /* 两个视口叠加 */
+  width: 100%;
+  height: 200vh;
+  /* 两个视口叠加 */
   transition: transform 0.8s ease;
 }
 
