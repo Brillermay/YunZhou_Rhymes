@@ -48,4 +48,52 @@ where Difficulty = #{Difficulty} AND Sum = #{Sum}
 order by Max desc,Mintime asc
 </select>
 
+    <!-- 🔧 新增SQL -->
+    <!-- 获取用户统计 -->
+    <select id="getUserStats" resultType="java.util.Map">
+        SELECT 
+            UID,
+            total_questions,
+            correct_questions,
+            accuracy_rate,
+            consecutive_days,
+            last_study_date,
+            create_time,
+            update_time
+        FROM user_quiz_stats 
+        WHERE UID = #{UID}
+    </select>
+
+    <!-- 插入用户统计 -->
+    <insert id="insertUserStats">
+        INSERT INTO user_quiz_stats (
+            UID, 
+            total_questions, 
+            correct_questions, 
+            accuracy_rate, 
+            consecutive_days, 
+            last_study_date
+        ) VALUES (
+            #{UID}, 
+            #{totalQuestions}, 
+            #{correctQuestions}, 
+            #{accuracyRate}, 
+            #{consecutiveDays}, 
+            #{lastStudyDate}
+        )
+    </insert>
+
+    <!-- 更新用户统计 -->
+    <update id="updateUserStats">
+        UPDATE user_quiz_stats 
+        SET 
+            total_questions = #{totalQuestions},
+            correct_questions = #{correctQuestions},
+            accuracy_rate = #{accuracyRate},
+            consecutive_days = #{consecutiveDays},
+            last_study_date = #{lastStudyDate},
+            update_time = CURRENT_TIMESTAMP
+        WHERE UID = #{UID}
+    </update>
+
 </mapper>

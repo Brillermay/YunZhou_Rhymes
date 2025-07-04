@@ -1,0 +1,293 @@
+// 🎨 选择题选项样式 - 仿照飞花令的选择项
+.question-option {
+  padding: 1.2rem 1.8rem;
+  margin: 0.8rem 0;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--card-bg);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  // 🎨 悬停效果
+  &:hover:not(.disabled) {
+    border-color: var(--primary-color);
+    transform: translateX(8px);
+    box-shadow: 0 6px 20px rgba(140, 120, 83, 0.25);
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  // 🎨 选中状态 - 仿照飞花令的选中效果
+  &.selected {
+    border-color: var(--primary-color) !important;
+    background: linear-gradient(135deg, 
+      rgba(140, 120, 83, 0.12) 0%, 
+      rgba(140, 120, 83, 0.08) 100%
+    );
+    transform: translateX(8px);
+    box-shadow: 0 6px 20px rgba(140, 120, 83, 0.3);
+    
+    // 🔧 左侧选中指示器
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--primary-color);
+      border-radius: 2px 0 0 2px;
+    }
+    
+    .option-label {
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+    
+    .option-text {
+      color: var(--primary-color);
+      font-weight: 500;
+    }
+  }
+  
+  // 🎨 正确答案样式
+  &.correct {
+    border-color: var(--success-color) !important;
+    background: linear-gradient(135deg, 
+      rgba(39, 174, 96, 0.12) 0%, 
+      rgba(39, 174, 96, 0.08) 100%
+    );
+    
+    &::before {
+      background: var(--success-color);
+    }
+    
+    .option-label {
+      color: var(--success-color);
+    }
+    
+    .option-text {
+      color: var(--success-color);
+    }
+  }
+  
+  // 🎨 错误答案样式
+  &.wrong {
+    border-color: var(--error-color) !important;
+    background: linear-gradient(135deg, 
+      rgba(231, 76, 60, 0.12) 0%, 
+      rgba(231, 76, 60, 0.08) 100%
+    );
+    
+    &::before {
+      background: var(--error-color);
+    }
+    
+    .option-label {
+      color: var(--error-color);
+    }
+    
+    .option-text {
+      color: var(--error-color);
+    }
+  }
+  
+  // 🎨 禁用状态
+  &.disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    
+    &:hover {
+      transform: none;
+      border-color: var(--border-color);
+    }
+  }
+  
+  .option-label {
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 30px;
+    transition: all 0.3s ease;
+  }
+  
+  .option-text {
+    flex: 1;
+    font-family: 'KaiTi', 'STKaiti', serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+  }
+  
+  .result-icon {
+    font-size: 1.2rem;
+    
+    &.correct {
+      color: var(--success-color);
+    }
+    
+    &.wrong {
+      color: var(--error-color);
+    }
+  }
+}
+
+// 🎨 计时器样式 - 仿照飞花令的计时器
+.timer-display {
+  padding: 0.6rem 1.2rem;
+  border-radius: 20px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  
+  .timer-icon {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+  }
+}
+
+// 🎨 进度条样式 - 仿照飞花令的进度条
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background: rgba(140, 120, 83, 0.2);
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 5px;
+    transition: width 0.5s ease;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 50%, 
+        transparent 100%
+      );
+      animation: shimmer 2s infinite;
+    }
+  }
+}
+
+// 🎨 答题卡片样式 - 仿照飞花令的输入卡片
+.answer-input-card {
+  padding: 1.5rem;
+  margin: 1rem 0;
+  background: var(--card-bg);
+  border-radius: 12px;
+  border: 2px solid var(--border-color);
+  
+  .answer-slots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    
+    .slot {
+      width: 45px;
+      height: 45px;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--text-color);
+      background: white;
+      font-family: 'KaiTi', 'STKaiti', serif;
+      
+      &.filled {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 8px rgba(140, 120, 83, 0.3);
+      }
+      
+      &.empty {
+        border-style: dashed;
+        opacity: 0.6;
+        background: rgba(140, 120, 83, 0.05);
+      }
+    }
+  }
+  
+  .option-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+    
+    .option-btn {
+      padding: 0.6rem;
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-family: 'KaiTi', 'STKaiti', serif;
+      
+      &:hover:not(:disabled) {
+        border-color: var(--primary-color);
+        background: rgba(140, 120, 83, 0.1);
+        transform: translateY(-2px);
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+      }
+    }
+  }
+}
+
+// 🎨 动画效果
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+// 🎨 响应式设计
+@media (max-width: 768px) {
+  .question-option {
+    padding: 1rem 1.5rem;
+    margin: 0.5rem 0;
+    
+    .option-text {
+      font-size: 0.9rem;
+    }
+  }
+  
+  .answer-slots {
+    .slot {
+      width: 40px;
+      height: 40px;
+      font-size: 1.1rem;
+    }
+  }
+  
+  .option-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  }
+}
