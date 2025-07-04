@@ -815,7 +815,7 @@ function toggleVoiceInput() {
 
 .ai-title-header {
   text-align: center;
-  padding: 0.5rem;
+  padding: 1rem;
   margin: 10px;
   background:rgba(247, 247, 247, 0.685) ;
   color: #8c7853;
@@ -832,6 +832,7 @@ function toggleVoiceInput() {
   text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
   animation: float 3s ease-in-out infinite;
   margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .ai-title-header p {
@@ -863,15 +864,14 @@ function toggleVoiceInput() {
 }
 
 .ai-sidebar {
-  flex: 0 0 20%;
+  flex: 0 0 15%;
   background: #ffffff9d;
   border-right: 1.5px solid #e5d8c3;
   padding: 2.5rem 1.2rem 1.2rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-width: 180px;
-  max-width: 260px;
+
   box-shadow: 2px 0 8px rgba(140, 120, 83, 0.04);
   border-radius: 20px;
 }
@@ -1010,8 +1010,7 @@ function toggleVoiceInput() {
   overflow-y: auto;
   padding: 2rem 2.5rem 1rem;
   background: transparent;
-  max-height: 72vh;
-  min-height: 320px;
+  height:90%;
   scroll-behavior: smooth;
   transition: background 0.3s;
 }
@@ -1114,7 +1113,6 @@ function toggleVoiceInput() {
   background: #f9f8f513;
   border-radius: 18px;
   gap: 0.8rem; /* 调整间距以适应新按钮 */
-  
 }
 
 .chat-input {
@@ -1380,15 +1378,6 @@ function toggleVoiceInput() {
     flex-direction: column;
   }
 
-  .ai-sidebar {
-    flex: none;
-    width: 100%;
-    max-width: none;
-    border-right: none;
-    border-bottom: 1.5px solid #e5d8c3;
-    padding: 1.2rem;
-    min-width: 0;
-  }
 
   .ai-chat-area {
     padding: 0;

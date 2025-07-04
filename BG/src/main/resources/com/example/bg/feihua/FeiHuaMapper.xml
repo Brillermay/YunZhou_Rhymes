@@ -30,11 +30,11 @@
         SELECT 
             player_name as playerName,
             MAX(score) as score,
-            mode,
-            difficulty,
-            DATE(created_at) as achievedAt
+            user_id as userId,
+            MAX(created_at) as achievedAt
         FROM feihua_records 
-        GROUP BY player_name, mode, difficulty
+        WHERE player_name IS NOT NULL
+        GROUP BY player_name, user_id
         ORDER BY MAX(score) DESC 
         LIMIT #{limit}
     </select>

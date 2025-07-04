@@ -86,7 +86,7 @@
             </div>
           </div>
           <ul>
-            <li v-for="(item, index) in navItems" :key="index" :style="{ '--delay': index * 0.15 + 's' }">
+            <li v-for="(item, index) in navItems" :key="index" :style="{ '--delay': index * 0.06 + 's' }">
               <router-link 
                 :to="item.path" 
                 class="nav-item"
@@ -540,7 +540,7 @@ export default {
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(139, 149, 137, 0.2);
-  animation: scrollItemSlide 0.8s ease-out forwards;
+  animation: scrollItemSlide 0.4s ease-out forwards;
   animation-delay: var(--delay);
   opacity: 0;
   transform: translateX(-40px);
@@ -867,10 +867,10 @@ export default {
   width: 56px;
   height: 56px;
   background: linear-gradient(135deg, 
-    rgba(139, 149, 137, 0.9) 0%,
-    rgba(105, 117, 102, 0.85) 30%,
-    rgba(76, 86, 73, 0.8) 70%,
-    rgba(47, 54, 44, 0.9) 100%);
+    rgba(139, 149, 137, 0.435) 0%,
+    rgba(105, 117, 102, 0.255) 30%,
+    rgba(76, 86, 73, 0.251) 70%,
+    rgba(47, 54, 44, 0.139) 100%);
   border: 2px solid rgba(205, 214, 190, 0.3);
   border-radius: 50%;
   display: flex;
@@ -1188,7 +1188,7 @@ export default {
 
 /* 卷轴展开动画 */
 .scroll-unfold-enter-active {
-  animation: scrollUnfold 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: scrollUnfold 0.62s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 .scroll-unfold-leave-active {

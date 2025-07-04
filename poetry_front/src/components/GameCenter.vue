@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\GameCenter.vue -->
 <template>
   <div class="game-center">
     <!-- 背景装饰 -->
@@ -22,10 +21,10 @@
       <div class="header-section">
         <h1 class="main-title">
           <span class="title-icon">🎮</span>
-          诗词游戏中心
+          诗游小筑
           <span class="title-decoration">Poetry Game Center</span>
         </h1>
-        <p class="subtitle">在游戏中领略诗词之美，于娱乐中品味古典文化</p>
+        <p class="subtitle">挥令对吟，诗酒趁年华；翻牌问答，风流动笔花。</p>
       </div>
 
       <!-- 游戏卡片网格 -->
@@ -34,11 +33,15 @@
           v-for="(game, index) in games" 
           :key="game.id"
           class="game-card"
-          :class="{ visible: game.visible }"
-          @click="navigateToGame(game)"
+          :class="{ 
+            visible: game.visible,
+            clicked: game.isClicked
+          }"
+          @click="navigateToGame(game, index)"
           @mouseenter="onCardHover(index, true)"
           @mouseleave="onCardHover(index, false)"
         >
+          <!-- 其他内容保持不变 -->
           <!-- 卡片背景装饰 -->
           <div class="card-background">
             <div class="card-pattern"></div>
@@ -49,7 +52,8 @@
             <!-- 游戏图标 -->
             <div class="game-icon">
               <div class="icon-container" :class="game.iconClass">
-                <i :class="game.icon"></i>
+                <!-- 使用图片替代字体图标 -->
+                <img :src="game.iconImage" :alt="game.title" class="game-icon-image">
               </div>
               <div class="icon-glow"></div>
             </div>
@@ -115,7 +119,7 @@
         <div class="stats-container">
           <div class="stat-item">
             <i class="fas fa-gamepad"></i>
-            <span>3款精品游戏</span>
+            <span>4款精品游戏</span>
           </div>
           <div class="stat-item">
             <i class="fas fa-trophy"></i>
@@ -128,18 +132,18 @@
         </div>
       </div>
     </div>
-
-    <!-- 返回按钮 -->
-    <div class="back-button" @click="$router.go(-1)">
-      <i class="fas fa-arrow-left"></i>
-      <span>返回</span>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+// 导入游戏logo图片
+import feihuaLogo from '@/assets/gamelogo/feihualg.png'
+import testLogo from '@/assets/gamelogo/testlg.png'
+import cardLogo from '@/assets/gamelogo/kapailg.png'
+import multiplayLogo from '@/assets/gamelogo/duorenlg.png'
 
 const router = useRouter()
 
@@ -154,12 +158,14 @@ const games = reactive([
     description: '经典诗词对战游戏，考验诗词积累与反应速度',
     icon: 'fas fa-feather-alt',
     iconClass: 'icon-feihua',
+    iconImage: feihuaLogo,
     path: '/feihua',
     tags: ['对战', '古典', '挑战'],
     difficulty: 4,
     sealText: '雅',
     visible: false,
-    isHovered: false
+    isHovered: false,
+    isClicked: false  // 新增点击状态
   },
   {
     id: 'poetry-test',
@@ -167,12 +173,14 @@ const games = reactive([
     description: '全面测试您的诗词知识，提升文学素养',
     icon: 'fas fa-scroll',
     iconClass: 'icon-test',
+    iconImage: testLogo,
     path: '/game',
     tags: ['学习', '测试', '进阶'],
     difficulty: 3,
     sealText: '学',
     visible: false,
-    isHovered: false
+    isHovered: false,
+    isClicked: false
   },
   {
     id: 'poetry-game',
@@ -180,25 +188,29 @@ const games = reactive([
     description: '创新卡牌收集游戏，在娱乐中感受诗词魅力',
     icon: 'fas fa-cards',
     iconClass: 'icon-cards',
+    iconImage: cardLogo,
     path: '/play',
     tags: ['收集', '合成', '创新'],
     difficulty: 2,
     sealText: '趣',
     visible: false,
-    isHovered: false
+    isHovered: false,
+    isClicked: false
   },
   {
     id: 'multiplay',
     title: '多人对战',
     description: '诗词卡牌对战游戏，考验诗词理解和博弈策略',
     icon: 'fas fa-feather-alt',
-    iconClass: 'icon-feihua',
+    iconClass: 'icon-multiplay',
+    iconImage: multiplayLogo,
     path: '/multiplay',
     tags: ['对战', '古典', '挑战'],
     difficulty: 4,
-    sealText: '雅',
+    sealText: '智',
     visible: false,
-    isHovered: false
+    isHovered: false,
+    isClicked: false
   }
 ])
 
@@ -239,99 +251,8 @@ const onCardHover = (index, isHovering) => {
   }
 }
 
-// 清理过渡元素的函数
-const cleanupTransitionElements = () => {
-  // 清理可能存在的过渡元素
-  const existingOverlay = document.querySelector('.game-transition-overlay')
-  const existingStyle = document.querySelector('#game-center-transition-style')
-  
-  if (existingOverlay) {
-    existingOverlay.remove()
-  }
-  if (existingStyle) {
-    existingStyle.remove()
-  }
-}
-
-// 安全的页面跳转函数
-const createSafePageTransition = (targetPath) => {
-  return new Promise((resolve) => {
-    // 防止重复跳转
-    if (isNavigating.value) {
-      resolve()
-      return
-    }
-    
-    isNavigating.value = true
-    
-    // 先清理现有的过渡元素
-    cleanupTransitionElements()
-    
-    // 创建过渡样式
-    const style = document.createElement('style')
-    style.id = 'game-center-transition-style'
-    style.textContent = `
-      @keyframes gameTransition {
-        0% { 
-          transform: scale(0); 
-          border-radius: 50%; 
-          opacity: 0;
-        }
-        50% {
-          opacity: 1;
-        }
-        100% { 
-          transform: scale(3); 
-          border-radius: 0; 
-          opacity: 1;
-        }
-      }
-    `
-    document.head.appendChild(style)
-    
-    // 创建过渡覆盖层
-    const overlay = document.createElement('div')
-    overlay.className = 'game-transition-overlay'
-    overlay.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      width: 100px;
-      height: 100px;
-      transform: translate(-50%, -50%) scale(0);
-      background: radial-gradient(circle, transparent 0%, rgba(44, 62, 80, 0.95) 100%);
-      z-index: 9999;
-      border-radius: 50%;
-      animation: gameTransition 0.8s ease-out forwards;
-      pointer-events: auto;
-    `
-    
-    document.body.appendChild(overlay)
-    
-    // 在动画完成后执行跳转
-    setTimeout(() => {
-      console.log('🎮 导航到:', targetPath)
-      
-      // 执行路由跳转
-      router.push(targetPath).then(() => {
-        // 跳转成功后清理
-        setTimeout(() => {
-          cleanupTransitionElements()
-          isNavigating.value = false
-          resolve()
-        }, 100)
-      }).catch((error) => {
-        console.error('路由跳转失败:', error)
-        cleanupTransitionElements()
-        isNavigating.value = false
-        resolve()
-      })
-    }, 600)
-  })
-}
-
-// 导航到游戏
-const navigateToGame = async (game) => {
+// 带点击动画的导航函数
+const navigateToGame = (game, index) => {
   // 防止重复点击
   if (isNavigating.value) {
     return
@@ -339,45 +260,29 @@ const navigateToGame = async (game) => {
   
   console.log('🎮 启动游戏:', game.title)
   
+  // 设置导航状态
+  isNavigating.value = true
+  
+  // 设置点击状态
+  games[index].isClicked = true
+  
   // 重置所有悬停状态
   games.forEach(g => g.isHovered = false)
   
-  // 添加点击动画效果
-  const gameCard = event.currentTarget
-  if (gameCard) {
-    gameCard.style.transform = 'scale(0.95)'
-    
-    setTimeout(() => {
-      if (gameCard) {
-        gameCard.style.transform = ''
-      }
-    }, 150)
-  }
-  
-  // 延迟后执行安全跳转
+  // 等待点击动画完成后跳转
   setTimeout(() => {
-    createSafePageTransition(game.path)
-  }, 150)
-}
-
-// 安全的返回函数
-const safeGoBack = () => {
-  if (isNavigating.value) {
-    return
-  }
-  
-  isNavigating.value = true
-  
-  // 清理过渡元素
-  cleanupTransitionElements()
-  
-  // 执行返回
-  router.go(-1)
-  
-  // 重置状态
-  setTimeout(() => {
-    isNavigating.value = false
-  }, 1000)
+    router.push(game.path).then(() => {
+      console.log('🎮 跳转成功:', game.path)
+      // 重置状态
+      games[index].isClicked = false
+      isNavigating.value = false
+    }).catch((error) => {
+      console.error('🎮 跳转失败:', error)
+      // 重置状态
+      games[index].isClicked = false
+      isNavigating.value = false
+    })
+  }, 500) // 等待动画完成
 }
 
 // 组件挂载
@@ -386,9 +291,6 @@ onMounted(() => {
   
   // 确保页面状态正常
   isNavigating.value = false
-  
-  // 清理可能残留的元素
-  cleanupTransitionElements()
   
   // 初始化动画
   createFloatingElements()
@@ -399,9 +301,6 @@ onMounted(() => {
 onUnmounted(() => {
   console.log('🎮 游戏中心正在卸载')
   
-  // 清理过渡元素
-  cleanupTransitionElements()
-  
   // 重置状态
   isNavigating.value = false
 })
@@ -410,13 +309,13 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .game-center {
   min-height: 100vh;
-  background: linear-gradient(
-    135deg,
-    #0f0f23 0%,
-    #1a1a2e 30%,
-    #16213e 70%,
-    #0f3460 100%
-  );
+  background: 
+    linear-gradient(135deg, #e8eceb 0%, #d5d8d6 60%, #f3efe6 100%),
+    radial-gradient(circle at 60% 40%, rgba(120,130,120,0.08) 0%, transparent 70%),
+    url('https://img2.baidu.com/it/u=1229568987,2188854087&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=800'); /* 可换为本地宣纸纹理 */
+  background-blend-mode: lighten, normal;
+  background-size: cover, cover, 400px 400px;
+  background-repeat: repeat;
   position: relative;
   overflow: hidden;
 }
@@ -424,11 +323,7 @@ onUnmounted(() => {
 // ============ 背景装饰 ============
 .background-container {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+  top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
 }
 
 .floating-elements {
@@ -439,46 +334,51 @@ onUnmounted(() => {
 
 .floating-element {
   position: absolute;
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.1);
+  font-size: 2.1rem;
+  color: rgba(80, 80, 80, 0.22); // 更深更明显
+  font-family: 'STKaiti', 'KaiTi', '楷体', serif;
+  font-weight: bold;
+  text-shadow: 0 2px 8px rgba(60,60,60,0.10);
   animation: floatUpDown linear infinite;
   pointer-events: none;
+  user-select: none;
 }
 
 .gradient-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   background: 
-    radial-gradient(circle at 20% 20%, rgba(100, 150, 200, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(200, 100, 150, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 20% 20%, rgba(120,130,120,0.10) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(120,130,120,0.08) 0%, transparent 60%);
 }
 
 // ============ 内容容器 ============
 .content-container {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 10;
   max-width: 1200px;
-  margin: 0 auto;
+  width: 90%;
   padding: 2rem;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
 }
 
 // ============ 页面标题 ============
 .header-section {
   text-align: center;
   margin-bottom: 3rem;
+  width: 100%;
 }
 
 .main-title {
   font-size: 3rem;
   font-weight: 900;
-  color: #fff;
+  color: #3e3a2f;
   margin: 0 0 1rem;
   display: flex;
   align-items: center;
@@ -487,7 +387,7 @@ onUnmounted(() => {
   
   .title-icon {
     font-size: 2.5rem;
-    background: linear-gradient(45deg, #667eea, #764ba2);
+    background: linear-gradient(45deg, #b6a179, #e2c391);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -495,7 +395,7 @@ onUnmounted(() => {
   
   .title-decoration {
     font-size: 1rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #a89c7d;
     font-weight: 400;
     margin-left: 1rem;
     opacity: 0;
@@ -505,7 +405,7 @@ onUnmounted(() => {
 
 .subtitle {
   font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #7c715a;
   margin: 0;
   font-weight: 300;
   letter-spacing: 0.05rem;
@@ -515,27 +415,27 @@ onUnmounted(() => {
 // ============ 游戏卡片网格 ============
 .games-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.4rem;
   margin: 2rem 0;
+  width: 100%;
 }
 
 .game-card {
   position: relative;
-  background: linear-gradient(
-    135deg,
-    rgba(248, 243, 225, 0.95) 0%,
-    rgba(245, 235, 210, 0.9) 100%
-  );
+  background: 
+    linear-gradient(135deg, #e3e5e1 0%, #c9ccc8 100%),
+    url('https://img2.baidu.com/it/u=1229568987,2188854087&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=800');
+  background-blend-mode: multiply, normal;
+  background-size: cover, 400px 400px;
   border-radius: 20px;
   overflow: hidden;
   cursor: pointer;
-  transform: translateY(50px) rotateX(10deg);
-  opacity: 0;
-  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.3),
-    0 1px 8px rgba(0, 0, 0, 0.2);
+    0 6px 18px rgba(80, 80, 80, 0.10),
+    0 1px 4px rgba(80, 80, 80, 0.08);
+  color: #2d2d2d;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   
   &.visible {
     transform: translateY(0) rotateX(0);
@@ -545,8 +445,8 @@ onUnmounted(() => {
   &:hover {
     transform: translateY(-10px) scale(1.02);
     box-shadow: 
-      0 20px 40px rgba(0, 0, 0, 0.4),
-      0 8px 25px rgba(100, 150, 200, 0.3);
+      0 12px 32px rgba(80, 80, 80, 0.18),
+      0 8px 25px rgba(200, 180, 140, 0.10);
   }
 }
 
@@ -571,8 +471,8 @@ onUnmounted(() => {
       45deg,
       transparent,
       transparent 10px,
-      rgba(140, 120, 83, 0.05) 10px,
-      rgba(140, 120, 83, 0.05) 20px
+      rgba(180, 170, 140, 0.04) 10px,
+      rgba(180, 170, 140, 0.04) 20px
     );
 }
 
@@ -580,9 +480,9 @@ onUnmounted(() => {
 .card-content {
   position: relative;
   z-index: 10;
-  padding: 2rem;
+  padding: 1.2rem;
   height: 100%;
-  min-height: 300px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
 }
@@ -603,18 +503,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 2rem;
-  color: white;
+  color: #fff;
   position: relative;
   z-index: 2;
   
+  // 保持原有的背景渐变
   &.icon-feihua { 
-    background: linear-gradient(45deg, #43e97b, #38f9d7); 
+    background: white; 
   }
   &.icon-test { 
-    background: linear-gradient(45deg, #667eea, #764ba2); 
+    background: white; 
   }
   &.icon-cards { 
-    background: linear-gradient(45deg, #f093fb, #f5576c); 
+    background: white; 
+  }
+  &.icon-multiplay { 
+    background: white; 
   }
 }
 
@@ -628,8 +532,31 @@ onUnmounted(() => {
   border-radius: 50%;
   background: inherit;
   filter: blur(20px);
-  opacity: 0.3;
+  opacity: 0.15;
   z-index: 1;
+}
+
+// 新增游戏图标图片样式
+.game-icon-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  
+  // 添加一些视觉效果
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  
+  &:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  }
+}
+
+// 悬停时图标效果
+.game-card:hover .game-icon-image {
+  transform: scale(1.15);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
 }
 
 // ============ 游戏信息 ============
@@ -640,16 +567,16 @@ onUnmounted(() => {
 }
 
 .game-title {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
-  color: #2c3e50;
+  color: #3e3a2f;
   margin: 0 0 1rem;
   text-align: center;
 }
 
 .game-description {
   font-size: 1rem;
-  color: #666;
+  color: #7c715a;
   line-height: 1.6;
   margin: 0 0 1.5rem;
   text-align: center;
@@ -665,8 +592,8 @@ onUnmounted(() => {
 
 .tag {
   padding: 0.3rem 0.8rem;
-  background: linear-gradient(45deg, #667eea, #764ba2);
-  color: white;
+  background: linear-gradient(45deg, #b6a179, #7c715a);
+  color: #fff;
   border-radius: 15px;
   font-size: 0.8rem;
   font-weight: 600;
@@ -682,7 +609,7 @@ onUnmounted(() => {
 
 .difficulty-label {
   font-size: 0.9rem;
-  color: #666;
+  color: #a89c7d;
   font-weight: 600;
 }
 
@@ -691,12 +618,12 @@ onUnmounted(() => {
   gap: 0.2rem;
   
   .fas.fa-star {
-    color: #ddd;
+    color: #b6a179;
     font-size: 0.9rem;
     transition: color 0.2s ease;
     
     &.active {
-      color: #ffd700;
+      color: #7c715a;
     }
   }
 }
@@ -708,46 +635,129 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(44, 62, 80, 0.9),
-    rgba(140, 120, 83, 0.8)
-  );
+  background: 
+    linear-gradient(135deg, 
+      rgba(140, 130, 120, 0.18) 0%, 
+      rgba(182, 161, 121, 0.25) 50%,
+      rgba(120, 110, 100, 0.15) 100%
+    );
+  backdrop-filter: blur(2.6px);
+  color: #2d2d2d;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-radius: 20px;
+  
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  color: white;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  border-radius: 20px;
+  
+  // 水墨扩散效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: radial-gradient(circle, 
+      rgba(182, 161, 121, 0.3) 0%, 
+      rgba(140, 130, 120, 0.2) 40%, 
+      transparent 70%
+    );
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    opacity: 0;
+  }
+  
+  // 水墨光晕
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+      radial-gradient(circle at 30% 30%, rgba(226, 195, 145, 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 70% 70%, rgba(182, 161, 121, 0.08) 0%, transparent 50%);
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.6s ease;
+  }
   
   &.active {
     opacity: 1;
+    transform: scale(1);
+    
+    // 水墨扩散动画
+    &::before {
+      width: 280px;
+      height: 280px;
+      opacity: 1;
+    }
+    
+    // 光晕增强
+    &::after {
+      opacity: 1;
+    }
   }
 }
 
 .hover-content {
   text-align: center;
+  z-index: 10;
+  position: relative;
+  transform: translateY(25px);
+  opacity: 0;
+  transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
 }
 
+// 当hover-overlay激活时，hover-content也要动画
+.hover-overlay.active .hover-content {
+  transform: translateY(0);
+  opacity: 1;
+  
+  &::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  &::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// ============ 粒子浮动动画 ============
+@keyframes particleFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-8px) scale(2.6);
+    opacity: 1;
+  }
+}
 .play-icon {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
   font-size: 1.5rem;
   animation: pulse 2s infinite;
+  color: #b6a179;
 }
 
 .play-text {
   font-size: 1.2rem;
   font-weight: 600;
   letter-spacing: 0.1rem;
+  color: #2d2d2d;
 }
 
 // ============ 装饰印章 ============
@@ -761,18 +771,18 @@ onUnmounted(() => {
 .seal-text {
   width: 40px;
   height: 40px;
-  background: linear-gradient(45deg, #8c7853, #2c3e50);
-  border: 2px solid #2c3e50;
+  background: linear-gradient(45deg, #e2c391, #b6a179);
+  border: 2px solid #b6a179;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fff;
   font-weight: 700;
   font-size: 1.1rem;
   font-family: 'KaiTi', '楷体', serif;
   transform: rotate(-8deg);
-  box-shadow: 0 3px 10px rgba(44, 62, 80, 0.4);
+  box-shadow: 0 3px 10px rgba(182, 161, 121, 0.15);
 }
 
 // ============ 卡片边框装饰 ============
@@ -788,7 +798,7 @@ onUnmounted(() => {
 
 .border-line {
   position: absolute;
-  background: linear-gradient(45deg, #8c7853, #2c3e50);
+  background: linear-gradient(45deg, #e2c391, #b6a179);
   
   &.top {
     top: 10px;
@@ -823,6 +833,7 @@ onUnmounted(() => {
 .footer-section {
   text-align: center;
   margin-top: 3rem;
+  width: 100%;
 }
 
 .stats-container {
@@ -835,37 +846,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #a89c7d;
   font-size: 1rem;
   
   i {
     font-size: 1.2rem;
-    color: #667eea;
-  }
-}
-
-// ============ 返回按钮 ============
-.back-button {
-  position: fixed;
-  top: 2rem;
-  left: 2rem;
-  background: rgba(44, 62, 80, 0.9);
-  color: white;
-  padding: 0.8rem 1.2rem;
-  border-radius: 25px;
-  cursor: pointer;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    background: rgba(44, 62, 80, 1);
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    color: #e2c391;
   }
 }
 
@@ -915,6 +901,7 @@ onUnmounted(() => {
 // ============ 响应式设计 ============
 @media (max-width: 768px) {
   .content-container {
+    width: 95%;
     padding: 1rem;
   }
   
@@ -951,16 +938,14 @@ onUnmounted(() => {
     flex-direction: column;
     gap: 1rem;
   }
-  
-  .back-button {
-    top: 1rem;
-    left: 1rem;
-    padding: 0.6rem 1rem;
-    font-size: 0.8rem;
-  }
 }
 
 @media (max-width: 480px) {
+  .content-container {
+    width: 98%;
+    padding: 0.8rem;
+  }
+  
   .main-title {
     font-size: 1.8rem;
   }
@@ -982,6 +967,90 @@ onUnmounted(() => {
     width: 70px;
     height: 70px;
     font-size: 1.8rem;
+  }
+}
+
+// 在现有样式基础上添加点击动画
+.game-card {
+  // 原有样式保持不变...
+  
+  // 点击动画效果
+  &.clicked {
+    animation: gentleClick 0.6s ease-out;
+    
+    // 图标轻微旋转
+    .game-icon-image {
+      animation: iconBounce 0.6s ease-out;
+    }
+    
+    // 标题轻微放大
+    .game-title {
+      animation: titleGlow 0.6s ease-out;
+    }
+    
+    // 印章轻微摆动
+    .seal-text {
+      animation: sealWiggle 0.6s ease-out;
+    }
+  }
+}
+
+// ============ 点击动画定义 ============
+@keyframes gentleClick {
+  0% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  30% {
+    transform: translateY(-8px) scale(0.98);
+  }
+  60% {
+    transform: translateY(-12px) scale(1.01);
+  }
+  100% {
+    transform: translateY(-10px) scale(1.02);
+  }
+}
+
+@keyframes iconBounce {
+  0% {
+    transform: scale(1.15);
+  }
+  50% {
+    transform: scale(1.25) rotate(5deg);
+  }
+  100% {
+    transform: scale(1.15) rotate(0deg);
+  }
+}
+
+@keyframes titleGlow {
+  0% {
+    transform: scale(1);
+    color: #3e3a2f;
+  }
+  50% {
+    transform: scale(1.05);
+    color: #b6a179;
+    text-shadow: 0 0 8px rgba(182, 161, 121, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    color: #3e3a2f;
+  }
+}
+
+@keyframes sealWiggle {
+  0% {
+    transform: rotate(-8deg);
+  }
+  25% {
+    transform: rotate(-5deg) scale(1.1);
+  }
+  75% {
+    transform: rotate(-10deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(-8deg) scale(1);
   }
 }
 </style>
