@@ -50,4 +50,10 @@ public class MainService {
         }
         else return "没找到房间！";
     }
+    public void SynthesizeCards(int uid,String a,String b,String c){
+        PlayerAgainst playerAgainst = playerAgainstMap.get(uid);
+        playerService.SynthesizeABC(playerAgainst,a,b,c);
+    }
+
+
 }

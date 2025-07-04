@@ -66,10 +66,33 @@ public class PlayerService {
             playerAgainst.setCards(cardService.DiscardCard(playerAgainst.getCards(),cardBattle.getCardName()));
         }
     }
-
+    /**
+     * 对玩家卡牌列表按类型优先级排序
+     * 优先级规则：profit/decrease → defense → battle
+     *
+     * @param listPlayer1 要排序的卡牌列表（原地修改）
+     */
+    public static void sortCardBattleByPriority(List<CardBattle> listPlayer1) {
+        // 定义类型权重映射（profit/decrease=0, defense=1, battle=2）
+        listPlayer1.sort(Comparator.comparingInt(card  -> {
+            if (card == null || card.getCardType()  == null) return 3;
+            return switch (card.getCardType())  {
+                case "profit", "decrease" -> 0; // 最高权重
+                case "defense" -> 1;
+                case "battle" -> 2;
+                default -> 3; // 未知类型兜底
+            };
+        }));
+    }
 
     //一个顶端流程调度函数
     //三个流程实现函数
+
+
+
+
+
+
 
     /**
      * 主服务方法，处理回合内的卡牌使用
@@ -81,9 +104,16 @@ public class PlayerService {
     public void MainService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2,
                             List<CardBattle>listPlayer1,List<CardBattle>listPlayer2){
         //接受的是本回合出牌列表
-        
-
-
+        //首先先丢弃
+        DiscardPlayersCards(playerAgainst1,listPlayer1);
+        DiscardPlayersCards(playerAgainst2,listPlayer2);
+        //接着这样排序
+        sortCardBattleByPriority(listPlayer1);
+        sortCardBattleByPriority(listPlayer2);
+        for(int i=0;i<3;i++){
+            MainOpService(playerAgainst1,playerAgainst2,listPlayer1.get(i));
+            MainOpService(playerAgainst2,playerAgainst1,listPlayer2.get(i));
+        }
     }
     /**
      * 主服务方法：根据卡牌名称执行对应的动作
@@ -94,23 +124,24 @@ public class PlayerService {
     public void MainOpService(PlayerAgainst user,PlayerAgainst target,CardBattle cardBattle)
     {
         String cardName = cardBattle.getCardName();
+        if(cardName.isEmpty())return;
         CardAction action = cardActions.get(cardName);
 
         if (action != null) {
             action.execute(user,target, cardBattle);
-        } else {
-            // 处理未知卡牌
-            System.out.println("未知卡牌: " + cardName);
         }
 
     }
 
     /**
      * 回合结束处理服务
-     * @param user 要处理的玩家
+     * @param playerAgainst1 玩家1
+     * @param playerAgainst2 玩家2
+     * @param listPlayer1 玩家1本回合出牌列表
+     * @param listPlayer2 玩家2本回合出牌列表
      */
-    public void EndService(PlayerAgainst user)
-    {
+    public void EndService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2,
+                           List<CardBattle>listPlayer1,List<CardBattle>listPlayer2) {
 
     }
 
@@ -118,7 +149,7 @@ public class PlayerService {
      * 回合开始处理服务
      * @param user 要处理的玩家
      */
-    private void BeginService(PlayerAgainst user)
+    public void BeginService(PlayerAgainst user)
     {
 
     }
@@ -328,11 +359,12 @@ public class PlayerService {
      * @param cardBattle 使用的卡牌
      */
     private void Action_Sun(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
-        //造成2点伤害。伤害前，若对方有护盾，额外破坏2点护盾并使其下回合防守面值减半（向下取整）。
+        //造成2点伤害。
+        // 伤害前，若对方有护盾，额外破坏2点护盾并使其下回合防守面值减半（向下取整）。
         if(target.getShield()>0)
         {
             killShield(target,-2);
-            AddStatus(target, new ArrayList<Status>(List.of(new Status("sun_judge",1))));
+            AddStatus(target, new ArrayList<Status>(List.of(new Status("sun",1))));
 
         }
         AddShield(target,-2);
@@ -380,7 +412,7 @@ public class PlayerService {
     private void Action_Rain(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //造成2点伤害。若对方下回合使用防守卡，该卡无效且追加3点伤害。
         AddShield(target,-2);
-        AddStatus(target,new ArrayList<>(List.of(new Status("rain",1))));
+        AddStatus(target,new ArrayList<>(List.of(new Status("rain_next",1))));
     }
 
     /**
@@ -392,7 +424,7 @@ public class PlayerService {
     private void Action_War(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //造成2点伤害。若对方下回合使用了进攻，再造成3点真实伤害。
         AddShield(target,-2);
-        AddStatus(target,new ArrayList<>(List.of(new Status("war",1))));
+        AddStatus(target,new ArrayList<>(List.of(new Status("war_next",1))));
     }
 
     /**
@@ -454,7 +486,7 @@ public class PlayerService {
     private void Action_Bamboo(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //造成3点真实伤害。若未使用其他卡，抽3张牌并破坏对手1点护盾。
         AddHP(target,-3);
-        AddStatus(user,new ArrayList<>(List.of(new Status("bamboo",3))));
+        AddStatus(user,new ArrayList<>(List.of(new Status("bamboo_judge",3))));
     }
 
     /**
@@ -465,7 +497,7 @@ public class PlayerService {
      */
     private void Action_Zhuangzhinanchou(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //对手本回合无法获得护盾。若其下回合获得一定量护盾，则同时给己方添加等量护盾。
-        AddStatus(user,new ArrayList<>(List.of(new Status("zhuangzhinanchou",1))));
+        AddStatus(user,new ArrayList<>(List.of(new Status("zhuangzhinanchou_next",1))));
     }
 
     /**
@@ -477,7 +509,7 @@ public class PlayerService {
     private void Action_Danbo(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //获得4点护盾。若使用者护盾≥5且本回合没使用战斗类卡牌，恢复3点血量且护盾上限+1，但是下回合战斗类牌面值减半（向上取整）。
         if(user.getShield()>=5)
-            AddStatus(user,new ArrayList<>(List.of(new Status("danbo",1))));
+            AddStatus(user,new ArrayList<>(List.of(new Status("danbo_judge",1))));
         AddShield(user,4);
 
     }
@@ -695,7 +727,6 @@ public class PlayerService {
 //import java.util.*;
 //
 //import static java.lang.Math.max;
-///**
 // * 卡牌动作接口，定义卡牌效果的执行方法
 // */
 //interface CardAction{
@@ -707,7 +738,6 @@ public class PlayerService {
 //     */
 //    void execute(PlayerAgainst user,PlayerAgainst target, CardBattle card);
 //}
-///**
 // * 玩家服务类，负责处理游戏中的各种对战结算功能
 // * 主要包含卡牌效果处理、状态管理、玩家属性修改等核心功能
 // */
