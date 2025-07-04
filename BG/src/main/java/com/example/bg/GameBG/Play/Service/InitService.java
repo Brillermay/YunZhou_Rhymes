@@ -13,31 +13,46 @@ public class InitService {
     * 加入房间
     * 初始化用户
     * */
-    public Room CreateRoom(int uid1)
-    {
-        Room now=new Room();
+    /**
+     * 创建新的游戏房间
+     * @param uid1 房主用户ID
+     * @return 创建的房间对象，包含随机生成的16位房间号，房主ID已设置，等待第二个玩家加入
+     */
+    public Room CreateRoom(int uid1) {
+        Room now = new Room();
         now.setRoom(RandomStringUtils.randomAlphanumeric(16));
         now.setUid1(uid1);
-        now.setUid2(0);
+        now.setUid2(-1);
         now.setRoundNum(0);
         return now;
     }
-    public Room joinRoom(Room now,int uid2)
-    {
+
+    /**
+     * 第二个玩家加入房间
+     * @param now 要加入的房间对象（注意：此方法会直接修改传入的房间对象）
+     * @param uid2 第二个玩家的用户ID
+     */
+    public void joinRoom(Room now, int uid2) {
         now.setUid2(uid2);
-        return now;
     }
-    public PlayerAgainst init(String roomId, int userId, String role,CardService cardService)
-    {
-        PlayerAgainst playerAgainst =new PlayerAgainst();
+
+    /**
+     * 初始化玩家对战状态
+     * @param roomId 房间ID
+     * @param userId 玩家用户ID
+     * @param role 玩家角色
+     * @return 初始化完成的玩家对战对象，包含默认的血量、护盾、金币等属性
+     */
+    public PlayerAgainst init(String roomId, int userId, String role) {
+        PlayerAgainst playerAgainst = new PlayerAgainst();
         playerAgainst.setHp(20);
         playerAgainst.setHpMax(20);
         playerAgainst.setShieldMax(20);
         playerAgainst.setRoomNumber(roomId);
-        List<CardBattle> cardList=new ArrayList<>();
+        List<CardBattle> cardList = new ArrayList<>();
         playerAgainst.setCards(cardList);
         playerAgainst.setWealthy(10);
-        List<Status>statuses=new ArrayList<>();
+        List<Status> statuses = new ArrayList<>();
         playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
         playerAgainst.setShield(20);
