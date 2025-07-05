@@ -1,5 +1,6 @@
 package com.example.bg.GameBG.Play.Service;
 
+import com.example.bg.GameBG.Play.Entities.CardBattle;
 import com.example.bg.GameBG.Play.Entities.PlayerAgainst;
 import com.example.bg.GameBG.Play.Entities.Room;
 import com.example.bg.GameBG.Play.Entities.RoundEndDTO;
@@ -96,6 +97,16 @@ public class MainService extends TextWebSocketHandler {
         PlayerAgainst playerAgainst = playerAgainstMap.get(uid);
         playerService.SynthesizeABC(playerAgainst,a,b,c);
     }
-
+    public void RunARound(List<CardBattle>listPlayer1, List<CardBattle>listPlayer2,
+                          String roomId){
+        Room room=roomMap.get(roomId);
+        PlayerAgainst playerAgainst1=playerAgainstMap.get(room.getUid1());
+        PlayerAgainst playerAgainst2=playerAgainstMap.get(room.getUid2());
+        playerService.MainService(playerAgainst1,
+                playerAgainst2,
+                listPlayer1,
+                listPlayer2,
+                room);
+    }
 
 }
