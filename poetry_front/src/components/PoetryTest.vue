@@ -82,6 +82,7 @@ import API_BASE_URL from '@/config/api'
 // 🔧 导入 auth 工具函数
 import { isLoggedIn, requireLogin, getCurrentUid } from '@/utils/auth'
 import axios from 'axios'
+import { getCurrentUser } from '@/utils/auth'
 
 export default {
   name: 'PoetryTest',
@@ -190,32 +191,51 @@ export default {
     },
     
     // 🔧 显示排行榜
-    showRanking() {
-      requireLogin(
-        async () => {
-          this.showRankingModal = true
-          this.rankLoading = true
+        // 🔧 显示排行榜
+    async showRanking() {
+      try {
+        this.rankingLoading = true
+        
+        // 🔧 使用 axios 而不是 this.$http
+        const response = await axios.post(`${API_BASE_URL}/compRec/rank`, {
+          Difficulty: this.selectedDifficulty,
+          Sum: this.selectedQuestionCount
+        })
+        
+        if (response.data.success) {
+          this.rankList = response.data.data || []
           
-          try {
-            // 使用现有的排行榜API
-            const response = await this.getRankingData()
-            if (response && response.success) {
-              this.rankList = response.data.rankings || []
-              this.myRankInfo = response.data.myRank || null
+          // 🔧 计算当前用户的排名
+          const currentUser = getCurrentUser()
+          if (currentUser) {
+            const currentUid = currentUser.uid
+            const myRankIndex = this.rankList.findIndex(item => 
+              String(item.UID) === String(currentUid)
+            )
+            
+            if (myRankIndex !== -1) {
+              // 🔧 找到用户，设置排名信息
+              this.myRankInfo = {
+                ...this.rankList[myRankIndex],
+                rank: myRankIndex + 1  // 数组索引+1 = 排名
+              }
             } else {
-              this.$message?.error('获取排行榜失败')
+              // 🔧 用户不在前20名
+              this.myRankInfo = null
             }
-          } catch (error) {
-            console.error('获取排行榜失败:', error)
-            this.$message?.error('获取排行榜失败，请稍后重试')
-          } finally {
-            this.rankLoading = false
           }
-        },
-        () => {
-          this.$message?.warning('请先登录后查看排行榜')
+          
+          this.showRankingModal = true
+        } else {
+          console.error('获取排行榜失败:', response.data.message)
+          alert('获取排行榜失败')
         }
-      )
+      } catch (error) {
+        console.error('排行榜请求错误:', error)
+        alert('网络错误，请稍后重试')
+      } finally {
+        this.rankingLoading = false
+      }
     },
     
     // 🔧 关闭排行榜弹窗
@@ -524,16 +544,40 @@ export default {
   flex-direction: column;
   background: var(--poetry-bg, #f8f6f0);
   
-  /* 🔧 确保不创建新的定位上下文 */
+  /* 🎨 添加背景图片和黄色滤镜 */
+  background-image: url('../assets/1.jpg'); /* 请替换为你的背景图片路径 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  
+  /* 🎨 黄色滤镜叠加层 */
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 248, 220, 0.6); /* 黄色滤镜 */
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* 🎨 确保内容在滤镜之上 */
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* 其他现有样式保持不变... */
   position: static !important;
-  /* 🔧 确保不影响子组件的定位 */
   transform: none !important;
-  /* 🔧 确保不影响层级 */
   z-index: auto !important;
-  /* 🔧 确保不影响弹窗定位 */
   will-change: auto !important;
   contain: none !important;
-  /* 🔧 确保不影响弹窗的 backdrop-filter */
   backdrop-filter: none !important;
 }
 
