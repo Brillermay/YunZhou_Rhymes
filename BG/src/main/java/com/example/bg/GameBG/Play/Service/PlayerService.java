@@ -374,36 +374,75 @@ public class PlayerService {
     }
 
 
+    /**
+     * 春天Buff：回合开始时获得3金币，且抽1张牌。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_spring(PlayerAgainst user, PlayerAgainst target) {
         //回合开始时获得3金币，且抽1张牌
         AddCoins(user,3);
         user.setCards(cardService.RandomGetCardsByNumAndCost(1,3));
     }
 
+    /**
+     * 火焰Buff：下回合抽1张牌并使其下回合战斗类卡牌费用+1。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_fire(PlayerAgainst user, PlayerAgainst target) {
         //下回合抽1张牌并使其下回合战斗类卡牌费用+1
         user.setCards(cardService.RandomGetCardsByNumAndCost(1,2));
         user.getPlayerCondition().setFireAdd(user.getPlayerCondition().getFireAdd()+1);
     }
 
+    /**
+     * 鸟Buff：若本回合对面使用防守类卡，追加1点真实伤害。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_bird(PlayerAgainst user, PlayerAgainst target) {
         //若本回合对面使用防守类卡，追加1点真实伤害。
-
     }
 
+    /**
+     * 秋天Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_autumn(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 山Buff：获得1点护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_mountain(PlayerAgainst user, PlayerAgainst target) {
         AddShield(user,1);
     }
 
+    /**
+     * 水Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_water(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 悲伤Buff：无法获得护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_sad(PlayerAgainst user, PlayerAgainst target) {
         //无法获得护盾
         user.getPlayerCondition().setCanAddShield(false);
     }
 
+    /**
+     * 家Buff：下回合抽1张牌。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_home(PlayerAgainst user, PlayerAgainst target) {
         //下回合抽1张牌
         List<CardBattle> list = cardService.RandomGetCardsByNumAndCost(1,2);
@@ -411,65 +450,145 @@ public class PlayerService {
         user.setCards(list);
     }
 
+    /**
+     * 酒Buff：抽2张牌，下回合战斗类卡牌费用+1。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_wine(PlayerAgainst user, PlayerAgainst target) {
         List<CardBattle>list=cardService.RandomGetCardsByNumAndCost(2,2);
         user.setCards(cardService.MergeCardList(list,user.getCards()));
         user.getPlayerCondition().setFireAdd(user.getPlayerCondition().getFireAdd()+1);
     }
 
+    /**
+     * 柳Buff：获得柳Buff效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_liu(PlayerAgainst user, PlayerAgainst target) {
         user.getPlayerCondition().setLiuBuff(true);
     }
 
+    /**
+     * 太阳Buff：防守卡牌增益减半。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_sun(PlayerAgainst user, PlayerAgainst target) {
         //防守卡牌增益减半
         user.getPlayerCondition().setSunBuff(2);
     }
 
+    /**
+     * 鹅Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_goose(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 朋友Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_friend(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 雨Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_rain(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 战争Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_war(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 自然Buff：免疫1次破盾的额外伤害。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_nature(PlayerAgainst user, PlayerAgainst target) {
         //免疫1次破盾的额外伤害。
         user.getPlayerCondition().setNatureBuff(true);
     }
 
+    /**
+     * 再见Buff：下两回合获得金币-2。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_byebye(PlayerAgainst user, PlayerAgainst target) {
         //下两回合获得金币-2
         AddCoins(user,-2);
     }
 
+    /**
+     * 花Buff：恢复3点血量，下三回合各获得2点护盾且每回合回1点血。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_flower(PlayerAgainst user, PlayerAgainst target) {
         //恢复3点血量，下三回合各获得2点护盾且每回合回1点血。
         AddShield(user,2);
         AddHP(user,1);
     }
 
+    /**
+     * 竹Buff：下回合开始时抽3张牌并破坏对手1点护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_bamboo(PlayerAgainst user, PlayerAgainst target) {
         //下回合开始时抽3张牌并破坏对手1点护盾
         user.setCards(cardService.MergeCardList(cardService.RandomGetCardsByNumAndCost(3,2),user.getCards()));
         killShield(target,-1);
     }
 
+    /**
+     * 壮志难酬Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_zhuangzhinanchou(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 淡泊Buff：战斗类牌面值减2。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_danbo(PlayerAgainst user, PlayerAgainst target) {
         //战斗类牌面值减2
         user.getPlayerCondition().setFireAdd(user.getPlayerCondition().getFireAdd()-2);
     }
 
+    /**
+     * 黄河Buff：暂无效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_yellowriver(PlayerAgainst user, PlayerAgainst target) {}
 
+    /**
+     * 长江Buff：下三回合每回合恢复4点血量。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_longriver(PlayerAgainst user, PlayerAgainst target) {
         //下三回合每回合恢复4点血量。
         AddHP(user,4);
     }
 
+    /**
+     * 爱Buff：获得3点护盾，失去3金币，获得净化效果。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_love(PlayerAgainst user, PlayerAgainst target) {
         //
         AddShield(user,3);
@@ -477,6 +596,11 @@ public class PlayerService {
         user.getPlayerCondition().setPurification(true);
     }
 
+    /**
+     * 春天判定Buff：若本回合未受攻击，下回合开始时获得3金币，且抽1张牌。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_spring_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合未受攻击，下回合开始时获得3金币，且抽1张牌。
         if(user.getPlayerCondition().isAttacked()){
@@ -484,12 +608,22 @@ public class PlayerService {
         }
     }
 
+    /**
+     * 鸟判定Buff：若本回合对面使用防守类卡，追加1点真实伤害。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_bird_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合对面使用防守类卡，追加1点真实伤害。
         if(target.getPlayerCondition().isUsedDefenseCard())
             AddHP(target,-1);
     }
 
+    /**
+     * 秋天判定Buff：若其本回合未获得新护盾，弃其1张牌并让他失去1点护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_autumn_judge(PlayerAgainst user, PlayerAgainst target) {
         //若其本回合未获得新护盾，弃其1张牌并让他失去1点护盾。
         if(user.getPlayerCondition().isAddedShield())
@@ -500,6 +634,11 @@ public class PlayerService {
         user.setCards(cardService.RandomDiscardCardsList(user.getCards(),1));
     }
 
+    /**
+     * 山判定Buff：若本回合未受伤害，下三回合各+1护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_mountain_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合未受伤害，下三回合各+1护盾。
         if(user.getPlayerCondition().isAttacked() == false)
@@ -508,54 +647,101 @@ public class PlayerService {
         }
     }
 
+    /**
+     * 水判定Buff：获得1点护盾。若未使用战斗类卡牌，恢复2点血量。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_water_judge(PlayerAgainst user, PlayerAgainst target) {
         //获得1点护盾。若未使用战斗类卡牌，恢复2点血量。
         if(user.getPlayerCondition().isUsedBattleCard())return;
         AddHP(user,2);
     }
 
+    /**
+     * 酒判定Buff：若本回合受到攻击，抽2张牌且下回合战斗类卡牌费用+1。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_wine_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合受到攻击，抽2张牌且下回合战斗类卡牌费用+1。
         if(user.getPlayerCondition().isAttacked()){
-
             user.getStatusesBegin().add(new Status("wine",1,"下回合开局抽2张1-2费牌,且战斗类卡牌效果+1"));
         }
     }
 
+    /**
+     * 柳判定Buff：若本回合受到攻击，恢复2点护盾并免疫下回合1点伤害。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_liu_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合受到攻击，恢复2点护盾并免疫下回合1点伤害（免疫破盾后打到肉的1点）。
         if(user.getPlayerCondition().isAttacked())
         {
             AddShield(user,2);
             user.getStatusesBegin().add(new Status("liu",1,"免疫下回合1点伤害（免疫破盾后打到肉的1点）"));
-
         }
     }
 
+    /**
+     * 雨Buff（下回合）：设置雨Buff标记。
+     * @param playerAgainst1 玩家1
+     * @param playerAgainst2 玩家2
+     * @param listPlayer1 玩家1卡牌列表
+     * @param listPlayer2 玩家2卡牌列表
+     * @param buffName Buff名称
+     */
     private void BuffAction_rain_next(PlayerAgainst playerAgainst1, PlayerAgainst playerAgainst2,
                                       List<CardBattle>listPlayer1,List<CardBattle>listPlayer2,
                                       String buffName) {
         playerAgainst1.getPlayerCondition().setHasRain(true);
     }
 
+    /**
+     * 战争Buff（下回合）：设置战争Buff标记。
+     * @param playerAgainst1 玩家1
+     * @param playerAgainst2 玩家2
+     * @param listPlayer1 玩家1卡牌列表
+     * @param listPlayer2 玩家2卡牌列表
+     * @param buffName Buff名称
+     */
     private void BuffAction_war_next(PlayerAgainst playerAgainst1, PlayerAgainst playerAgainst2,
                                      List<CardBattle>listPlayer1,List<CardBattle>listPlayer2,
                                      String buffName) {
         playerAgainst1.getPlayerCondition().setHasWar(true);
     }
 
+    /**
+     * 竹判定Buff：若本回合未使用战斗或防守类卡牌，回合开始时抽3张牌并破坏对手1点护盾。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_bamboo_judge(PlayerAgainst user, PlayerAgainst target) {
         if(user.getPlayerCondition().isUsedBattleCard())return;
         if(user.getPlayerCondition().isUsedDefenseCard())return;
         AddStatus(user,List.of(new Status("bamboo",1,"回合开始时抽3张牌并破坏对手1点护盾")));
     }
 
+    /**
+     * 壮志难酬Buff（下回合）：设置壮志难酬Buff标记。
+     * @param playerAgainst1 玩家1
+     * @param playerAgainst2 玩家2
+     * @param listPlayer1 玩家1卡牌列表
+     * @param listPlayer2 玩家2卡牌列表
+     * @param buffName Buff名称
+     */
     private void BuffAction_zhuangzhinanchou_next(PlayerAgainst playerAgainst1, PlayerAgainst playerAgainst2,
                                                   List<CardBattle>listPlayer1,List<CardBattle>listPlayer2,
                                                   String buffName) {
         playerAgainst1.getPlayerCondition().setHasZhuangZhiNanChou(true);
     }
 
+    /**
+     * 淡泊判定Buff：本回合没使用战斗类卡牌，恢复3点血量且护盾上限+1，下回合战斗类牌面值减2。
+     * @param user 施加Buff的玩家
+     * @param target 目标玩家
+     */
     private void BuffAction_danbo_judge(PlayerAgainst user, PlayerAgainst target){
         //本回合没使用战斗类卡牌，恢复3点血量且护盾上限+1，但是下回合战斗类牌面值减2
         if(user.getPlayerCondition().isUsedBattleCard())return;
