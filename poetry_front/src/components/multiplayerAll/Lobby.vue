@@ -34,7 +34,11 @@
   <script setup>
   import { ref } from "vue";
   import axios from "axios";
-  
+  import {onMounted} from "vue";
+
+  onMounted(()=>{
+    connect();
+  })
   const createdRoomId = ref("");
   const creating = ref(false);
   
@@ -42,19 +46,27 @@
   const joining = ref(false);
   const joinError = ref("");
   const joinedSuccess = ref(false);
-  
-  async function createRoom() {
-    creating.value = true;
-    createdRoomId.value = "";
-    try {
-      // 假设后端创建房间API：POST /api/room/create
-      const res = await axios.post("/api/room/create");
-      createdRoomId.value = res.data.roomId; // 假设返回{ roomId: "xxxx" }
-    } catch (err) {
-      createdRoomId.value = "创建失败，请重试";
-    }
-    creating.value = false;
-  }
+
+  //websocket
+  let websocket=ref(null);
+  let isConnected=ref(false);
+  let connectionStatus=ref('disconnected');
+  let connectionStatusText=ref('未连接');
+  let messageLog=ref([]);
+
+
+  // async function createRoom() {
+  //   creating.value = true;
+  //   createdRoomId.value = "";
+  //   try {
+  //     // 假设后端创建房间API：POST /api/room/create
+  //     const res = await axios.post("/api/room/create");
+  //     createdRoomId.value = res.data.roomId; // 假设返回{ roomId: "xxxx" }
+  //   } catch (err) {
+  //     createdRoomId.value = "创建失败，请重试";
+  //   }
+  //   creating.value = false;
+  // }
   
   // 加入房间逻辑
   async function joinRoom() {
@@ -80,6 +92,107 @@
     }
     joining.value = false;
   }
+
+  //websocket
+  async function connect(){
+    try {
+      // 根据您的后端地址调整WebSocket URL
+      const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
+      websocket = new WebSocket(wsUrl);
+
+      websocket.onopen = onOpen;
+      websocket.onmessage = onMessage;
+      websocket.onclose = onClose;
+      websocket.onerror = onError;
+
+      connectionStatus = 'connecting';
+      connectionStatusText = '连接中...';
+
+    } catch (error) {
+      addLog('error', `连接失败: ${error.message}`);
+    }
+  }
+async function disconnect() {
+  if (websocket) {
+    websocket.close();
+  }
+}
+async function onOpen(event) {
+  isConnected = true;
+  connectionStatus = 'connected';
+  connectionStatusText = '已连接';
+  addLog('success', 'WebSocket连接已建立');
+}
+async function onMessage(event) {
+  try {
+    const data = JSON.parse(event.data);
+    addLog('received', `收到消息: ${JSON.stringify(data, null, 2)}`);
+  } catch (error) {
+    addLog('received', `收到消息: ${event.data}`);
+  }
+}
+async function onClose(event) {
+  isConnected = false;
+  connectionStatus = 'disconnected';
+  connectionStatusText = '未连接';
+  addLog('info', `连接已关闭: ${event.code} - ${event.reason}`);
+}
+
+async function onError(event) {
+    addLog('error', `连接错误: ${event}`);
+}
+async function sendMessage(message) {
+  if (websocket && isConnected) {
+    const messageStr = JSON.stringify(message);
+    websocket.send(messageStr);
+    addLog('sent', `发送消息: ${messageStr}`);
+  } else {
+    addLog('error', 'WebSocket未连接');
+  }
+}
+async function createRoom() {
+  const message = {
+    type: 'createRoom',
+    room: {
+      uid: createRoomData.uid.toString()
+    }
+  };
+  sendMessage(message);
+}
+
+async function xx(){
+
+}
+
+async function addLog(type, content) {
+  const now = new Date();
+  const timestamp = now.toLocaleTimeString();
+  // messageLog.push({
+  //   type,
+  //   content,
+  //   timestamp
+  // });
+  //
+  // // 限制日志数量
+  // if (messageLog.length > 100) {
+  //   messageLog.shift();
+  // }
+
+  // 自动滚动到底部
+  // $nextTick(() => {
+  //   const logElement = document.querySelector('.message-log');
+  //   if (logElement) {
+  //     logElement.scrollTop = logElement.scrollHeight;
+  //   }
+  // });
+}
+
+  // 清空日志
+async function clearLog() {
+
+  messageLog = [];
+  }
+
   </script>
   
   <style scoped>

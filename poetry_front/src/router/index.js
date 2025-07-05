@@ -14,7 +14,7 @@ import AdminDashboard from '../components/admin/AdminDashboard.vue'
 
 // 🔧 修复：HomePage.vue 而不是 Homepage.vue
 import HomePage from '@/components/homepage/HomePage.vue'
-import multiPlayPage from '@/components/multiplayerAll/Multiplayer.vue'
+import multiPlayPage from '@/components/multiplayerAll/Lobby.vue'
 
 // 🆕 导入游戏中心组件
 import GameCenter from '@/components/GameCenter.vue'
