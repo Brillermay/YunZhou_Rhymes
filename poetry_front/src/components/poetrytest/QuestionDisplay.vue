@@ -10,17 +10,18 @@
           </div>
           <div class="timer-display">
             <i class="icon-clock"></i>
-            {{ formatTime(elapsedSeconds) }}
+            ⏰{{ formatTime(elapsedSeconds) }}
           </div>
-        </div>
-        
-        <!-- 🔧 添加退出按钮 -->
+                 <!-- 🔧 添加退出按钮 -->
         <div class="exit-button-container">
           <button class="exit-button" @click="showExitModal = true">
             <i class="icon-times"></i>
             退出
           </button>
         </div>
+        </div>
+        
+ 
         
         <!-- 🔧 优化后的进度条 -->
         <div class="progress-bar-container">
@@ -32,7 +33,7 @@
             <!-- 🔧 优化毛笔显示 -->
             <div 
               class="progress-brush"
-              :style="{ left: 'calc(' + progressPercent + '% - 25px)' }"
+              :style="{ left: 'calc(' + progressPercent + '% - 38px)' }"
             >
               <img src="@/assets/image/imgtest/brush.png" alt="毛笔" />
             </div>
@@ -64,8 +65,8 @@
               class="option-card"
               :class="{ 
                 active: selectedAnswer === key,
-                correct: showResult && isCorrectOption(key),
-                wrong: showResult && selectedAnswer === key && !isCorrectOption(key),
+                correct: isAnswered && isCorrectOption(key),
+                wrong: isAnswered && selectedAnswer === key && !isCorrectOption(key),
                 disabled: isAnswered
               }"
               @click="selectOption(key)"
@@ -74,11 +75,11 @@
               <div class="option-content">{{ option }}</div>
               <div class="option-indicator">
                 <i 
-                  v-if="showResult && isCorrectOption(key)"
+                  v-if="isAnswered && isCorrectOption(key)"
                   class="icon-check-circle"
                 ></i>
                 <i 
-                  v-else-if="showResult && selectedAnswer === key && !isCorrectOption(key)"
+                  v-else-if="isAnswered && selectedAnswer === key && !isCorrectOption(key)"
                   class="icon-times-circle"
                 ></i>
                 <div 
@@ -200,8 +201,8 @@
           提交答案
         </button>
         
-        <!-- 🔧 合并结果反馈和下一题按钮 -->
-        <div v-if="isAnswered" class="result-action-merged">
+        <!-- 🔧 修改显示条件：只有非选择题且已答题时才显示结果卡片 -->
+        <div v-if="isAnswered && isSpecialQuestion" class="result-action-merged">
           <!-- 结果反馈区域 -->
           <div 
             class="result-card"
@@ -253,6 +254,27 @@
             </button>
           </div>
         </div>
+
+        <!-- 🔧 新增：选择题答完后的下一题按钮（不显示结果卡片） -->
+        <div v-if="isAnswered && !isSpecialQuestion" class="next-only-section">
+          <button
+            v-if="currentIndex < totalQuestions - 1"
+            class="btn btn-primary action-btn ready"
+            @click="nextQuestion"
+          >
+            下一题
+            <i class="icon-arrow-right"></i>
+          </button>
+          
+          <button
+            v-if="currentIndex === totalQuestions - 1"
+            class="btn btn-primary action-btn ready"
+            @click="finishTest"
+          >
+            <i class="icon-flag-checkered"></i>
+            完成测试
+          </button>
+        </div>
       </div>
     </div>
     
@@ -268,8 +290,7 @@
         <div class="modal-body">
           <p>您确定要退出当前测试吗？</p>
           <p class="warning-text">退出后当前进度将丢失，无法恢复。</p>
-        </div>
-        <div class="modal-footer">
+               <div class="modal-footer">
           <button class="btn btn-secondary" @click="showExitModal = false">
             取消
           </button>
@@ -277,6 +298,8 @@
             确认退出
           </button>
         </div>
+        </div>
+   
       </div>
     </div>
   </div>
@@ -308,7 +331,7 @@ export default {
     }
   },
   
-  emits: ['answer-selected', 'next-question', 'back-to-selector', 'pause-timer', 'resume-timer'],
+  emits: ['answer-selected', 'next-question', 'back-to-selector', 'pause-timer', 'resume-timer', 'finish-test'],
   
   data() {
     return {
@@ -318,7 +341,8 @@ export default {
       showResult: false,
       lastAnswerCorrect: false,
       correctAnswerText: '',
-      showExitModal: false
+      showExitModal: false,
+      questionStartTime: Date.now() // 🔧 新增：记录题目开始时间
     }
   },
   
@@ -344,6 +368,11 @@ export default {
         return this.ziciAnswer.every(char => char !== '')
       }
       return false
+    },
+
+    // 🔧 新增：判断是否为特殊题型（非选择题）
+    isSpecialQuestion() {
+      return this.currentQuestion.type === 'duiju' || this.currentQuestion.type === 'zici'
     }
   },
   
@@ -378,6 +407,8 @@ export default {
       this.showResult = false
       this.lastAnswerCorrect = false
       this.correctAnswerText = ''
+      // 🔧 记录题目开始时间，用于计算答题耗时
+      this.questionStartTime = Date.now()
     },
     
     initializeSpecialAnswers() {
@@ -412,6 +443,7 @@ export default {
       }
     },
     
+    // 🔧 修改选择题提交逻辑：保留判题但不显示结果卡片
     submitAnswer() {
       if (!this.selectedAnswer) return
       
@@ -420,15 +452,21 @@ export default {
       
       const isCorrect = this.selectedAnswer === correctOption
       
+      // 🔧 保留判题逻辑 - 设置答案结果用于option-card状态变化
       this.lastAnswerCorrect = isCorrect
       this.correctAnswerText = `${correctOption.toUpperCase()}. ${this.currentQuestion.options[correctOption]}`
       
-      this.showResult = true
+      // 🔧 选择题不显示结果卡片，注释掉这行
+      // this.showResult = true
       
+      // 🔧 向父组件发送答案结果，用于统计和记录
       this.$emit('answer-selected', {
         userAnswer: this.selectedAnswer,
         correctAnswer: correctOption,
-        isCorrect: isCorrect
+        isCorrect: isCorrect,
+        questionType: 'normal', // 标记题目类型
+        questionId: this.currentQuestion.id || this.currentIndex,
+        responseTime: Date.now() - this.questionStartTime // 记录答题时间
       })
     },
     
@@ -449,12 +487,17 @@ export default {
       
       this.lastAnswerCorrect = isCorrect
       this.correctAnswerText = correctAnswer
+      
+      // 🔧 特殊题型显示结果卡片
       this.showResult = true
       
       this.$emit('answer-selected', {
         userAnswer,
         correctAnswer,
-        isCorrect
+        isCorrect,
+        questionType: this.currentQuestion.type,
+        questionId: this.currentQuestion.id || this.currentIndex,
+        responseTime: Date.now() - this.questionStartTime
       })
     },
     
@@ -520,6 +563,7 @@ export default {
 .game-header-section {
   text-align: center;
   margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
   position: relative;
   
   .game-title {
@@ -550,21 +594,29 @@ export default {
       color: var(--text-color);
     }
     
-    .timer-display {
+   .timer-display {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.5rem;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       color: var(--text-color);
-      background: rgba(255, 255, 255, 0.8);
-      padding: 0.4rem 0.8rem;
-      border-radius: 20px;
-      border: 2px solid rgba(140, 120, 83, 0.2);
+      background: rgba(255, 255, 255, 0.495);
+      padding: 0.6rem 1.2rem;
+      border-radius: 25px;
+      border: 2px solid rgba(140, 120, 83, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      flex: 0 0 auto; // 不拉伸，保持固定宽度
+      position: absolute;
+      top: -1.2 rem;
+      left: 46%;
+      letter-spacing: 4px;
+     
       
       i {
         color: var(--warning-color);
-        font-size: 1rem;
+        font-size: 1.1rem;
       }
     }
   }
@@ -572,15 +624,16 @@ export default {
   // 🔧 退出按钮样式
   .exit-button-container {
     position: absolute;
-    top: 0;
+    top: 10;
     right: 0;
+   
     
     .exit-button {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 1rem;
-      background: rgba(231, 76, 60, 0.9);
+      background: rgba(216, 92, 78, 0.9);
       color: white;
       border: none;
       border-radius: 8px;
@@ -588,6 +641,8 @@ export default {
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
+      
+
       
       &:hover {
         background: rgba(231, 76, 60, 1);
@@ -611,10 +666,7 @@ export default {
     position: relative;
     width: 100%;
     height: 15px;
-    background: linear-gradient(90deg, 
-      rgba(140, 120, 83, 0.15) 0%, 
-      rgba(140, 120, 83, 0.25) 100%
-    );
+    background: url('@/assets/image/imgtest/scroll-bg.png') repeat-x;
     border-radius: 8px;
     overflow: visible;
     box-shadow: 
@@ -623,10 +675,7 @@ export default {
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, 
-        var(--primary-color) 0%, 
-        var(--secondary-color) 100%
-      );
+     background: linear-gradient(to right, #cfae74, #f7e4b3);
       border-radius: 8px;
       transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       position: relative;
@@ -634,34 +683,18 @@ export default {
     
     .progress-brush {
       position: absolute;
-      top: -30px;
+      top: -42px;
       transition: left 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       z-index: 10;
       
       img {
-        width: 50px;
-        height: 50px;
+        width: 80px;
+        height: 80px;
         object-fit: contain;
         filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
         animation: brushFloat 3s ease-in-out infinite alternate;
       }
       
-      &::before {
-        content: '';
-        position: absolute;
-        top: 45px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 5px;
-        height: 20px;
-        background: linear-gradient(180deg, 
-          rgba(140, 120, 83, 0.9) 0%,
-          rgba(140, 120, 83, 0.6) 40%,
-          transparent 100%
-        );
-        border-radius: 2px;
-        animation: inkDrop 2s ease-in-out infinite;
-      }
     }
   }
   
@@ -669,7 +702,7 @@ export default {
     text-align: center;
     margin-top: 1rem;
     font-size: 1rem;
-    color: var(--text-color);
+    color: #5a3e1b;
     font-weight: 600;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   }
@@ -743,18 +776,18 @@ export default {
   
   .question-card {
     @include modern-card;
-    padding: 1.2rem;          // 原来是 2.5rem，改为 1.5rem
-    background: rgba(255, 255, 255, 0.95);
+    padding: 5rem;          // 原来是 2.5rem，改为 1.5rem
+    background: rgba(255, 255, 255, 0.185);
     border: 2px solid rgba(140, 120, 83, 0.2);
     
     .question-header {
       display: flex;
       align-items: flex-start;
       gap: 0.8rem;
-      margin-bottom: 1.2rem;  // 原来是 2rem，改为 1.5rem
+      margin-bottom: 2rem;  // 原来是 2rem，改为 1.5rem
       
       .question-icon {
-        font-size: 1.3rem;     // 原来是 2rem，改为 1.5rem
+        font-size: 2rem;     // 原来是 2rem，改为 1.5rem
         color: var(--secondary-color);
         margin-top: 0.2rem;
         flex-shrink: 0;
@@ -762,7 +795,7 @@ export default {
       
       .question-title {
         @include ancient-title;
-        font-size: 1.1rem;     // 原来是 1.4rem，改为 1.2rem
+        font-size: 2rem;     // 原来是 1.4rem，改为 1.2rem
         color: var(--primary-color);
         line-height: 1.6;
         margin: 0;
@@ -776,7 +809,7 @@ export default {
 .options-section {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1.8rem;
   
   .option-card {
     @include modern-card;
@@ -834,7 +867,7 @@ export default {
       width: 35px;
       height: 35px;
       background: var(--primary-color);
-      color: white;
+      color: rgb(0, 0, 0);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -846,7 +879,7 @@ export default {
     
     .option-content {
       flex: 1;
-      font-size: 1rem;
+      font-size: 1.2rem;
       color: var(--text-color);
       line-height: 1.6;
       font-weight: 500;
@@ -1245,6 +1278,7 @@ export default {
       gap: 1rem;
       padding: 1.5rem;
       border-top: 1px solid rgba(140, 120, 83, 0.2);
+      background: #f8f6f0;
       
       .btn {
         padding: 0.8rem 1.5rem;
@@ -1397,6 +1431,32 @@ export default {
   
   .option-buttons {
     justify-content: center;
+  }
+}
+
+// 🔧 新增：选择题答完后的下一题按钮样式
+.next-only-section {
+  text-align: center;
+  
+  .action-btn {
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 180px;
+    justify-content: center;
+    
+    background: linear-gradient(135deg, #8c7853, #6e5773) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.3s ease;
+    animation: pulse 2s ease-in-out infinite alternate;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(140, 120, 83, 0.4);
+    }
   }
 }
 </style>

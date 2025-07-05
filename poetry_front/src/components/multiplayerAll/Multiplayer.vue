@@ -5,7 +5,11 @@
       <div class="screen" ref="screen0"></div>
       <!-- 第二个游戏页面 -->
       <div class="screen" ref="screen1">
+
       </div>
+      <teleport to="body">
+        <div id="countdown-timer" class="countdown">30</div>
+      </teleport>
     </div>
   </div>
 </template>
@@ -14,6 +18,70 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
 
+console.log('🏁 script setup 运行了');
+
+// 回合时间（秒）
+const TURN_DURATION = 5 * 1000
+// 结算延迟（毫秒）
+const SETTLE_DELAY = 5 * 1000
+
+let turnTimeout = null;
+let countdownInterval = null;
+let timerEl = null;
+
+
+// 禁止/恢复页面滚动
+function disablePageScroll() { document.body.style.overflow = 'hidden'; }
+function enablePageScroll() { document.body.style.overflow = ''; }
+
+// 强制滚动到第一个 Phaser 容器
+function scrollToFirst() {
+  const el = document.querySelector('.screen-wrapper > .screens .screen');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 结算逻辑：根据你的 game1/game2 场景状态来写
+function settlement() {
+  console.log('执行回合结算！')
+  // …在这里调用你的分数计算或状态重置…
+}
+
+// 回合结束时的流程
+function onTurnEnd() {
+  clearInterval(countdownInterval)
+
+  settlement()
+
+  startTurn()
+}
+
+// 启动（或重启）一个回合
+function startTurn() {
+  //
+  clearInterval(countdownInterval)
+  clearTimeout(turnTimeout)
+
+  let remaining = TURN_DURATION / 1000
+  if (timerEl) timerEl.textContent = remaining;
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (timerEl) timerEl.textContent = remaining > 0 ? remaining : 0;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+
+  turnTimeout = setTimeout(() => {
+    // 确保显示“0”
+    if (timerEl) timerEl.textContent = 0;
+    // 真正执行回合结束流程
+    onTurnEnd();
+  }, TURN_DURATION);
+
+  // 4. 30 秒后触发回合结束
+  turnTimeout = setTimeout(onTurnEnd, TURN_DURATION)
+}
 //-----------------------------------------
 let buySlot1Animating = false
 let buySlot1OriginalX
@@ -84,17 +152,17 @@ const cardImages = [
   { key: 'shudaonan', src: new URL('../../assets/cards/诗词/蜀道难.png', import.meta.url).href },
   { key: 'xinglunan', src: new URL('../../assets/cards/诗词/行路难.png', import.meta.url).href },
   { key: 'huanghelousongmenghaoranzhiguangling', src: new URL('../../assets/cards/诗词/黄鹤楼送孟浩然之广陵.png', import.meta.url).href },
-  
+
   { key: 'shizhisaishang', src: new URL('../../assets/cards/诗词/使至塞上.png', import.meta.url).href },
   { key: 'xiangsi', src: new URL('../../assets/cards/诗词/相思.png', import.meta.url).href },
   { key: 'shanjuqiuming', src: new URL('../../assets/cards/诗词/山居秋暝.png', import.meta.url).href },
   { key: 'zhuliguan', src: new URL('../../assets/cards/诗词/竹里馆.png', import.meta.url).href },
-  
+
   { key: 'shuidiaogetou_mingyuejishiyou', src: new URL('../../assets/cards/诗词/水调歌头·明月几时有.png', import.meta.url).href },
   { key: 'chibifu', src: new URL('../../assets/cards/诗词/赤壁赋.png', import.meta.url).href },
   { key: 'jichengtansiyeyou', src: new URL('../../assets/cards/诗词/记承天寺夜游.png', import.meta.url).href },
   { key: 'dingfengbo_motingchuanlindayesheng', src: new URL('../../assets/cards/诗词/定风波·莫听穿林打叶声.png', import.meta.url).href },
-  
+
 ]
 
 //合成表
@@ -157,7 +225,7 @@ const checkCrafting = (cards) => {
 // 卡牌价格
 const cardPrices = {
   card_pack_poem: 10,
-                         
+
   love: 7,
   sad: 2,
   spring: 1,
@@ -263,8 +331,8 @@ const handleBuyPack = () => {
         } else {
           // 第二次点击：生成随机卡片并销毁卡包
           const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
-           'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower', 
-           'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
+            'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower',
+            'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
           const numCards = 5
 
           // 创建闪光效果
@@ -354,6 +422,48 @@ const buffs = [
   { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
 
+const cardSlotMapping = {
+  // BUFF槽位卡片
+  'spring': 'buff',
+  'autumn': 'buff',
+  'moon': 'buff',
+  'sad': 'buff',
+  'home': 'buff',
+  'friend': 'buff',
+  'byebye': 'buff',
+  'flower': 'buff',
+  'love': 'buff',
+
+  // 攻击槽位卡片
+  'fire': 'attack',
+  'bird': 'attack',
+  'wine': 'attack',
+  'sun': 'attack',
+  'rain': 'attack',
+  'war': 'attack',
+  'bamboo': 'attack',
+  'yellowriver': 'attack',
+  'missing': 'attack',
+
+  // 防御槽位卡片
+  'mountain': 'defense',
+  'water': 'defense',
+  'liu': 'defense',
+  'goose': 'defense',
+  'nature': 'defense',
+  'zhuangzhinanchou': 'defense',
+  'danbo': 'defense',
+  'longriver': 'defense',
+}
+// 验证卡片是否可以放入指定槽位
+const canPlaceInSlot = (cardType, slotType) => {
+  return cardSlotMapping[cardType] === slotType
+}
+const heads = [
+  { key: 'aiboy', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
+  { key: 'aigirl', src: new URL('../../assets/cards/aigirl.png', import.meta.url).href },
+]
+
 //对战双方游戏状态
 const gameState_one = ref({
   // 己方角色状态
@@ -378,10 +488,68 @@ const gameState_one = ref({
   cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
 });
 
-//更新3*4卡牌展示
+//updateCard函数，添加对第一个场景的更新
 const updateCard = (row, col, cardType) => {
   gameState_one.value.cardGrid[row][col] = cardType;
-  // 这里可以添加更新 Phaser 显示的逻辑
+
+  if (battleScene && battleScene.scene.scenes[0]) {
+    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, cardType);
+  }
+};
+
+// 3. 添加更新战场显示的函数
+const updateBattleFieldDisplay = (scene, row, col, cardType) => {
+  const width = scene.cameras.main.width;
+  const height = scene.cameras.main.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // 计算卡槽位置（与创建时相同的逻辑）
+  const slotWidth = 100;
+  const slotHeight = 140;
+  const horizontalGap = 60;
+  const verticalGap = 20;
+
+  const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
+  const totalHeight = (slotHeight * 4) + (verticalGap * 3);
+
+  const startX = centerX - (totalWidth / 2);
+  const startY = (height - totalHeight) / 2;
+
+  const x = startX + (col * (slotWidth + horizontalGap));
+  const y = startY + (row * (slotHeight + verticalGap));
+
+  // 查找并更新对应位置的卡片
+  const cardKey = `card_${row}_${col}`;
+  const existingCard = scene.children.getByName(cardKey);
+
+  if (existingCard) {
+    // 如果卡片已存在，更新纹理
+    existingCard.setTexture(cardType);
+    existingCard.setDisplaySize(slotWidth, slotHeight);
+
+    // 添加更新动画
+    scene.tweens.add({
+      targets: existingCard,
+      //scale: { from: 1.1, to: 1 },  
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+  } else {
+    console.log(`Card ${cardKey} not found in scene`);
+  }
+};
+
+const removeCardFromSlot = (row, col) => {
+  // 重置游戏状态
+  gameState_one.value.cardGrid[row][col] = 'cardBack';
+
+  // 更新显示
+  if (battleScene && battleScene.scene.scenes[0]) {
+    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
+  }
+
+  console.log(`Removed card from slot [${row}][${col}]`);
 };
 
 //更新血条护甲
@@ -438,7 +606,10 @@ const goToScreen = (idx) => {
 const screen0 = ref(null);
 const screen1 = ref(null);
 
+let battleScene = null // 添加战斗场景的引用
+
 onMounted(() => {
+
 
   //页面初始化
   const commonConfig = {
@@ -446,17 +617,37 @@ onMounted(() => {
     width: '100%',
     height: '100%',
     physics: { default: 'arcade' },
+    audio: {
+      disableWebAudio: true,  // 禁用 Web Audio
+      noAudio: true          // 完全禁用音频
+    }
   };
 
+  timerEl = document.getElementById('countdown-timer');
   // 第一个 Phaser 实例：对战界面
-  new Phaser.Game({
+  battleScene = new Phaser.Game({
     ...commonConfig,
     parent: screen0.value,
     scene: {
 
       //预加载
       preload() {
-        // 创建一个纹理生成器来绘制卡牌背面
+        // 只加载图片资源，不生成纹理
+        cardImages.forEach(card => {
+          this.load.image(card.key, card.src);
+        });
+
+        // 加载状态效果图片
+        buffs.forEach(buff => {
+          this.load.image(buff.key, buff.src);
+        });
+
+        heads.forEach(head => {
+          this.load.image(head.key, head.src);
+        });
+      },
+      create() {
+
         const graphics = this.add.graphics();
 
         // 绘制卡牌背面的花纹
@@ -480,8 +671,8 @@ onMounted(() => {
         buffs.forEach(buff => {
           this.load.image(buff.key, buff.src);
         });
-      },
-      create() {
+
+
         // 获取游戏画布的中心点和尺寸
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -554,15 +745,13 @@ onMounted(() => {
           for (let col = 0; col < 3; col++) {
             const x = startX + (col * (slotWidth + horizontalGap));
             const y = startY + (row * (slotHeight + verticalGap));
-
-            // 根据 gameState_one 中的数据创建卡牌
             const cardType = gameState_one.value.cardGrid[row][col];
 
-            // 创建卡牌图像
             const card = this.add.image(x, y, cardType)
-              .setOrigin(0, 0);
+              .setOrigin(0, 0)
+              .setDisplaySize(slotWidth, slotHeight)
+              .setName(`card_${row}_${col}`); // 确保设置了正确的名称
 
-            // 添加互动效果
             card.setInteractive()
               .on('pointerover', () => {
                 card.setTint(0xffff00);
@@ -571,12 +760,14 @@ onMounted(() => {
                 card.clearTint();
               })
               .on('pointerdown', () => {
-                // 可以在这里添加点击事件，比如更新 gameState_one
                 console.log(`Clicked card at row ${row}, col ${col}`);
+                //点击事件，目前随便用删除该卡片的函数代替
+                if (row === 3 && gameState_one.value.cardGrid[row][col] !== 'cardBack') {
+                  removeCardFromSlot(row, col);
+                }
               });
           }
         }
-
         // 创建中央分界线
         const dividerLine = this.add.rectangle(60, centerY, width - 120, 4, 0xC5A880)
           .setOrigin(0, 0.5)
@@ -587,7 +778,14 @@ onMounted(() => {
         const allyBarX = 250;
 
         // 创建己方头像
-        const allyAvatar = this.add.circle(100, allyAvatarY, 40, 0x4A5568);
+        this.allyAvatar = this.add.image(
+          100,
+          allyAvatarY,
+          'aiboy'
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 己方血条和护甲条
         const allyHealthWidth = (gameState_one.value.ally.health / gameState_one.value.ally.maxHealth) * 200;
@@ -620,7 +818,14 @@ onMounted(() => {
         const enemyBarX = width - 250;
 
         // 创建敌方头像
-        const enemyAvatar = this.add.circle(width - 100, enemyAvatarY, 40, 0xE53E3E);
+        this.enemyAvatar = this.add.image(
+          width - 100,
+          enemyAvatarY,
+          'aigirl'        // ← 纹理 key
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 敌方血条和护甲条
         const enemyHealthWidth = (gameState_one.value.enemy.health / gameState_one.value.enemy.maxHealth) * 200;
@@ -695,7 +900,7 @@ onMounted(() => {
             // 查找对应的 buff 图片
             const buff = buffs.find(b => b.key === effectKey);
             if (buff) {
-              const iconX = isAlly ? x + (index * spacing)+100 : x - (index * spacing)+150;
+              const iconX = isAlly ? x + (index * spacing) + 100 : x - (index * spacing) + 150;
               const icon = this.add.image(iconX, y, buff.key)
                 .setDisplaySize(iconSize, iconSize)
                 .setOrigin(0.5, 0.5);
@@ -773,7 +978,7 @@ onMounted(() => {
 
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
-            // 创建顶部边栏背景，并添加交互效果
+        // 创建顶部边栏背景，并添加交互效果
         const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
           .setOrigin(0, 0)
           .setDepth(100)
@@ -796,7 +1001,7 @@ onMounted(() => {
 
         const sellText = this.add.text(sellSlot.x + 50, sellSlot.y + 90, '出售卡牌', {  // y位置上移
           fontSize: '14px',
-          resolution: 2, 
+          resolution: 2,
           color: '#ffffff',
           align: 'center',
           padding: { y: 5 }  // 添加垂直内边距
@@ -838,7 +1043,7 @@ onMounted(() => {
             // 简单的悬浮效果 - 只改变边框颜色和透明度
             buySlot.setStrokeStyle(3, 0xffffff, 1) // 白色边框
             buySlot.setAlpha(0.9) // 轻微透明
-            
+
             // 简单的文字轻微放大
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -857,7 +1062,7 @@ onMounted(() => {
           // 恢复原状
           buySlot.setStrokeStyle(3, 0x8c7853, 0.9)
           buySlot.setAlpha(1)
-          
+
           this.tweens.add({
             targets: [buyIcon, buyText],
             scale: 1,
@@ -875,17 +1080,17 @@ onMounted(() => {
         this.shiftKey.on('down', () => {
           // 切换模式状态
           isStackingMode.value = !isStackingMode.value
-          
+
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
-          
+
           // 颜色渐变动画 - 不改变位置和大小
           this.tweens.add({
             targets: modeHintBackground,
             duration: 300,
             ease: 'Power2.easeOut',
-            onUpdate: function() {
+            onUpdate: function () {
               const progress = this.progress
               const currentColor = Phaser.Display.Color.Interpolate.ColorWithColor(
                 Phaser.Display.Color.ValueToColor(modeHintBackground.fillColor),
@@ -897,7 +1102,7 @@ onMounted(() => {
               modeHintBackground.setStrokeStyle(2, newStrokeColor, 0.5 + progress * 0.5)
             }
           })
-          
+
           // 文字淡入淡出
           this.tweens.add({
             targets: modeHintText,
@@ -924,7 +1129,7 @@ onMounted(() => {
             buyIcon.setScale(1)
             buyText.setScale(1)
             handleBuyPack()
-            
+
             // 简单的按下反馈
             this.tweens.add({
               targets: buySlot,
@@ -937,7 +1142,7 @@ onMounted(() => {
                 buySlot.setScale(1) // 确保动画完成后重置
               }
             })
-            
+
             // 简单的文字反馈
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -950,10 +1155,10 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简洁的边框闪烁
             buySlot.setStrokeStyle(3, 0xffffff)
-            
+
             // 保留金币消费提示（这个比较实用）
             const costText = this.add.text(
               buySlot.x + 50,
@@ -966,7 +1171,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: costText,
               y: '-=30',
@@ -975,7 +1180,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => costText.destroy()
             })
-            
+
           } else {
             if (buySlot1Animating) return
             buySlot1Animating = true
@@ -1001,7 +1206,7 @@ onMounted(() => {
                 buySlot1Animating = false
               }
             })
-            
+
             this.tweens.add({
               targets: [buyIcon, buyText],
               x: '+=3',
@@ -1015,7 +1220,7 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简单的警告提示
             const warningText = this.add.text(
               buySlot.x + 50,
@@ -1028,7 +1233,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: warningText,
               y: '-=20',
@@ -1037,7 +1242,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => warningText.destroy()
             })
-            
+
             buySlot.setStrokeStyle(3, 0xff5722)
           }
         }
@@ -1067,7 +1272,7 @@ onMounted(() => {
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90 , '攻击卡槽', {
+        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90, '攻击卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1079,19 +1284,19 @@ onMounted(() => {
 
 
         // 创建防守卡槽
-        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding , 100, 140, 0x0066cc)
+        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding, 100, 140, 0x0066cc)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x4488ff, 0.9)
 
-        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40 , '🛡️', {
+        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40, '🛡️', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90 , '防守卡槽', {
+        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90, '防守卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1102,19 +1307,19 @@ onMounted(() => {
         }).setOrigin(0.5).setDepth(102)
 
         // 创建BUFF卡槽
-        const buffSlot = this.add.rectangle(padding * 5 + 400, padding , 100, 140, 0x228b22)
+        const buffSlot = this.add.rectangle(padding * 5 + 400, padding, 100, 140, 0x228b22)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x44cc44, 0.9)
 
-        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40 , '✨', {
+        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40, '✨', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90 , 'BUFF卡槽', {
+        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90, 'BUFF卡槽', {
           fontSize: '16px',
           color: '#ffffff',
           align: 'center',
@@ -1126,45 +1331,151 @@ onMounted(() => {
 
         // 攻击卡槽处理函数
         const handleAttackSlot = (card) => {
-          console.log('卡片放入攻击槽:', card.getData('type'))
-          // 在这里添加攻击逻辑
-          
-          
+          // 检查攻击槽位[3][0]是否已被占用
+          if (gameState_one.value.cardGrid[3][0] !== 'cardBack') {
+            console.log('攻击槽位已被占用');
+            return
+          }
 
-          attackSlot.y = padding
-          attackIcon.y = padding + 40
-          attackText.y = padding + 90
+          const cardType = card.getData('type')
+          console.log('卡片放入攻击槽:', cardType)
 
-          // 销毁卡片
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 0, cardType);
+          }, 100);
+
+
+          // 添加视觉效果
+          const flash = this.add.circle(attackSlot.x + 50, attackSlot.y + 70, 40, 0xff4444, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(attackSlot.x + 50, attackSlot.y + 30, '⚔️ 攻击!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#ff4444',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
-        // 防守卡槽处理函数
+        // 防御卡槽处理函数
         const handleDefenseSlot = (card) => {
-          console.log('卡片放入防守槽:', card.getData('type'))
-          // 在这里添加防守逻辑
-          
-          
-          defenseSlot.y = padding
-          defenseIcon.y = padding + 40
-          defenseText.y = padding + 90
-          
+          // 检查防御槽位[3][1]是否已被占用
+          if (gameState_one.value.cardGrid[3][1] !== 'cardBack') {
+            console.log('防御槽位已被占用');
+            return
+          }
+
+          const cardType = card.getData('type')
+          console.log('卡片放入防御槽:', cardType)
+
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 1, cardType);
+          }, 100);
+
+          // 添加视觉效果
+          const flash = this.add.circle(defenseSlot.x + 50, defenseSlot.y + 70, 40, 0x4488ff, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(defenseSlot.x + 50, defenseSlot.y + 30, '🛡️ 防御!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#4488ff',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
         // BUFF卡槽处理函数
         const handleBuffSlot = (card) => {
-          console.log('卡片放入BUFF槽:', card.getData('type'))
-          // 在这里添加BUFF逻辑
-          
+          // 检查BUFF槽位[3][2]是否已被占用
+          if (gameState_one.value.cardGrid[3][2] !== 'cardBack') {
+            console.log('BUFF槽位已被占用');
+            return
+          }
 
-          
-          buffSlot.y = padding
-          buffIcon.y = padding + 40
-          buffText.y = padding + 90
-          
+          const cardType = card.getData('type')
+          console.log('卡片放入BUFF槽:', cardType)
+
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 2, cardType);
+          }, 100);
+
+          // 添加视觉效果
+          const flash = this.add.circle(buffSlot.x + 50, buffSlot.y + 70, 40, 0x44cc44, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(buffSlot.x + 50, buffSlot.y + 30, '✨ BUFF!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#44cc44',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
@@ -1173,11 +1484,11 @@ onMounted(() => {
         const finalCraftingX = padding * 6 + 500 + padding;
         const craftingStation = this.add.rectangle(
           finalCraftingX, // 直接设置最终位置，不需要动画
-          padding, 
-          400, 
-          140, 
-          0xa3916a, 
-          1 
+          padding,
+          400,
+          140,
+          0xa3916a,
+          1
         )
           .setOrigin(0, 0)
           .setDepth(100)
@@ -1186,17 +1497,17 @@ onMounted(() => {
         // 创建四个合成槽
         const craftingSlots = []
         const slotWidth = 80
-        const cardWidth = 100; 
-        const cardHeight = 140; 
+        const cardWidth = 100;
+        const cardHeight = 140;
         const slotSpacing = 20
-        const slotTypes = [null, null, null, null] 
+        const slotTypes = [null, null, null, null]
 
         for (let i = 0; i < 4; i++) {
           // 直接使用最终位置，删除动画
           const finalX = finalCraftingX + slotSpacing + i * (cardWidth + slotSpacing);
-          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; 
+          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2;
 
-          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853) 
+          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853)
             .setOrigin(0, 0)
             .setDepth(101)
             .setStrokeStyle(1, 0xffffff)
@@ -1211,9 +1522,9 @@ onMounted(() => {
           let operatorText = null;
           if (i < 3) {
             operatorText = this.add.text(
-              finalX + cardWidth + 5, 
-              y + cardHeight / 2, 
-              i < 2 ? '+' : '=', 
+              finalX + cardWidth + 5,
+              y + cardHeight / 2,
+              i < 2 ? '+' : '=',
               {
                 fontSize: '24px',
                 resolution: 5,
@@ -1242,105 +1553,105 @@ onMounted(() => {
           }
         }
 
-          // 添加拖放事件
-          // 修改合成槽的拖放逻辑
-          this.input.on('drop', (pointer, gameObject, dropZone) => {
-            const cardType = gameObject.getData('type');
-            const slotType = dropZone.getData('type');
+        // 添加拖放事件
+        // 修改合成槽的拖放逻辑
+        this.input.on('drop', (pointer, gameObject, dropZone) => {
+          const cardType = gameObject.getData('type');
+          const slotType = dropZone.getData('type');
 
-            const canPlace = (slotType === null) || 
-                            (slotType === cardType) || 
-                            !dropZone.getData('occupied');
+          const canPlace = (slotType === null) ||
+            (slotType === cardType) ||
+            !dropZone.getData('occupied');
 
-            if (canPlace && !dropZone.getData('occupied')) {
-              // 放置卡牌到槽位
-              dropZone.setData('occupied', true);
-              dropZone.setData('card', gameObject);
+          if (canPlace && !dropZone.getData('occupied')) {
+            // 放置卡牌到槽位
+            dropZone.setData('occupied', true);
+            dropZone.setData('card', gameObject);
 
-              // 调整卡牌位置到槽位中心
-              gameObject.x = dropZone.x + dropZone.width / 2;
-              gameObject.y = dropZone.y + dropZone.height / 2;
-              gameObject.setDepth(102); // 确保在槽位上方
+            // 调整卡牌位置到槽位中心
+            gameObject.x = dropZone.x + dropZone.width / 2;
+            gameObject.y = dropZone.y + dropZone.height / 2;
+            gameObject.setDepth(102); // 确保在槽位上方
 
-              // 检查是否可以合成
-              const materials = craftingSlots.slice(0, 3)
-                .map(slot => slot.getData('card'))
-                .filter(Boolean);
+            // 检查是否可以合成
+            const materials = craftingSlots.slice(0, 3)
+              .map(slot => slot.getData('card'))
+              .filter(Boolean);
 
-              if (materials.length === 3) {
-                console.log('Materials ready:', materials.map(card => card.getData('type')));
-                const resultType = checkCrafting(materials);
-                
-                if (resultType) {
-                  console.log('Creating result card:', resultType);
-                  
-                  // 创建结果卡牌
-                  const resultCard = this.physics.add.image(
-                    craftingSlots[3].x + craftingSlots[3].width / 2,
-                    craftingSlots[3].y + craftingSlots[3].height / 2,
-                    resultType
-                  )
-                    .setDisplaySize(100, 140)
-                    .setInteractive({ cursor: 'pointer', useHandCursor: true })
-                    .setCollideWorldBounds(true)
-                    .setBounce(0.8)
-                    .setData('type', resultType)
-                    .setData('id', Date.now().toString())
-                    .setDepth(102); // 确保可见
+            if (materials.length === 3) {
+              console.log('Materials ready:', materials.map(card => card.getData('type')));
+              const resultType = checkCrafting(materials);
 
-                  this.input.setDraggable(resultCard);
-                  this.cards.push(resultCard);
+              if (resultType) {
+                console.log('Creating result card:', resultType);
 
-                  // 添加合成效果
-                  const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
-                    .setScale(0.1)
-                    .setAlpha(0.8)
-                    .setTint(0xffd700)
-                    .setBlendMode(Phaser.BlendModes.ADD)
-                    .setDepth(103);
+                // 创建结果卡牌
+                const resultCard = this.physics.add.image(
+                  craftingSlots[3].x + craftingSlots[3].width / 2,
+                  craftingSlots[3].y + craftingSlots[3].height / 2,
+                  resultType
+                )
+                  .setDisplaySize(100, 140)
+                  .setInteractive({ cursor: 'pointer', useHandCursor: true })
+                  .setCollideWorldBounds(true)
+                  .setBounce(0.8)
+                  .setData('type', resultType)
+                  .setData('id', Date.now().toString())
+                  .setDepth(102); // 确保可见
 
-                  this.tweens.add({
-                    targets: flash,
-                    alpha: 0,
-                    scale: 1,
-                    duration: 500,
-                    onComplete: () => flash.destroy()
-                  });
+                this.input.setDraggable(resultCard);
+                this.cards.push(resultCard);
 
-                  // 清空材料槽，但保留诗人槽（索引2）
-                  materials.forEach(card => {
-                    // 检查是否是固定的诗人卡片
-                    if (!card.getData('isFixed')) {
-                      // 从cards数组中移除
-                      this.cards = this.cards.filter(c => c !== card);
-                      card.destroy();
-                    }
-                  });
+                // 添加合成效果
+                const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
+                  .setScale(0.1)
+                  .setAlpha(0.8)
+                  .setTint(0xffd700)
+                  .setBlendMode(Phaser.BlendModes.ADD)
+                  .setDepth(103);
 
-                  // 只清空非诗人槽
-                  craftingSlots.forEach((slot, index) => {
-                    if (index !== 2) { // 不清空诗人槽（索引2）
-                      slot.setData('occupied', false);
-                      slot.setData('card', null);
-                    }
-                  });
-                  
-                  console.log('Crafting completed successfully!');
-                } else {
-                  console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
-                }
+                this.tweens.add({
+                  targets: flash,
+                  alpha: 0,
+                  scale: 1,
+                  duration: 500,
+                  onComplete: () => flash.destroy()
+                });
+
+                // 清空材料槽，但保留诗人槽（索引2）
+                materials.forEach(card => {
+                  // 检查是否是固定的诗人卡片
+                  if (!card.getData('isFixed')) {
+                    // 从cards数组中移除
+                    this.cards = this.cards.filter(c => c !== card);
+                    card.destroy();
+                  }
+                });
+
+                // 只清空非诗人槽
+                craftingSlots.forEach((slot, index) => {
+                  if (index !== 2) { // 不清空诗人槽（索引2）
+                    slot.setData('occupied', false);
+                    slot.setData('card', null);
+                  }
+                });
+
+                console.log('Crafting completed successfully!');
+              } else {
+                console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
               }
-            } else {
-              console.log('Cannot place card:', cardType, 'in slot:', slotType);
             }
-          });
+          } else {
+            console.log('Cannot place card:', cardType, 'in slot:', slotType);
+          }
+        });
 
 
         // 对应地修改金币文本的深度值
         const coinDisplay = this.add.text(
-          this.scale.width - padding - 10, 
-          padding + 20, 
-          `💰 ${coins.value}`, 
+          this.scale.width - padding - 10,
+          padding + 20,
+          `💰 ${coins.value}`,
           {
             fontSize: '24px',
             resolution: 2,
@@ -1348,7 +1659,7 @@ onMounted(() => {
           }
         )
           .setOrigin(1, 0.5)
-          .setDepth(101); 
+          .setDepth(101);
 
         // 添加模式提示背景框
         const modeHintBackground = this.add.rectangle(
@@ -1382,16 +1693,16 @@ onMounted(() => {
         this.events.on('update', () => {
           const currentCoins = coins.value
           const displayText = `💰 ${currentCoins}`
-          
+
           // 只更新右上角的金币显示
           if (coinDisplay.text !== displayText) {
             const oldValue = parseInt(coinDisplay.text.replace('💰 ', '')) || 0
             coinDisplay.setText(displayText)
-            
+
             // 添加金币变化动画
             if (currentCoins !== oldValue && oldValue > 0) {
               const diff = currentCoins - oldValue
-              
+
               // 创建变化提示文本
               if (diff !== 0) {
                 const changeText = this.add.text(
@@ -1404,7 +1715,7 @@ onMounted(() => {
                     resolution: 2
                   }
                 ).setDepth(1001)
-                
+
                 this.tweens.add({
                   targets: changeText,
                   y: changeText.y - 30,
@@ -1414,7 +1725,7 @@ onMounted(() => {
                   onComplete: () => changeText.destroy()
                 })
               }
-              
+
               // 金币数字跳动效果
               this.tweens.add({
                 targets: coinDisplay,
@@ -1426,18 +1737,18 @@ onMounted(() => {
             }
           }
 
-          
+
           // 实时检查Shift键状态并更新模式显示
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
-          
+
           // 只在模式真正改变时更新，避免每帧都执行
           if (modeHintText.text !== newText) {
             modeHintText.setText(newText)
             modeHintBackground.setFillStyle(newColor)
             modeHintBackground.setStrokeStyle(2, newStrokeColor)
-            
+
             // 添加轻微的更新动画
             this.tweens.add({
               targets: [modeHintText, modeHintBackground],
@@ -1456,8 +1767,8 @@ onMounted(() => {
           // 更新金币显示位置
           coinDisplay.x = gameSize.width - padding - 10;
 
-          modeHintBackground.x = gameSize.width - padding ;
-          modeHintText.x = gameSize.width - padding -10;
+          modeHintBackground.x = gameSize.width - padding;
+          modeHintText.x = gameSize.width - padding - 10;
         });
         const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
         for (let i = 0; i < initialCards.length; i++) {
@@ -1474,7 +1785,7 @@ onMounted(() => {
           this.cards.push(card)
         }
 
-            // 设置游戏区域边界
+        // 设置游戏区域边界
         this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height)
 
         // 添加堆叠相关属性
@@ -1483,6 +1794,10 @@ onMounted(() => {
 
         // 拖拽结束事件
         this.input.on('dragend', (pointer, gameObject) => {
+
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
 
           this.tweens.add({
             targets: gameObject,
@@ -1509,13 +1824,13 @@ onMounted(() => {
 
             // 遍历所有卡片和堆叠组
             this.cards.forEach(otherCard => {
-              if (otherCard !== gameObject && 
-                  otherCard.getData('type') === cardType && 
-                  otherCard.active) {
-                
+              if (otherCard !== gameObject &&
+                otherCard.getData('type') === cardType &&
+                otherCard.active) {
+
                 // 获取目标卡片所在的堆叠组
                 const targetStack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 // 如果是不同的堆叠组或者未堆叠的卡片
                 if (!targetStack || targetStack !== currentStack) {
                   const distance = Phaser.Math.Distance.Between(
@@ -1534,12 +1849,12 @@ onMounted(() => {
             if (closestCard) {
               let targetStack = this.cardStacks.find(s => s.includes(closestCard))
               let cardsToAdd = [gameObject]
-              
+
               // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
               if (currentStack) {
                 const cardIndex = currentStack.indexOf(gameObject)
                 cardsToAdd = currentStack.splice(cardIndex)
-                
+
                 // 如果原堆叠组只剩一张卡，移除该堆叠组
                 if (currentStack.length <= 1) {
                   this.cardStacks.splice(currentStackIndex, 1)
@@ -1562,7 +1877,7 @@ onMounted(() => {
               // 更新堆叠位置
               const baseY = Math.min(...targetStack.map(card => card.y))
               updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
-              
+
               isStacked = true
             }
 
@@ -1571,39 +1886,55 @@ onMounted(() => {
               updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
             }
           }
+          //const cardType = gameObject.getData('type')
 
           // 检查是否在攻击槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= attackSlot.x &&
-              pointer.x <= attackSlot.x + attackSlot.width) {
-            handleAttackSlot(gameObject)
+            pointer.x >= attackSlot.x &&
+            pointer.x <= attackSlot.x + attackSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'attack')) {
+              handleAttackSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入攻击槽', attackSlot)
+            }
             return
           }
 
-          // 检查是否在防守槽区域
+          // 检查是否在防御槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= defenseSlot.x &&
-              pointer.x <= defenseSlot.x + defenseSlot.width) {
-            handleDefenseSlot(gameObject)
+            pointer.x >= defenseSlot.x &&
+            pointer.x <= defenseSlot.x + defenseSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'defense')) {
+              handleDefenseSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入防御槽', defenseSlot)
+            }
             return
           }
 
           // 检查是否在BUFF槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= buffSlot.x &&
-              pointer.x <= buffSlot.x + buffSlot.width) {
-            handleBuffSlot(gameObject)
+            pointer.x >= buffSlot.x &&
+            pointer.x <= buffSlot.x + buffSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'buff')) {
+              handleBuffSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入BUFF槽', buffSlot)
+            }
             return
           }
           // 检查是否在出售槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= sellSlot.x &&
-              pointer.x <= sellSlot.x + sellSlot.width) {
-            
+            pointer.x >= sellSlot.x &&
+            pointer.x <= sellSlot.x + sellSlot.width) {
+
             // 获取当前卡片所在的堆叠组
             const currentStack = this.cardStacks.find(s => s.includes(gameObject))
             let cardsToSell = currentStack ? [...currentStack] : [gameObject]
-            
+
             // 计算总价格
             let totalPrice = 0
             cardsToSell.forEach(card => {
@@ -1656,7 +1987,7 @@ onMounted(() => {
               })
               return
             }
-            else{
+            else {
               sellSlot.setStrokeStyle(2, 0x6e5773)
             }
           }
@@ -1666,11 +1997,11 @@ onMounted(() => {
             this.cards.forEach(otherCard => {
               if (otherCard !== gameObject &&
                 Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
-                
+
                 // 获取两张卡片所在的堆叠组
                 const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
                 const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 const card1Type = gameObject.getData('type')
                 const card2Type = otherCard.getData('type')
 
@@ -1738,7 +2069,7 @@ onMounted(() => {
                         }
                       }
                     }
-                    
+
                     if (card2Stack) {
                       const index = card2Stack.indexOf(otherCard)
                       card2Stack.splice(index, 1)
@@ -1801,20 +2132,20 @@ onMounted(() => {
           if (stackIndex !== -1) {
             const stack = this.cardStacks[stackIndex]
             const cardIndex = stack.indexOf(gameObject)
-            
+
             // 从原堆叠组中移除当前卡片及其上方的所有卡片
             const removedCards = stack.splice(cardIndex)
-            
+
             // 如果原堆叠组只剩一张卡，移除该堆叠组
             if (stack.length === 1) {
               this.cardStacks.splice(stackIndex, 1)
             }
-            
+
             // 为移除的卡片创建新的堆叠组
             if (removedCards.length > 1) {
               this.cardStacks.push(removedCards)
             }
-            
+
             // 设置拖动卡片组的层级
             removedCards.forEach((card, index) => {
               card.setDepth(150 + index)
@@ -1834,20 +2165,38 @@ onMounted(() => {
 
         // 修改拖拽中事件
         this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-        // 添加出售槽状态检测
-        const isInSellArea = dragY < topBarHeight && 
-                            dragX >= sellSlot.x && 
-                            dragX <= sellSlot.x + sellSlot.width
-        
-        const cardType = gameObject.getData('type')
-        const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
-        
-        // 更新出售槽样式
-        if (isInSellArea && canSell) {
-          sellSlot.setStrokeStyle(2, 0xffffff)
-        } else {
-          sellSlot.setStrokeStyle(2, 0x6e5773)
-        }
+
+          // 添加槽位高亮逻辑
+          const cardType = gameObject.getData('type')
+          const allowedSlotType = cardSlotMapping[cardType]
+
+          // 重置所有槽位样式
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
+
+          // 高亮可用槽位
+          if (allowedSlotType === 'attack') {
+            attackSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'defense') {
+            defenseSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'buff') {
+            buffSlot.setStrokeStyle(3, 0xffffff, 1)
+          }
+          // 添加出售槽状态检测
+          const isInSellArea = dragY < topBarHeight &&
+            dragX >= sellSlot.x &&
+            dragX <= sellSlot.x + sellSlot.width
+
+          //const cardType = gameObject.getData('type')
+          const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
+
+          // 更新出售槽样式
+          if (isInSellArea && canSell) {
+            sellSlot.setStrokeStyle(2, 0xffffff)
+          } else {
+            sellSlot.setStrokeStyle(2, 0x6e5773)
+          }
           gameObject.x = dragX
           gameObject.y = dragY
 
@@ -1868,7 +2217,7 @@ onMounted(() => {
         function updateStackPosition(stack, baseX, baseY, animate = false) {
           stack.forEach((card, index) => {
             if (!card.active) return // 检查卡片是否还存在
-            
+
             if (animate) {
               // 使用动画更新位置
               this.tweens.add({
@@ -1891,11 +2240,16 @@ onMounted(() => {
 
     },
   });
+
+  startTurn();
 });
 
 // 在组件卸载时销毁游戏实例
 onBeforeUnmount(() => {
   if (game) game.destroy(true)
+  clearInterval(countdownInterval);
+  clearTimeout(turnTimeout);
+
 })
 </script>
 
@@ -1918,5 +2272,24 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   position: relative;
+}
+
+.game-wrapper {
+  position: relative;
+}
+
+/* 倒计时样式 */
+.countdown {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 24px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  /* 不拦截点击 */
 }
 </style>
