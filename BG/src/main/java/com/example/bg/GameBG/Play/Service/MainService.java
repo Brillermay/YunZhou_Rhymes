@@ -3,14 +3,56 @@ package com.example.bg.GameBG.Play.Service;
 import com.example.bg.GameBG.Play.Entities.PlayerAgainst;
 import com.example.bg.GameBG.Play.Entities.Room;
 import com.example.bg.GameBG.Play.Entities.RoundEndDTO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kotlin.Pair;
 import org.springframework.stereotype.Service;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
-public class MainService {
+public class MainService extends TextWebSocketHandler {
+
+    private static final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
+
+    }
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+
+    }
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+
+    }
+    private void broadcast(String msg) {
+//        for (WebSocketSession s : sessions) {
+//            try {
+//                s.sendMessage(new TextMessage(msg));
+//            } catch (Exception ignored) {}
+//        }
+    }
+    private String gameStateToJson() {
+//        try {
+//            ObjectMapper mapper = new ObjectMapper();
+//            Map<String, Object> map = new HashMap<>();
+//            map.put("gameState", gameState);
+//            return mapper.writeValueAsString(map);
+//        } catch (Exception e) {
+//            return "{\"gameState\":[]}";
+//        }
+        return "";
+    }
+
     //房间号-room的映射
     Map<String, Room> roomMap = new ConcurrentHashMap<>();
     //用户id-playerAgainst的映射

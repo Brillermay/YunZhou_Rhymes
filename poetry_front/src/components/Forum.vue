@@ -5,7 +5,6 @@
       <p>谈笑有鸿儒，往来无白丁</p>
     </header>
     
-  
     <!-- 主要内容区 -->
     <div class="forum-main">
       <div class="content-area">
@@ -33,8 +32,7 @@
                 :key="cat">
                 {{ cat }}
               </option>
-            </select><!-- 只有管理员可以发布每日话题 -->
-
+            </select>
             <button @click="submitPost" class="submit-btn">提交</button>
           </div>
         </div>
@@ -55,8 +53,6 @@
               <span class="category-tag" :style="{backgroundColor: getCategoryColor(post.category)}">
                 {{ post.category }}
               </span>
-              <!-- 只有管理员和发布者可以删除帖子 -->
-              <!-- 删除按钮 -->
               <button @click="deletePost(post.id)" class="delete-btn">删除</button>
             </div>
 
@@ -115,19 +111,7 @@
       
       <!-- 侧边栏 -->
       <div class="sidebar">
-
         <!-- 登录状态显示区域 -->
-        <div class="login-status">
-          <span v-if="isLoggedIn">
-            欢迎，{{ username }}！
-            <button @click="logout" class="logout-btn">注销</button>
-          </span>
-          <span v-else>
-            <router-link to="/forumlogin">
-              <button class="login-btn">登录</button>
-            </router-link>
-          </span>
-        </div>
 
         <!-- 帖子分类 -->
         <div class="category-filter">
@@ -141,7 +125,7 @@
           </ul>
         </div>
 
-        <!-- 热门话题（从内容中提取） -->
+        <!-- 热门话题 -->
         <div class="hot-tags">
           <h3>热门话题</h3>
           <div class="tag-list">
@@ -155,7 +139,6 @@
             </span>
           </div>
         </div>
-
 
         <!-- 每日话题 -->
         <div class="daily-topic-panel">
@@ -172,9 +155,37 @@
             </li>
           </ul>
         </div>
-
       </div>
     </div>
+
+    <!-- 确认弹窗 -->
+    <div v-if="showConfirmModal" class="modal-overlay" @click="closeConfirmModal">
+      <div class="confirm-modal-content" @click.stop>
+        <div class="confirm-modal-header">
+          <h3>需要登录</h3>
+          <button @click="closeConfirmModal" class="close-btn">×</button>
+        </div>
+        <div class="confirm-modal-body">
+          <p>{{ confirmMessage }}</p>
+          <div class="confirm-modal-actions">
+            <button @click="closeConfirmModal" class="cancel-btn">返回</button>
+            <button @click="handleLoginClick" class="confirm-login-btn">登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 认证弹窗 -->
+    <AuthModal
+      v-if="showAuthModal"
+      :is-login-mode="isLoginMode"
+      :loading="authLoading"
+      :error="authError"
+      @close="closeAuthModal"
+      @login="handleLogin"
+      @register="handleRegister"
+      @switch-mode="switchAuthMode"
+    />
   </div>
 </template>
 
@@ -182,9 +193,13 @@
 import axios from 'axios';
 import { useUserStore } from '@/stores/user';
 import API_BASE_URL from '@/config/api';
+import AuthModal from '@/components/userinfo/components/AuthModal.vue';
 
 export default {
   name: 'PoetryForum',
+  components: {
+    AuthModal
+  },
   data() {
     const username = localStorage.getItem('username') || null;
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -193,7 +208,7 @@ export default {
       username,
       isAdmin,
       isLoggedIn: !!username,
-      API_BASE_URL: '${API_BASE_URL}/user', // 添加这一行
+      API_BASE_URL: `${API_BASE_URL}/user`,
 
       showPostForm: false,
       selectedCategory: '全部',
@@ -207,72 +222,24 @@ export default {
       },
       posts: [],
       categories: ['全部', '作品分享', '诗词赏析', '写作心得', '创作讨论', '提问求助'],
+      
+      // 确认弹窗相关
+      showConfirmModal: false,
+      confirmMessage: '',
+      confirmAction: null,
+      
+      // 认证弹窗相关
+      showAuthModal: false,
+      isLoginMode: true,
+      authLoading: false,
+      authError: '',
     }
-  },
-  created() {
-    const userStore = useUserStore(); // 获取 Pinia 的 Store
-    const username = localStorage.getItem('username');
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
-    const userId = localStorage.getItem('uid'); // 从 localStorage 获取用户 ID
-
-    if (username) {
-      const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
-      const user = accounts.find(acc => acc.username === username);
-      if (user) {
-        userStore.login(user); // 同步用户信息到 Pinia
-      }
-    }
-
-    this.newPost.author = username;
-
-    // 从后端加载帖子数据并转换UID为用户名
-    axios.get(`${API_BASE_URL}/comment/init`)
-      .then(async (response) => {
-        const postsData = response.data;
-
-        // 获取用户喜欢的评论列表
-        let likedCommentIds = [];
-        if (userId) {
-          try {
-            const likedResponse = await axios.get(`${API_BASE_URL}/comment/getLikeIDs/${userId}`);
-            likedCommentIds = likedResponse.data; // 获取喜欢的评论 ID 列表
-
-          } catch (error) {
-            console.error('加载喜欢的评论失败', error);
-          }
-        }
-
-        // 处理每个帖子，将PersonID转换为用户名，并设置 liked 属性
-        this.posts = await Promise.all(postsData.map(async (post) => {
-          const authorName = await this.getUserName(post.PersonID);
-          return {
-            id: post.CommentID,
-            title: post.Title,
-            content: post.Content,
-            category: post.Category,
-            author: authorName || `用户${post.PersonID}`, // 如果获取失败，显示备用格式
-            authorId: post.PersonID, // 保留原始UID用于权限判断
-            time: new Date(post.Timestamp).toLocaleDateString(),
-            likes: post.LikeCounts,
-            liked: likedCommentIds.includes(post.CommentID), // 根据喜欢的评论列表设置 liked
-            comments: [],
-            commentNum: post.CommentCounts,
-            showComments: false,
-            isExpanded: false,
-            newComment: '',
-            commentError: '',
-          };
-        }));
-      })
-      .catch(error => {
-        console.error('加载帖子失败', error);
-      });
   },
   computed: {
     recentDailyTopics() {
       return this.posts
         .filter(p => p.category === '每日话题')
-        .slice(0, 5); // 最多展示5条
+        .slice(0, 5);
     }, 
     sortedPosts() {
       const postsToSort = this.filteredPosts;
@@ -280,13 +247,17 @@ export default {
         ? [...postsToSort].sort((a, b) => new Date(b.time) - new Date(a.time))
         : [...postsToSort].sort((a, b) => b.likes - a.likes);
     },
-    filteredCategories() {//只有管理员可以发布每日话题
+    filteredCategories() {
       if (this.isAdmin) {
         return [...this.categories, '每日话题'];
       }
       return this.categories;
     },
     filteredPosts() {
+      if (this.selectedTag) {
+        const regex = new RegExp(`#${this.selectedTag}(?=\\W|$)`);
+        return this.posts.filter(post => regex.test(post.content));
+      }
       if (this.selectedCategory === '全部') return this.posts;
       return this.posts.filter(post => post.category === this.selectedCategory);
     },
@@ -311,7 +282,7 @@ export default {
             time: post.time
           });
         }
-        if (result.length >= 5) break; // 最多显示5人
+        if (result.length >= 5) break;
       }
 
       return result;
@@ -324,7 +295,7 @@ export default {
         const tags = post.content.match(tagRegex);
         if (tags) {
           tags.forEach(tag => {
-            const cleanTag = tag.slice(1); // 去掉前面的 #
+            const cleanTag = tag.slice(1);
             tagMap[cleanTag] = (tagMap[cleanTag] || 0) + 1;
           });
         }
@@ -334,34 +305,376 @@ export default {
     },
     sortedTags() {
       return Object.entries(this.contentTags)
-        .sort((a, b) => b[1] - a[1]) // 按热度排序
-        .slice(0, 10); // 限制最多展示10个热门标签
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
     },
-    filteredPosts() {
-      // 分类选择
-      if (this.selectedTag) {
-        const regex = new RegExp(`#${this.selectedTag}(?=\\W|$)`); // 匹配 #标签
-        return this.posts.filter(post => regex.test(post.content));
+  },
+  created() {
+    const userStore = useUserStore();
+    const username = localStorage.getItem('username');
+    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    const userId = localStorage.getItem('uid');
+
+    if (username) {
+      const accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
+      const user = accounts.find(acc => acc.username === username);
+      if (user) {
+        userStore.login(user);
       }
-      if (this.selectedCategory === '全部') return this.posts;
-      return this.posts.filter(post => post.category === this.selectedCategory);
     }
+
+    this.newPost.author = username;
+    this.loadPosts();
   },
   methods: {
-    filterByDailyTopic() {
-      this.selectedCategory = '每日话题';
-      this.selectedTag = null;
+    // 确认弹窗相关方法
+    showConfirmDialog(message, action = null) {
+      this.confirmMessage = message;
+      this.confirmAction = action;
+      this.showConfirmModal = true;
     },
-    scrollToPost(postId) {
-      this.$nextTick(() => {
-        const el = document.getElementById(`post-${postId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          el.classList.add('highlight-post');
-          setTimeout(() => el.classList.remove('highlight-post'), 2000); // 高亮消退
+    
+    closeConfirmModal() {
+      this.showConfirmModal = false;
+      this.confirmMessage = '';
+      this.confirmAction = null;
+    },
+    
+    handleLoginClick() {
+      this.closeConfirmModal();
+      this.showAuthModal = true;
+      this.isLoginMode = true;
+    },
+    
+    showLoginModal() {
+      this.showAuthModal = true;
+      this.isLoginMode = true;
+    },
+    
+    // 认证弹窗相关方法
+    closeAuthModal() {
+      this.showAuthModal = false;
+      this.authError = '';
+      this.authLoading = false;
+    },
+    
+    switchAuthMode() {
+      this.isLoginMode = !this.isLoginMode;
+      this.authError = '';
+    },
+    
+    async handleLogin(loginData) {
+      this.authLoading = true;
+      this.authError = '';
+      
+      try {
+        const response = await axios.post(`${API_BASE_URL}/user/login`, {
+          username: loginData.username,
+          password: loginData.password
+        });
+        
+        if (response.data.success) {
+          const userStore = useUserStore();
+          const userData = {
+            uid: response.data.uid,
+            username: response.data.username,
+            isAdmin: response.data.isAdmin || false
+          };
+          
+          userStore.login(userData);
+          
+          // 更新本地状态
+          this.username = userData.username;
+          this.isLoggedIn = true;
+          this.isAdmin = userData.isAdmin;
+          this.newPost.author = userData.username;
+          
+          // 保存到localStorage
+          localStorage.setItem('username', userData.username);
+          localStorage.setItem('uid', userData.uid);
+          localStorage.setItem('isAdmin', userData.isAdmin);
+          
+          this.closeAuthModal();
+          
+          // 如果有待执行的操作，执行它
+          if (this.confirmAction) {
+            this.confirmAction();
+            this.confirmAction = null;
+          }
+          
+          // 重新加载帖子以更新点赞状态
+          this.loadPosts();
+          
+        } else {
+          this.authError = response.data.message || '登录失败';
         }
-      });
+      } catch (error) {
+        console.error('登录失败:', error);
+        this.authError = '登录失败，请检查网络连接';
+      } finally {
+        this.authLoading = false;
+      }
     },
+    
+    async handleRegister(registerData) {
+      this.authLoading = true;
+      this.authError = '';
+      
+      try {
+        const response = await axios.post(`${API_BASE_URL}/user/register`, {
+          username: registerData.username,
+          password: registerData.password,
+          nickname: registerData.nickname,
+          email: registerData.email
+        });
+        
+        if (response.data.success) {
+          // 注册成功，自动登录
+          await this.handleLogin({
+            username: registerData.username,
+            password: registerData.password
+          });
+        } else {
+          this.authError = response.data.message || '注册失败';
+        }
+      } catch (error) {
+        console.error('注册失败:', error);
+        this.authError = '注册失败，请检查网络连接';
+      } finally {
+        this.authLoading = false;
+      }
+    },
+
+    // 修改需要登录的方法
+    handlePostClick() {
+      if (!this.isLoggedIn) {
+        this.showConfirmDialog('请先登录再发帖！', () => {
+          this.showPostForm = !this.showPostForm;
+        });
+        return;
+      }
+      this.showPostForm = !this.showPostForm;
+    },
+
+    submitPost() {
+      if (!this.isLoggedIn) {
+        this.showConfirmDialog('请先登录再发帖！', () => {
+          this.executeSubmitPost();
+        });
+        return;
+      }
+      this.executeSubmitPost();
+    },
+
+    async executeSubmitPost() {
+      const userStore = useUserStore();
+
+      const data = {
+        parentID: 0,
+        Category: this.newPost.category || "作品分享",
+        Title: this.newPost.title.trim(),
+        Content: this.newPost.content.trim(),
+        PersonID: userStore.uid,
+        hasTitle: this.newPost.title.trim().length > 0,
+        isAdmin: userStore.isAdmin
+      };
+
+      if (!data.hasTitle) {
+        alert("标题不能为空！");
+        return;
+      }
+
+      if (!data.Content) {
+        alert("正文不能为空！");
+        return;
+      }
+
+      try {
+        const res = await axios.post(`${API_BASE_URL}/comment/addComment`, data);
+
+        if (res.data.status === "SUCCESS") {
+          const newPost = {
+            id: res.data.commentId,
+            title: data.Title,
+            content: data.Content,
+            category: data.Category,
+            author: userStore.username,
+            authorId: userStore.uid,
+            time: new Date(res.data.createdAt).toLocaleDateString(),
+            likes: 0,
+            liked: false,
+            comments: [],
+            commentNum: 0,
+            showComments: false,
+            isExpanded: false,
+            newComment: '',
+            commentError: ''
+          };
+
+          this.posts.unshift(newPost);
+          this.newPost.title = '';
+          this.newPost.content = '';
+          this.newPost.category = '作品分享';
+          this.showPostForm = false;
+
+          alert(res.data.message);
+        } else {
+          alert("提交失败，请检查后端返回状态！");
+        }
+      } catch (error) {
+        console.error('提交失败:', error);
+        alert('提交失败，请检查网络连接或后端服务！');
+      }
+    },
+
+    deletePost(postId) {
+      if (!this.isLoggedIn) {
+        this.showConfirmDialog('请先登录再删除帖子！');
+        return;
+      }
+
+      const postToDelete = this.posts.find(post => post.id === postId);
+      const userStore = useUserStore();
+
+      if (!(this.isAdmin || postToDelete.authorId === userStore.uid)) {
+        alert("你不能删除其他用户发布的帖子！");
+        return;
+      }
+
+      axios.delete(`${API_BASE_URL}/del/${postId}`)
+        .then(() => {
+          this.posts = this.posts.filter(post => post.id !== postId);
+          alert("帖子删除成功！");
+        })
+        .catch(error => {
+          console.error('删除失败:', error);
+          alert('删除失败，请检查网络连接或权限设置');
+        });
+    },
+
+    likePost(post) {
+      if (!this.isLoggedIn) {
+        this.showConfirmDialog('请先登录再点赞！');
+        return;
+      }
+
+      const userId = localStorage.getItem('uid');
+      if (!userId) {
+        alert("用户信息缺失，请重新登录！");
+        return;
+      }
+
+      const url = post.liked
+        ? `${API_BASE_URL}/comment/delLikeComment/${userId}/${post.id}`
+        : `${API_BASE_URL}/comment/likeComment/${userId}/${post.id}`;
+
+      axios.get(url)
+        .then((response) => {
+          if (response.status === 200) {
+            post.liked = !post.liked;
+            post.likes += post.liked ? 1 : -1;
+          } else {
+            alert("操作失败，请稍后重试！");
+          }
+        })
+        .catch((error) => {
+          console.error("操作失败:", error);
+          alert("操作失败，请检查网络连接或后端服务！");
+        });
+    },
+
+    async addComment(post) {
+      if (!this.isLoggedIn) {
+        this.showConfirmDialog('请先登录再发表评论！');
+        return;
+      }
+
+      const userStore = useUserStore();
+      const content = post.newComment?.trim();
+      if (!content) {
+        post.commentError = "评论不能为空！";
+        return;
+      }
+
+      post.commentError = "";
+
+      const data = {
+        parentID: post.id,
+        Category: post.category,
+        Title: null, 
+        Content: content,
+        PersonID: userStore.uid,
+        hasTitle: false,
+        isAdmin: userStore.isAdmin
+      };
+
+      try {
+        const res = await axios.post(`${API_BASE_URL}/comment/addComment`, data);
+
+        if (res.data.status === "SUCCESS") {
+          const newComment = {
+            id: res.data.commentId,
+            author: userStore.username,
+            content: content,
+            time: new Date(res.data.createdAt).toLocaleDateString()
+          };
+
+          post.comments.push(newComment);
+          post.newComment = ''; 
+          post.commentNum++;
+
+          alert(res.data.message); 
+        } else {
+          alert("评论提交失败，请检查后端返回状态！");
+        }
+      } catch (error) {
+        console.error('评论提交失败:', error);
+        alert('评论提交失败，请检查网络连接或后端服务！');
+      }
+    },
+
+    // 加载帖子数据
+    async loadPosts() {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/comment/init`);
+        const postsData = response.data;
+
+        let likedCommentIds = [];
+        const userId = localStorage.getItem('uid');
+        if (userId) {
+          try {
+            const likedResponse = await axios.get(`${API_BASE_URL}/comment/getLikeIDs/${userId}`);
+            likedCommentIds = likedResponse.data;
+          } catch (error) {
+            console.error('加载喜欢的评论失败', error);
+          }
+        }
+
+        this.posts = await Promise.all(postsData.map(async (post) => {
+          const authorName = await this.getUserName(post.PersonID);
+          return {
+            id: post.CommentID,
+            title: post.Title,
+            content: post.Content,
+            category: post.Category,
+            author: authorName || `用户${post.PersonID}`,
+            authorId: post.PersonID,
+            time: new Date(post.Timestamp).toLocaleDateString(),
+            likes: post.LikeCounts,
+            liked: likedCommentIds.includes(post.CommentID),
+            comments: [],
+            commentNum: post.CommentCounts,
+            showComments: false,
+            isExpanded: false,
+            newComment: '',
+            commentError: '',
+          };
+        }));
+      } catch (error) {
+        console.error('加载帖子失败', error);
+      }
+    },
+
     async getUserName(uid) {
       try {
         const response = await fetch(`${this.API_BASE_URL}/loginName/${uid}`, {
@@ -381,213 +694,40 @@ export default {
         return null;
       }
     },
-    async submitPost() {
-      const userStore = useUserStore();
 
-      const data = {
-        parentID: 0, // 为根帖子
-        Category: this.newPost.category || "作品分享", // 使用表单中的分类
-        Title: this.newPost.title.trim(),
-        Content: this.newPost.content.trim(),
-        PersonID: userStore.uid, // 从  中获取用户 ID
-        hasTitle: this.newPost.title.trim().length > 0,
-        isAdmin: userStore.isAdmin // 从  中获取管理员状态
-      };
-      console.log("hey data:\n");
-      console.log(data);
-      if (!data.hasTitle) {
-        alert("标题不能为空！");
-        return;
-      }
-
-      if (!data.Content) {
-        alert("正文不能为空！");
-        return;
-      }
-
-      try {
-        const res = await axios.post(`${API_BASE_URL}/comment/addComment`, data);
-        //console.log(res.data);
-
-        if (res.data.status === "SUCCESS") {
-          // 如果后端返回成功，可以将新帖子添加到本地列表
-          const newPost = {
-            id: res.data.commentId, // 使用后端返回的 commentId
-            title: data.Title,
-            content: data.Content,
-            category: data.Category,
-            author: userStore.username,
-            time: new Date(res.data.createdAt).toLocaleDateString(), // 使用后端返回的创建时间
-            likes: 0,
-            liked: false,
-            comments: [],
-            commentNum:0,
-            showComments: false,
-            isExpanded: false,
-            newComment: '',
-            commentError: ''
-          };
-
-          this.posts.unshift(newPost);
-
-          // 重置表单
-          this.newPost.title = '';
-          this.newPost.content = '';
-          this.newPost.category = '作品分享'; // 默认分类
-          this.showPostForm = false;
-
-          alert(res.data.message); // 显示后端返回的成功消息
-        } else {
-          alert("提交失败，请检查后端返回状态！");
-        }
-      } catch (error) {
-        console.error('提交失败:', error);
-        alert('提交失败，请检查网络连接或后端服务！');
-      }
-    },
-    deletePost(postId) {
-      // 获取要删除的帖子
-      const postToDelete = this.posts.find(post => post.id === postId);
-
-      // 权限校验（管理员或发布者自己）
-      if (!(this.isAdmin || postToDelete.authorId === userStore.uid)) {
-        alert("你不能删除其他用户发布的帖子！");
-        return;
-      }
-
-      // 调用后端删除接口
-      axios.delete(`${API_BASE_URL}/del/${postId}`)
-        .then(() => {
-          // 删除成功后从本地 posts 中移除该帖子
-          this.posts = this.posts.filter(post => post.id !== postId);
-          alert("帖子删除成功！");
-        })
-        .catch(error => {
-          console.error('删除失败:', error);
-          alert('删除失败，请检查网络连接或权限设置');
-        });
-    },
-    likePost(post) {
-      if (!this.isLoggedIn) {
-        alert("请先登录再点赞！");
-        return;
-      }
-
-      const userId = localStorage.getItem('uid'); // 从 localStorage 获取用户 ID
-      if (!userId) {
-        alert("用户信息缺失，请重新登录！");
-        return;
-      }
-
-      // 根据当前点赞状态调用不同的接口
-      const url = post.liked
-        ? `${API_BASE_URL}/comment/delLikeComment/${userId}/${post.id}`
-        : `${API_BASE_URL}/comment/likeComment/${userId}/${post.id}`;
-
-      axios.get(url)
-        .then((response) => {
-          if (response.status === 200) {
-            // 更新点赞状态和点赞数
-            post.liked = !post.liked;
-            post.likes += post.liked ? 1 : -1; // 根据状态更新点赞数
-          } else {
-            alert("操作失败，请稍后重试！");
-          }
-        })
-        .catch((error) => {
-          console.error("操作失败:", error);
-          alert("操作失败，请检查网络连接或后端服务！");
-        });
-    },
     async toggleComment(post) {
-      // 如果评论已经展开，则直接切换显示状态
       if (post.showComments) {
         post.showComments = false;
         return;
       }
 
       try {
-        // 向后端请求展开评论数据
-        const response = await axios.get(`http://127.0.0.1:8081/comment/open_comment/${post.id}`);
+        const response = await axios.get(`${API_BASE_URL}/comment/open_comment/${post.id}`);
         const comments = response.data;
         post.commentNum = comments.length;
 
-        // 为每个评论获取用户名
         post.comments = await Promise.all(comments.map(async (comment) => {
           const authorName = await this.getUserName(comment.PersonID);
           return {
             id: comment.CommentID,
-            author: authorName || `用户${comment.PersonID}`, // 显示用户名或备用格式
-            authorId: comment.PersonID, // 保留UID
+            author: authorName || `用户${comment.PersonID}`,
+            authorId: comment.PersonID,
             content: comment.Content,
             time: new Date(comment.Timestamp).toLocaleDateString()
           };
         }));
 
-        // 展开评论区
         post.showComments = true;
       } catch (error) {
         console.error('评论加载失败:', error);
         alert('评论加载失败，请检查网络连接或后端服务！');
       }
     },
-    async addComment(post) {
-      const userStore = useUserStore();
 
-      if (!this.isLoggedIn) {
-        alert("请先登录再发表评论！");
-        return;
-      }
-
-      const content = post.newComment?.trim();
-      if (!content) {
-        post.commentError = "评论不能为空！";
-        return;
-      }
-
-      post.commentError = "";
-      //console.log(userStore.uid);
-      const data = {
-        parentID: post.id, // 评论的父帖子 ID
-        Category: post.category, // 使用帖子分类
-        Title: null, 
-        Content: content, // 评论内容
-        PersonID: userStore.uid, // 从中获取用户 ID
-        hasTitle: false, // 评论不需要标题
-        isAdmin: userStore.isAdmin // 从中获取管理员状态
-      };
-      console.log(data);
-      try {
-        const res = await axios.post('http://localhost:8081/comment/addComment', data);
-        console.log(res.data);
-
-        if (res.data.status === "SUCCESS") {
-          // 如果后端返回成功，将新评论添加到帖子评论列表
-          const newComment = {
-            id: res.data.commentId, // 使用后端返回的 commentId
-            author: userStore.username,
-            content: content,
-            time: new Date(res.data.createdAt).toLocaleDateString() // 使用后端返回的创建时间
-          };
-
-          post.comments.push(newComment);
-          post.newComment = ''; 
-          
-          // 对该帖子的评论数递增
-          post.commentNum++;
-
-          alert(res.data.message); 
-        } else {
-          alert("评论提交失败，请检查后端返回状态！");
-        }
-      } catch (error) {
-        console.error('评论提交失败:', error);
-        alert('评论提交失败，请检查网络连接或后端服务！');
-      }
-    },
     sortBy(type) {
       this.sortType = type;
     },
+
     getCategoryColor(category) {
       const colors = {
         '作品分享': '#8c7853',
@@ -598,15 +738,17 @@ export default {
       };
       return colors[category] || '#999';
     },
+
     formatPostContent(content) {
       const tagRegex = /#([\u4e00-\u9fa5\w]+)/g;
       return content.replace(tagRegex, (match) => {
         return `<span class="tag-highlight">${match}</span>`;
       });
     },
+
     logout() {
       const userStore = useUserStore();
-      userStore.logout(); // 使用 Pinia 的 action 清除状态
+      userStore.logout();
 
       localStorage.removeItem('username');
       localStorage.removeItem('uid');
@@ -614,40 +756,35 @@ export default {
 
       this.username = null;
       this.isLoggedIn = false;
-      // this.$router.push('/forumlogin'); // 跳转到登录页面
+      this.isAdmin = false;
+      
+      this.loadPosts();
     },
-    handlePostClick() {
-      if (!this.isLoggedIn) {
-        alert("请先登录再发帖！");
-        // this.$router.push('/forumlogin'); 
-        return;
-      }
-      this.showPostForm = !this.showPostForm;
-    }
+
+    filterByDailyTopic() {
+      this.selectedCategory = '每日话题';
+      this.selectedTag = null;
+    },
+
+    scrollToPost(postId) {
+      this.$nextTick(() => {
+        const el = document.getElementById(`post-${postId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          el.classList.add('highlight-post');
+          setTimeout(() => el.classList.remove('highlight-post'), 2000);
+        }
+      });
+    },
   },
   mounted() {
-    // // 页面加载时请求评论
-    // axios.get('http://localhost:8081/comment/init')
-    //   .then(res => {
-    //     const cids = res.data;
-    //     return axios.post('http://localhost:8081/comment/get', cids);
-    //   })
-    //   .then(res => {
-    //     const comments = res.data;
-    //   this.posts.forEach(post => {
-    //     post.comments = comments.filter(c => c.postId === post.id);
-    //   });  
-    //   })  
-    //   .catch(err => {
-    //     console.error("评论加载失败", err);
-    //   });
+    // 组件挂载完成
   },
 };
-
 </script>
 
 <style scoped>
-
+/* 原有样式保持不变 */
 .forum-container {
   width: 100%;
   padding: 20px;
@@ -662,11 +799,11 @@ export default {
   padding: 0.5rem;
   background: linear-gradient(to right, #8c7853, #6e5773);
   color: white;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   margin-bottom: 2rem;
 }
-/* 抄mt的浮动效果 */
+
 .forum-header h1 {
   display: flex;
   justify-content: center;
@@ -675,8 +812,8 @@ export default {
   font-size: 40px;
   -webkit-background-clip: text;
   background-clip: text;
-  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5); /* 字体的阴影效果 */
-  animation: float 3s ease-in-out infinite; /* 浮动动画 */
+  text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+  animation: float 3s ease-in-out infinite;
 }
 
 .forum-header p {
@@ -685,15 +822,13 @@ export default {
 
 @keyframes float {
   0% {
-    transform: translateY(0); /* 初始位置 */
+    transform: translateY(0);
   }
-
   50% {
-    transform: translateY(-4px); /* 向上浮动4px */
+    transform: translateY(-4px);
   }
-
   100% {
-    transform: translateY(0); /* 还原回原始位置 */
+    transform: translateY(0);
   }
 }
 
@@ -795,7 +930,7 @@ export default {
 }
 
 .category-select {
-  flex: 3; /* 相当于60% */
+  flex: 3;
   padding: 0.6rem 1rem;
   font-size: 1rem;
   border: 1px solid #b8a888;
@@ -811,7 +946,7 @@ export default {
 }
 
 .submit-btn {
-  flex: 2; /* 相当于40% */
+  flex: 2;
   padding: 10px 0;
   background: linear-gradient(to right, #8c7853, #6e5773);
   border: none;
@@ -829,32 +964,6 @@ export default {
   background: linear-gradient(to right, #a3916a, #7c6488);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
-
-.sorting-options {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.sorting-options button {
-  background: #e9e4da;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  color: #5c4b33;
-  font-weight: 500;
-  transition: background 0.3s;
-}
-
-.sorting-options button:hover {
-  background: #d6cab4;
-}
-
-.sorting-options button.active {
-  background: #8c7853;
-  color: white;
 }
 
 .post-item {
@@ -926,14 +1035,6 @@ export default {
   font-weight: bold;
 }
 
-.post-content {
-  white-space: pre-wrap;
-  font-family: '楷体', cursive;
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #666;
-}
-
 .category-tag {
   background: none !important;
   color: #8c7853;
@@ -995,14 +1096,6 @@ export default {
   margin-top: 1rem;
   border-top: 1px solid #eee;
   padding-top: 1rem;
-}
-
-.comment-input {
-  width: 100%;
-  padding: 0.8rem;
-  margin-top: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 20px;
 }
 
 .category-filter li {
@@ -1116,7 +1209,6 @@ export default {
   background: #eee7dc;
 }
 
-/* 高亮跳转目标 */
 .highlight-post {
   animation: highlightFade 2s ease-in-out;
   box-shadow: 0 0 0 3px #8c7853aa;
@@ -1126,23 +1218,6 @@ export default {
 @keyframes highlightFade {
   0% { background-color: #fff9e7; }
   100% { background-color: white; }
-}
-
-.login-status {
-  background: #fffaf2;
-  border: 1px solid #e5d8c3;
-  padding: 12px 16px;
-  border-radius: 12px;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.login-status span {
-  display: block;
-  font-size: 1rem;
-  color: #5a4634;
-  margin-bottom: 10px;
 }
 
 .login-btn,
@@ -1169,6 +1244,151 @@ export default {
   transform: translateY(-2px);
 }
 
+/* 确认弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
 
+.confirm-modal-content {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+}
 
+.confirm-modal-header {
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #fafafa, #ffffff);
+  border-radius: 20px 20px 0 0;
+}
+
+.confirm-modal-header h3 {
+  margin: 0;
+  color: #8c7853;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  background: #f0f0f0;
+  color: #666;
+  transform: rotate(90deg);
+}
+
+.confirm-modal-body {
+  padding: 1.5rem;
+}
+
+.confirm-modal-body p {
+  margin: 0 0 1.5rem 0;
+  color: #333;
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.cancel-btn {
+  padding: 0.8rem 1.5rem;
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #e9e9e9;
+  border-color: #ccc;
+}
+
+.confirm-login-btn {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #8c7853, #6e5773);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.confirm-login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .confirm-modal-header {
+    padding: 1rem;
+  }
+  
+  .confirm-modal-body {
+    padding: 1rem;
+  }
+}
 </style>

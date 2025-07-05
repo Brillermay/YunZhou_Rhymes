@@ -14,6 +14,13 @@ public class Status {
         this.name=name;
         this.consistTime=consistTime;
     }
+    public Status(String name,int consistTime,String detail)
+    {
+        this.name=name;
+        this.consistTime=consistTime;
+        this.detail=detail;
+    }
     private String name;
     private int consistTime;
+    private String detail;
 }

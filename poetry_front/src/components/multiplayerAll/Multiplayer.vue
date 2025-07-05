@@ -25,12 +25,14 @@ const selectedPoet = ref('libai') // 默认李白，可以通过路由参数或p
 const isStackingMode = ref(false)
 const gameState = ref({ gold: 100 })
 
+// 更新金币数量的函数
 const updateGold = (amount) => {
   gameState.value.gold += amount
   if (gameState.value.gold < 0) gameState.value.gold = 0
   console.log('当前金币:', gameState.value.gold)
 }
 
+// 卡牌图片资源列表
 const cardImages = [
   { key: 'card_pack_poem', src: new URL('../../assets/cards/诗意卡包(2).png', import.meta.url).href },
   { key: 'card_pack_poet', src: new URL('../../assets/cards/诗人卡包(1).png', import.meta.url).href },
@@ -94,6 +96,8 @@ const cardImages = [
   { key: 'dingfengbo_motingchuanlindayesheng', src: new URL('../../assets/cards/诗词/定风波·莫听穿林打叶声.png', import.meta.url).href },
   
 ]
+
+//合成表
 const recipeMapping = {
   'autumn_bird': 'goose',
   'bird_bird': 'friend',
@@ -115,7 +119,6 @@ const recipeMapping = {
   'home_moon': 'byebye',
   'autumn_autumn': 'sad',
 };
-
 const craftingRecipes = {
   'bird_libai_mountain': 'shudaonan',
   'byebye_libai_longriver': 'huanghelousongmenghaoranzhiguangling',
@@ -142,7 +145,7 @@ const checkRecipe = (card1Type, card2Type) => {
   return recipeMapping[recipeKey]
 }
 
-// 在 checkRecipe 后添加三卡合成检查函数
+// 检查三张卡是否可以合成
 const checkCrafting = (cards) => {
   if (cards.length !== 3) return null;
   const types = cards.map(card => card.getData('type')).sort()
@@ -150,6 +153,8 @@ const checkCrafting = (cards) => {
   console.log('Crafting Recipe Key:', recipeKey); // 调试信息
   return craftingRecipes[recipeKey]
 }
+
+// 卡牌价格
 const cardPrices = {
   card_pack_poem: 10,
                          
@@ -180,6 +185,7 @@ const cardPrices = {
   zhuangzhinanchou: 3,
   nature: 2,
 };
+
 let lastCoinValue = 100
 const coins = ref(100) // 初始金币数量
 
@@ -329,38 +335,50 @@ let game = null
 const currentScreen = ref(0);
 const isScrolling = ref(false);
 
+//buff列表
 const buffs = [
-  { key: 'buff1', src: new URL('../../assets/cards/1.png', import.meta.url).href },
-  { key: 'buff2', src: new URL('../../assets/cards/2.png', import.meta.url).href },
-  { key: 'buff3', src: new URL('../../assets/cards/3.png', import.meta.url).href },
-  { key: 'buff4', src: new URL('../../assets/cards/4.png', import.meta.url).href },
-  { key: 'buff5', src: new URL('../../assets/cards/5.png', import.meta.url).href },
+  { key: 'armor_minus', src: new URL('../../assets/cards/buff/armor_minus.png', import.meta.url).href },
+  { key: 'armor_plus', src: new URL('../../assets/cards/buff/armor_plus.png', import.meta.url).href },
+  { key: 'attack_minus', src: new URL('../../assets/cards/buff/attack_minus.png', import.meta.url).href },
+  { key: 'attack_plus', src: new URL('../../assets/cards/buff/attack_plus.png', import.meta.url).href },
+  { key: 'bounce_back', src: new URL('../../assets/cards/buff/bounce_back.png', import.meta.url).href },
+  { key: 'break_armor', src: new URL('../../assets/cards/buff/break_armor.png', import.meta.url).href },
+  { key: 'cant_armor', src: new URL('../../assets/cards/buff/cant_armor.png', import.meta.url).href },
+  { key: 'copy_armor', src: new URL('../../assets/cards/buff/copy_armor.png', import.meta.url).href },
+  { key: 'gold_minus', src: new URL('../../assets/cards/buff/gold_minus.png', import.meta.url).href },
+  { key: 'gold_plus', src: new URL('../../assets/cards/buff/gold_plus.png', import.meta.url).href },
+  { key: 'heal', src: new URL('../../assets/cards/buff/heal.png', import.meta.url).href },
+  { key: 'immune_damage_point', src: new URL('../../assets/cards/buff/immune_damage_point.png', import.meta.url).href },
+  { key: 'immune_damage_time', src: new URL('../../assets/cards/buff/immune_damage_time.png', import.meta.url).href },
+  { key: 'immune_debuff', src: new URL('../../assets/cards/buff/immune_debuff.png', import.meta.url).href },
+  { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
 
+//对战双方游戏状态
 const gameState_one = ref({
   // 己方角色状态
   ally: {
-    health: 100,
-    maxHealth: 100,
-    armor: 80,
-    maxArmor: 100,
-    effects: ['buff1', 'buff2'], // 状态效果数组
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
   },
 
   // 敌方角色状态
   enemy: {
-    health: 100,
-    maxHealth: 100,
-    armor: 80,
-    maxArmor: 100,
-    effects: ['buff3', 'buff4'], // 状态效果数组
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
   },
 
   // 卡牌网格 3*4，初始化为全是 'cardBack'
   cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
 });
 
-//更新卡牌
+//更新3*4卡牌展示
 const updateCard = (row, col, cardType) => {
   gameState_one.value.cardGrid[row][col] = cardType;
   // 这里可以添加更新 Phaser 显示的逻辑
@@ -378,6 +396,7 @@ const updateStatus = (isAlly, newHealth, newArmor) => {
   // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
 };
 
+//更新buff
 const updateEffects = (isAlly, effects) => {
   if (isAlly) {
     gameState_one.value.ally.effects = effects;
@@ -420,6 +439,8 @@ const screen0 = ref(null);
 const screen1 = ref(null);
 
 onMounted(() => {
+
+  //页面初始化
   const commonConfig = {
     type: Phaser.AUTO,
     width: '100%',
@@ -427,11 +448,13 @@ onMounted(() => {
     physics: { default: 'arcade' },
   };
 
-  // 第一个 Phaser 实例
+  // 第一个 Phaser 实例：对战界面
   new Phaser.Game({
     ...commonConfig,
     parent: screen0.value,
     scene: {
+
+      //预加载
       preload() {
         // 创建一个纹理生成器来绘制卡牌背面
         const graphics = this.add.graphics();
@@ -497,6 +520,7 @@ onMounted(() => {
         const startX = centerX - (totalWidth / 2);
         const startY = (height - totalHeight) / 2;
 
+        // 创建列背景
         for (let col = 0; col < 3; col++) {
           let columnColor;
           switch (col) {
@@ -558,8 +582,6 @@ onMounted(() => {
           .setOrigin(0, 0.5)
           .setAlpha(0.5); // 降低分界线透明度使其不那么显眼
 
-
-
         // 2. 创建己方单位（左下角）
         const allyAvatarY = height - 100;
         const allyBarX = 250;
@@ -567,13 +589,12 @@ onMounted(() => {
         // 创建己方头像
         const allyAvatar = this.add.circle(100, allyAvatarY, 40, 0x4A5568);
 
-        // 创建己方血条和护甲条
         // 己方血条和护甲条
         const allyHealthWidth = (gameState_one.value.ally.health / gameState_one.value.ally.maxHealth) * 200;
         const allyArmorWidth = (gameState_one.value.ally.armor / gameState_one.value.ally.maxArmor) * 200;
-
         const allyHealthBar = this.add.rectangle(allyBarX, allyAvatarY - 25, allyHealthWidth, 30, 0x38A169);
         const allyArmorBar = this.add.rectangle(allyBarX, allyAvatarY + 25, allyArmorWidth, 30, 0x3182CE);
+
         // 创建己方状态栏
         const allyStatusBarY = allyAvatarY - 80;
         const allyStatusBar = this.add.rectangle(
@@ -604,7 +625,6 @@ onMounted(() => {
         // 敌方血条和护甲条
         const enemyHealthWidth = (gameState_one.value.enemy.health / gameState_one.value.enemy.maxHealth) * 200;
         const enemyArmorWidth = (gameState_one.value.enemy.armor / gameState_one.value.enemy.maxArmor) * 200;
-
         const enemyHealthBar = this.add.rectangle(enemyBarX, enemyAvatarY - 25, enemyHealthWidth, 30, 0x38A169);
         const enemyArmorBar = this.add.rectangle(enemyBarX, enemyAvatarY + 25, enemyArmorWidth, 30, 0x3182CE);
 
@@ -628,41 +648,40 @@ onMounted(() => {
         ).setOrigin(0.5, 0.5)
           .setStrokeStyle(1, 0xC5A880);
 
-        // 4. 添加所有文本
         // 己方文本显示
-        this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}%`, {
+        this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
           fontSize: '16px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0.5);
 
-        this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}%`, {
+        this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
           fontSize: '16px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
-          fontSize: '14px',
+          fontSize: '18px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
-        this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}%`, {
+        this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
           fontSize: '16px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0.5);
 
-        this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}%`, {
+        this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
           fontSize: '16px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
-          fontSize: '14px',
+          fontSize: '18px',
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0, 0.5);
@@ -684,10 +703,10 @@ onMounted(() => {
               // 添加鼠标悬停效果
               icon.setInteractive()
                 .on('pointerover', () => {
-                  icon.setScale(1.2);
+                  //预留显示效果详情
                 })
                 .on('pointerout', () => {
-                  icon.setScale(1);
+                  //预留取消显示效果详情
                 });
             }
           });
@@ -718,8 +737,6 @@ onMounted(() => {
   const container = screen1.value;
   const containerWidth = container.clientWidth;
   const containerHeight = container.clientHeight;
-
-
   //------------------------------
   game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -739,6 +756,7 @@ onMounted(() => {
       }
     },
     scene: {
+      // 预加载资源
       preload() {
         cardImages.forEach(card => {
           this.load.image(card.key, card.src)

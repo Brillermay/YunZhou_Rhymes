@@ -161,6 +161,10 @@
             <artifactId>langchain4j-community-dashscope</artifactId>
             <version>1.0.0-alpha1</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
         <!-- Maven 示例 -->
         <dependency>
             <groupId>jakarta.servlet</groupId>

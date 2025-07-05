@@ -123,6 +123,7 @@ public class PlayerService {
         sortCardBattleByPriority(listPlayer1);
         sortCardBattleByPriority(listPlayer2);
 
+
         playerAgainst1.setPlayerCondition(new PlayerCondition());
         playerAgainst2.setPlayerCondition(new PlayerCondition());
 
@@ -130,7 +131,8 @@ public class PlayerService {
             MainOpService(playerAgainst1,playerAgainst2,listPlayer1.get(i));
             MainOpService(playerAgainst2,playerAgainst1,listPlayer2.get(i));
         }
-
+        playerAgainst1.setFireAdd(0);
+        playerAgainst2.setFireAdd(0);
         EndService(playerAgainst1,
                 playerAgainst2);
     }
@@ -143,7 +145,6 @@ public class PlayerService {
     public void MainBuffService(PlayerAgainst influencer,PlayerAgainst optimizer,String buffName)
     {
         BuffAction action = buffActions.get(buffName);
-
         if (action != null) {
             action.execute(influencer,optimizer);
         }
@@ -175,21 +176,39 @@ public class PlayerService {
     * */
 
     /**
+     * 更新状态持续时间并移除过期状态
+     * @param statusList 要处理的状态列表（原地修改）
+     */
+    public static void updateAndCleanStatuses(List<Status> statusList) {
+        if (statusList == null || statusList.isEmpty())  return;
+
+        Iterator<Status> iterator = statusList.iterator();
+        while (iterator.hasNext())  {
+            Status status = iterator.next();
+            if (status == null) {
+                iterator.remove();
+                continue;
+            }
+
+            int newTime = status.getConsistTime()  - 1;
+            status.setConsistTime(newTime);
+
+            if (newTime <= 0) {
+                iterator.remove();
+                // 可添加状态移除回调：onStatusExpired(status);
+            }
+        }
+    }
+
+
+    /**
      * 回合结束处理服务
      * @param playerAgainst1 玩家1
      * @param playerAgainst2 玩家2
      */
     public void EndService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2) {
-        for(Status status: playerAgainst1.getStatusesBegin())
-        {
-            status.setConsistTime(status.getConsistTime()-1);
-        }
-        for(Status status: playerAgainst2.getStatusesBegin())
-        {
-            status.setConsistTime(status.getConsistTime()-1);
-        }
-
-
+        updateAndCleanStatuses(playerAgainst1.getStatusesBegin());
+        updateAndCleanStatuses(playerAgainst2.getStatusesBegin());
 
         for(Status status:playerAgainst1.getStatusesEnd())
         {
@@ -199,6 +218,7 @@ public class PlayerService {
                 playerAgainst1.getStatusesBegin().add(status);
 
         }
+        playerAgainst1.setStatusesEnd(new ArrayList<>());
         for(Status status: playerAgainst2.getStatusesEnd())
         {
             if(status.getName().contains("judge"))
@@ -206,6 +226,7 @@ public class PlayerService {
             else
                 playerAgainst2.getStatusesBegin().add(status);
         }
+        playerAgainst2.setStatusesEnd(new ArrayList<>());
     }
 
     /**
@@ -216,8 +237,7 @@ public class PlayerService {
     public void BeginService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2) {
         for(Status status:playerAgainst1.getStatusesBegin())
         {
-
-            MainBuffService(playerAgainst1,playerAgainst2,status.getName());
+             MainBuffService(playerAgainst1,playerAgainst2,status.getName());
         }
         for(Status status:playerAgainst2.getStatusesBegin())
         {
@@ -276,9 +296,18 @@ public class PlayerService {
         buffActions.put("danbo_judge", this::BuffAction_danbo_judge);
     }
 
-    private void BuffAction_spring(PlayerAgainst user, PlayerAgainst target) {}
 
-    private void BuffAction_fire(PlayerAgainst user, PlayerAgainst target) {}
+    private void BuffAction_spring(PlayerAgainst user, PlayerAgainst target) {
+        //回合开始时获得3金币，且抽1张牌
+        AddCoins(user,3);
+        user.setCards(cardService.RandomGetCardsByNumAndCost(1,3));
+    }
+
+    private void BuffAction_fire(PlayerAgainst user, PlayerAgainst target) {
+        //下回合抽1张牌并使其下回合战斗类卡牌费用+1
+        user.setCards(cardService.RandomGetCardsByNumAndCost(1,2));
+        user.setFireAdd(1);
+    }
 
     private void BuffAction_bird(PlayerAgainst user, PlayerAgainst target) {}
 
@@ -324,9 +353,18 @@ public class PlayerService {
 
     private void BuffAction_love(PlayerAgainst user, PlayerAgainst target) {}
 
-    private void BuffAction_spring_judge(PlayerAgainst user, PlayerAgainst target) {}
+    private void BuffAction_spring_judge(PlayerAgainst user, PlayerAgainst target) {
+        //若本回合未受攻击，下回合开始时获得3金币，且抽1张牌。
+        if(user.getPlayerCondition().isAttacked()){
+            user.getStatusesBegin().add(new Status("spring",1,"回合开始时获得3金币，且抽1张牌"));
+        }
+    }
 
-    private void BuffAction_bird_judge(PlayerAgainst user, PlayerAgainst target) {}
+    private void BuffAction_bird_judge(PlayerAgainst user, PlayerAgainst target) {
+        //若本回合对面使用防守类卡，追加1点真实伤害。
+        if(target.getPlayerCondition().isUsedDefenseCard())
+            AddHP(target,-1);
+    }
 
     private void BuffAction_autumn_judge(PlayerAgainst user, PlayerAgainst target) {}
 
@@ -410,13 +448,13 @@ public class PlayerService {
      */
     private void Action_Fire(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //造成1点伤害。
-        // 若对方无护盾，抽1张牌并使其下回合战斗类卡牌费用+1。
+        // 若对方无护盾，下回合使用者抽1张牌并使其下回合战斗类卡牌费用+1。
         user.getPlayerCondition().setUsedBattleCard(true);
         if(target.getShield() == 0)
         {
             AddStatus(user, new ArrayList<Status>(List.of(new Status("fire",1))));
         }
-        AddShield(target,-1);
+        AddShield(target,-1-user.getFireAdd());
     }
 
     /**
@@ -429,7 +467,7 @@ public class PlayerService {
         //造成1点伤害。若本回合对面使用防守类卡，追加1点真实伤害。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddShield(target,-1);
+        AddShield(target,-1-user.getFireAdd());
         AddStatus(target, new ArrayList<Status>(List.of(new Status("bird_judge",1))));
     }
 
@@ -543,7 +581,7 @@ public class PlayerService {
         // 若本回合受到攻击，抽2张牌且下回合战斗伤害+1。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddShield(target,-2);
+        AddShield(target,-2-user.getFireAdd());
         AddStatus(user,new ArrayList<>(List.of(new Status("wine_judge",1))));
     }
 
@@ -580,7 +618,7 @@ public class PlayerService {
             AddStatus(target, new ArrayList<Status>(List.of(new Status("sun",1))));
 
         }
-        AddShield(target,-2);
+        AddShield(target,-2-user.getFireAdd());
     }
 
     /**
@@ -630,7 +668,7 @@ public class PlayerService {
         //造成2点伤害。若对方下回合使用防守卡，该卡无效且追加3点伤害。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddShield(target,-2);
+        AddShield(target,-2-user.getFireAdd());
         AddStatus(target,new ArrayList<>(List.of(new Status("rain_next",1))));
     }
 
@@ -644,7 +682,7 @@ public class PlayerService {
         //造成2点伤害。若对方下回合使用了进攻，再造成3点真实伤害。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddShield(target,-2);
+        AddShield(target,-2-user.getFireAdd());
         AddStatus(target,new ArrayList<>(List.of(new Status("war_next",1))));
     }
 
@@ -714,7 +752,7 @@ public class PlayerService {
         //造成3点真实伤害。若未使用其他卡，抽3张牌并破坏对手1点护盾。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddHP(target,-3);
+        AddHP(target,-3-user.getFireAdd());
         AddStatus(user,new ArrayList<>(List.of(new Status("bamboo_judge",3))));
     }
 
@@ -756,7 +794,7 @@ public class PlayerService {
     private void Action_Yellowriver(PlayerAgainst user,PlayerAgainst target, CardBattle cardBattle) {
         //造成4点真实伤害。若对方护盾≥5，摧毁所有护盾，同时使目标每回合回血量-2。
         user.getPlayerCondition().setUsedBattleCard(true);
-
+        AddShield(target,-user.getFireAdd());
         AddHP(target,-4);
         if(target.getShield()>=5)
         {
@@ -776,7 +814,7 @@ public class PlayerService {
         //造成5点伤害。若对方血量≤10，追加5点真实伤害且无视免疫效果。
         user.getPlayerCondition().setUsedBattleCard(true);
 
-        AddShield(target,-5);
+        AddShield(target,-5-user.getFireAdd());
         if(target.getHp()<=5)AddHP(target,-5);
     }
 
