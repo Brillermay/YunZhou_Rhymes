@@ -1,5 +1,5 @@
 <template>
-  <div class="feihua-component mode-selector-container">
+
     <div class="component-container">
       <!-- 🎯 游戏标题 - 仿照飞花令简洁设计 -->
       <div class="game-header-section">
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <!-- 🎮 主要选择区域 - 仿照飞花令的横向布局 -->
+      <!-- 🎮 主要选择区域 - 修改为左右结构 -->
       <div class="selection-main-area">
         <!-- 左侧：难度选择 -->
         <div class="difficulty-selection-section">
@@ -78,44 +78,47 @@
           </div>
         </div>
 
-        <!-- 右侧：题目数量选择 -->
-        <div class="question-count-section">
-          <h2 class="section-title">题目数量</h2>
-          <div class="question-count-grid">
-            <div 
-              v-for="count in questionCountOptions" 
-              :key="count"
-              class="count-card"
-              :class="{ 
-                active: selectedQuestionCount === count,
-                disabled: !selectedDifficulty
-              }"
-              @click="selectQuestionCount(count)"
-            >
-              <div class="count-number">{{ count }}</div>
-              <div class="count-label">题</div>
-              <div class="count-time">约 {{ getEstimatedTime(count) }} 分钟</div>
-              <!-- 🔧 选中状态指示器 -->
-              <div class="selection-indicator" v-if="selectedQuestionCount === count">
-                <i class="icon-check-circle"></i>
+        <!-- 右侧容器 -->
+        <div class="right-side-container">
+          <!-- 右上：题目数量选择 -->
+          <div class="question-count-section">
+            <h2 class="section-title">题目数量</h2>
+            <div class="question-count-grid">
+              <div 
+                v-for="count in questionCountOptions" 
+                :key="count"
+                class="count-card"
+                :class="{ 
+                  active: selectedQuestionCount === count,
+                  disabled: !selectedDifficulty
+                }"
+                @click="selectQuestionCount(count)"
+              >
+                <div class="count-number">{{ count }}</div>
+                <div class="count-label">题</div>
+                <div class="count-time">约 {{ getEstimatedTime(count) }} 分钟</div>
+                <!-- 🔧 选中状态指示器 -->
+                <div class="selection-indicator" v-if="selectedQuestionCount === count">
+                  <i class="icon-check-circle"></i>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- 🚀 开始游戏按钮 - 仿照飞花令样式 -->
-      <div class="start-game-section">
-        <button 
-          class="btn btn-primary start-game-btn"
-          :class="{ ready: canStart }"
-          @click="startTest"
-          :disabled="!canStart"
-        >
-          <i class="icon-play"></i>
-          <span v-if="canStart">开始测试</span>
-          <span v-else>请选择难度和题目数量</span>
-        </button>
+          <!-- 右下：开始游戏区域 -->
+          <div class="start-game-section">
+            <button 
+              class="btn btn-primary start-game-btn"
+              :class="{ ready: canStart }"
+              @click="startTest"
+              :disabled="!canStart"
+            >
+              <i class="icon-play"></i>
+              <span v-if="canStart">开始测试</span>
+              <span v-else>请选择难度和题目数量</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -190,7 +193,6 @@
         </div>
       </div>
     </Teleport>
-  </div>
 </template>
 
 <script>
@@ -389,7 +391,7 @@ export default {
   }
 }
 
-// 🎮 主要选择区域 - 仿照飞花令横向布局
+// 🎮 主要选择区域 - 修改为左右结构
 .selection-main-area {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -400,6 +402,13 @@ export default {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+}
+
+// 右侧容器
+.right-side-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 // 🎯 难度选择区域 - 仿照飞花令卡片样式
@@ -640,47 +649,20 @@ export default {
   }
 }
 
-// 🚀 开始游戏区域 - 仿照飞花令样式
+.start-game-btn{
+  width: 40%;
+  
+}
+
+// 🚀 开始游戏区域 - 移除独立的外层容器样式
 .start-game-section {
   text-align: center;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 16px;
   border: 2px solid rgba(140, 120, 83, 0.2);
-  margin-bottom: 3rem;
-}
-
-.start-game-btn {
-  @extend .btn;
-  @extend .btn-primary;
-  padding: 1.2rem 3rem;
-  font-size: 1.2rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 280px;
-  justify-content: center;
-  
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
-  color: white !important;
-  border: none !important;
-  transition: all 0.3s ease;
-  
-  &.ready {
-    background: linear-gradient(135deg, #8c7853, #6e5773) !important;
-    animation: pulse 2s ease-in-out infinite alternate;
-    
-    &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(140, 120, 83, 0.4);
-    }
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-  }
+  margin-bottom: 0; // 移除底部边距
+  margin-top: 2rem;
 }
 
 // 🎨 动画效果 - 仿照飞花令的动画
@@ -743,13 +725,8 @@ export default {
     gap: 2rem;
   }
   
-  .question-count-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .header-actions {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+  .right-side-container {
+    gap: 1.5rem;
   }
 }
 
@@ -824,7 +801,6 @@ export default {
   border-radius: 16px !important;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3) !important;
   max-height: 90vh;
-  overflow-y: auto;
   width: 90vw;
   max-width: 800px;
   animation: slideIn 0.3s ease-out;
@@ -997,6 +973,7 @@ export default {
     }
   }
 }
+
 
 // 🎨 响应式设计
 @media (max-width: 768px) {
