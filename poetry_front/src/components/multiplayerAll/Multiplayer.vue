@@ -8,7 +8,16 @@
 
       </div>
       <teleport to="body">
-        <div id="countdown-timer" class="countdown">30</div>
+        <div id="countdown-timer" class="countdown">
+          <div class="round">
+            回合 <span class="round-num">{{ round }}</span> / {{ maxRound }}
+          </div>
+          <div class="timer">
+            <span>倒计时：</span>
+            <span class="time-num">{{ countdown }}</span>
+            <span>秒</span>
+          </div>
+        </div>
       </teleport>
     </div>
   </div>
@@ -21,13 +30,44 @@ import Phaser from 'phaser';
 console.log('🏁 script setup 运行了');
 
 // 回合时间（秒）
-const TURN_DURATION = 5 * 1000
+const TURN_DURATION = 30 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
+//回合数
+const turnCount = ref(0);
 
 let turnTimeout = null;
 let countdownInterval = null;
 let timerEl = null;
+
+const countdown = ref(TURN_DURATION / 1000)
+const round = ref(1)        // 当前回合，从1开始
+const maxRound = 20         // 总回合数（可根据实际改）
+
+
+//对战双方游戏状态
+const gameState_one = ref({
+  // 己方角色状态
+  ally: {
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
+  },
+
+  // 敌方角色状态
+  enemy: {
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
+  },
+
+  // 卡牌网格 3*4，初始化为全是 'cardBack'
+  cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
+});
 
 
 // 禁止/恢复页面滚动
@@ -40,47 +80,83 @@ function scrollToFirst() {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function rearrangeGrid(grid, backValue = 'cardBack') {
+  // 1. 提取原第4排
+  const extracted = grid[3].slice();   // 记下原第四排
+
+  // 2. 构造新网格
+  const newGrid = [
+    grid[0].slice(),              // 新第1排：原第1排
+    grid[1].slice(),              // 新第2排：原第2排
+    grid[3].slice(),              // 新第3排：原第4排
+    Array(3).fill(backValue),     // 新第4排：全'cardBack'
+  ];
+
+  return { newGrid, extracted };
+}
+
 // 结算逻辑：根据你的 game1/game2 场景状态来写
 function settlement() {
   console.log('执行回合结算！')
   // …在这里调用你的分数计算或状态重置…
+  // 1. 调用重排函数，拿到新的网格和提取出的卡牌
+  const { newGrid, extracted } = rearrangeGrid(gameState_one.value.cardGrid)
+
+  //
+  //
+  //
+  //
+
+  // 2. 用新网格更新组件状态
+  gameState_one.value.cardGrid = newGrid
+
+  // 3. （可选）把 extracted 发给后端、或者存到另一个 ref 里显示
+  console.log('提取出的卡牌：', extracted)
+
+  // 4. 刷新页面
+  if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
+    const sceneObj = battleScene.scene.scenes[0];
+    const grid = gameState_one.value.cardGrid;
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        updateBattleFieldDisplay(sceneObj, row, col, grid[row][col]);
+      }
+    }
+  }
 }
 
 // 回合结束时的流程
 function onTurnEnd() {
   clearInterval(countdownInterval)
-
   settlement()
-
-  startTurn()
+  if (round.value < maxRound) {
+    round.value++
+    startTurn()
+  } else {
+    // 游戏结束，可以加其他逻辑
+    // alert('游戏结束！')
+  }
 }
 
 // 启动（或重启）一个回合
 function startTurn() {
-  //
   clearInterval(countdownInterval)
   clearTimeout(turnTimeout)
 
-  let remaining = TURN_DURATION / 1000
-  if (timerEl) timerEl.textContent = remaining;
+  countdown.value = TURN_DURATION / 1000
 
   countdownInterval = setInterval(() => {
-    remaining--;
-    if (timerEl) timerEl.textContent = remaining > 0 ? remaining : 0;
-    if (remaining <= 0) {
-      clearInterval(countdownInterval);
+    countdown.value--
+    if (countdown.value <= 0) {
+      countdown.value = 0
+      clearInterval(countdownInterval)
     }
-  }, 1000);
+  }, 1000)
 
   turnTimeout = setTimeout(() => {
-    // 确保显示“0”
-    if (timerEl) timerEl.textContent = 0;
-    // 真正执行回合结束流程
-    onTurnEnd();
-  }, TURN_DURATION);
-
-  // 4. 30 秒后触发回合结束
-  turnTimeout = setTimeout(onTurnEnd, TURN_DURATION)
+    countdown.value = 0
+    onTurnEnd()
+  }, TURN_DURATION)
 }
 //-----------------------------------------
 let buySlot1Animating = false
@@ -611,30 +687,6 @@ const heads = [
   { key: 'aiboy', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
   { key: 'aigirl', src: new URL('../../assets/cards/aigirl.png', import.meta.url).href },
 ]
-
-//对战双方游戏状态
-const gameState_one = ref({
-  // 己方角色状态
-  ally: {
-    health: 20,
-    maxHealth: 20,
-    armor: 10,
-    maxArmor: 10,
-    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
-  },
-
-  // 敌方角色状态
-  enemy: {
-    health: 20,
-    maxHealth: 20,
-    armor: 10,
-    maxArmor: 10,
-    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
-  },
-
-  // 卡牌网格 3*4，初始化为全是 'cardBack'
-  cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
-});
 
 //updateCard函数，添加对第一个场景的更新
 const updateCard = (row, col, cardType) => {
@@ -2658,5 +2710,52 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   pointer-events: none;
   /* 不拦截点击 */
+}
+
+#countdown-timer.countdown {
+  position: fixed;
+  bottom: 56px;
+  right: 56px;
+  z-index: 10000;
+  background: #c59d66;
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px 0 rgba(155, 204, 21, 0.15);
+  padding: 16px 28px 12px 28px;
+  min-width: 158px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  user-select: none;
+  pointer-events: none;
+  text-align: center;
+  transition: background 0.3s;
+}
+
+#countdown-timer .round {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  color: white;
+  text-shadow: 0 2px 8px #222c;
+}
+
+#countdown-timer .timer {
+  font-size: 17px;
+  letter-spacing: 1px;
+  color: #eee;
+}
+
+#countdown-timer .time-num {
+  font-size: 2.3em;
+  font-weight: bold;
+  color: #fff238;
+  margin: 0 8px;
+  text-shadow: 0 2px 12px #443;
+}
+
+#countdown-timer .round-num {
+  color: #fff238;
+  font-weight: bold;
+  font-size: 1.4em;
 }
 </style>
