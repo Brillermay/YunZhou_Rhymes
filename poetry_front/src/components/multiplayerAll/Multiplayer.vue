@@ -132,6 +132,8 @@ function onTurnEnd() {
   if (round.value < maxRound) {
     round.value++
     startTurn()
+    updateGold(5)
+    coins.value += 5
   } else {
     // 游戏结束，可以加其他逻辑
     // alert('游戏结束！')
@@ -167,7 +169,7 @@ const selectedPoet = ref('libai') // 默认李白，可以通过路由参数或p
 
 
 const isStackingMode = ref(false)
-const gameState = ref({ gold: 100 })
+const gameState = ref({ gold: 0 })
 
 // 更新金币数量的函数
 const updateGold = (amount) => {
@@ -316,15 +318,15 @@ class TooltipManager {
     this.scene = scene;
     this.tooltipTimer = null;
     this.tooltipDelay = 400; // 悬停多久后显示提示（毫秒）
-    
+
     // 创建工具提示容器
     this.tooltip = scene.add.container(0, 0).setVisible(false).setDepth(1000);
-    
+
     // 创建工具提示背景
     this.tooltipBg = scene.add.rectangle(0, 0, 200, 80, 0x000000, 0.8)
       .setStrokeStyle(1, 0xffffff, 0.8)
       .setOrigin(0.5);
-    
+
     // 创建工具提示文本
     this.tooltipText = scene.add.text(0, 0, '', {
       fontSize: '14px',
@@ -334,73 +336,73 @@ class TooltipManager {
       wordWrap: { width: 180 },
       padding: { x: 10, y: 5 }
     }).setOrigin(0.5);
-    
+
     // 添加到容器
     this.tooltip.add([this.tooltipBg, this.tooltipText]);
   }
-  
+
   // 添加卡片悬停提示功能
   addTooltipToCard(card) {
     const self = this;
-    
+
     // 鼠标悬停事件
-    card.on('pointerover', function(pointer) {
+    card.on('pointerover', function (pointer) {
       // 清除之前的计时器
       if (self.tooltipTimer) {
         clearTimeout(self.tooltipTimer);
       }
-      
+
       // 创建新计时器
       self.tooltipTimer = setTimeout(() => {
         const cardType = card.getData('type');
         const description = cardDescriptions[cardType] || `${cardType}卡`;
-        
+
         // 更新工具提示文本
         self.tooltipText.setText(description);
-        
+
         // 调整背景大小以适应文本
         const padding = 20;
         self.tooltipBg.width = self.tooltipText.width + padding * 2;
         self.tooltipBg.height = self.tooltipText.height + padding;
-        
+
         // 定位工具提示（在卡片右侧）
-        const tooltipX = card.x + card.displayWidth/2 + 70;
+        const tooltipX = card.x + card.displayWidth / 2 + 70;
         const tooltipY = card.y;
-        
+
         // 检查是否超出屏幕右侧
-        const rightEdge = tooltipX + self.tooltipBg.width/2;
+        const rightEdge = tooltipX + self.tooltipBg.width / 2;
         if (rightEdge > self.scene.scale.width) {
           // 如果超出，则显示在卡片左侧
-          self.tooltip.setPosition(card.x - card.displayWidth/2 - 70, tooltipY);
+          self.tooltip.setPosition(card.x - card.displayWidth / 2 - 70, tooltipY);
         } else {
           self.tooltip.setPosition(tooltipX, tooltipY);
         }
-        
+
         self.tooltip.setVisible(true);
       }, self.tooltipDelay);
     });
-    
+
     // 鼠标移出事件
-    card.on('pointerout', function() {
+    card.on('pointerout', function () {
       if (self.tooltipTimer) {
         clearTimeout(self.tooltipTimer);
         self.tooltipTimer = null;
       }
       self.tooltip.setVisible(false);
     });
-    
+
     // 拖拽开始事件
-    card.on('dragstart', function() {
+    card.on('dragstart', function () {
       if (self.tooltipTimer) {
         clearTimeout(self.tooltipTimer);
         self.tooltipTimer = null;
       }
       self.tooltip.setVisible(false);
     });
-    
+
     return card;
   }
-  
+
   // 隐藏工具提示
   hide() {
     if (this.tooltipTimer) {
@@ -460,11 +462,11 @@ const cardPrices = {
 };
 
 let lastCoinValue = 100
-const coins = ref(100) // 初始金币数量
+const coins = ref(0) // 初始金币数量
 
 // 购买诗意卡包
 const handleBuyPack = () => {
-  const packPrice = 10
+  const packPrice = 5
   if (coins.value >= packPrice) {
     coins.value -= packPrice
 
@@ -727,7 +729,7 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
     // 如果卡片已存在，更新纹理
     existingCard.setTexture(cardType);
     existingCard.setDisplaySize(slotWidth, slotHeight);
-    
+
     // 关键修复：更新卡片的类型数据，这样提示系统才能正确显示卡片描述
     existingCard.setData('type', cardType);
 
@@ -958,21 +960,21 @@ onMounted(() => {
 
             // 为卡片添加鼠标悬停和移出事件
             card.on('pointerover', () => {
-              
+
               // 如果是有效卡片，显示提示
               if (cardType !== 'cardBack' && cardDescriptions[cardType]) {
                 if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
-                
+
                 this.tooltipTimer = setTimeout(() => {
                   // 计算提示位置 - 向右侧显示，除非右侧空间不足
                   const tooltipX = x + slotWidth + 50;
-                  const tooltipY = y + slotHeight/2;
-                  
+                  const tooltipY = y + slotHeight / 2;
+
                   this.showCardTooltip(tooltipX, tooltipY, cardDescriptions[cardType]);
                 }, 400);
               }
             });
-            
+
             card.on('pointerout', () => {
               // 隐藏提示
               if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
@@ -1124,7 +1126,7 @@ onMounted(() => {
               icon.setInteractive()
                 .on('pointerover', () => {
                   if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
-                  
+
                   // 添加延迟显示
                   this.tooltipTimer = setTimeout(() => {
                     const description = buffDescriptions[effectKey] || `${effectKey} 效果`;
@@ -1157,70 +1159,70 @@ onMounted(() => {
           false
         );
 
-                //显示ui
-                if (this.cardTooltip) {
+        //显示ui
+        if (this.cardTooltip) {
           this.cardTooltip.destroy();
           this.cardTooltip = null;
         }
 
-  // 创建新的提示UI工具函数
-  this.showCardTooltip = (x, y, text) => {
-  // 每次都创建新的提示组
-  if (this.cardTooltip) {
-    this.cardTooltip.destroy();
-  }
-  
-  // 创建新提示容器
-  this.cardTooltip = this.add.container(x, y).setDepth(2000);
-  
-  // 创建文本 - 确保启用自动换行
-  const tooltipText = this.add.text(0, 0, text, {
-    fontSize: '14px',
-    color: '#ffffff',
-    resolution: 2,
-    align: 'left',         // 左对齐使多行文本更易读
-    padding: { x: 10, y: 8 },
-    wordWrap: { 
-      width: 250,          // 设置适当的宽度以允许文本换行
-      useAdvancedWrap: true // 使用高级换行以处理中文等语言
-    },
-    lineSpacing: 3         // 行间距，使多行文本更清晰
-  }).setOrigin(0.5);
-  
-  // 创建背景 - 尺寸会自动适应换行后的文本
-  const textBounds = tooltipText.getBounds();
-  const tooltipBg = this.add.rectangle(
-    0, 
-    0, 
-    textBounds.width + 20, 
-    textBounds.height + 16, 
-    0x000000, 
-    0.85              // 增强对比度
-  ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
-  
-  // 先添加背景再添加文本
-  this.cardTooltip.add(tooltipBg);
-  this.cardTooltip.add(tooltipText);
-  
-  // 智能调整位置，避免提示框超出屏幕
-  let finalX = x;
-  let finalY = y;
-  
-  // 水平方向调整
-  if (x + textBounds.width/2 + 10 > this.scale.width) {
-    finalX = this.scale.width - textBounds.width/2 - 20;
-  }
-  if (x - textBounds.width/2 - 10 < 0) {
-    finalX = textBounds.width/2 + 20;
-  }
-  
-  // 垂直方向调整 - 确保长文本也不会超出屏幕底部
-  if (y + textBounds.height/2 + 10 > this.scale.height) {
-    finalY = this.scale.height - textBounds.height/2 - 20;
-  }
-  
-  this.cardTooltip.setPosition(finalX, finalY);
-};
+        // 创建新的提示UI工具函数
+        this.showCardTooltip = (x, y, text) => {
+          // 每次都创建新的提示组
+          if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+          }
+
+          // 创建新提示容器
+          this.cardTooltip = this.add.container(x, y).setDepth(2000);
+
+          // 创建文本 - 确保启用自动换行
+          const tooltipText = this.add.text(0, 0, text, {
+            fontSize: '14px',
+            color: '#ffffff',
+            resolution: 2,
+            align: 'left',         // 左对齐使多行文本更易读
+            padding: { x: 10, y: 8 },
+            wordWrap: {
+              width: 250,          // 设置适当的宽度以允许文本换行
+              useAdvancedWrap: true // 使用高级换行以处理中文等语言
+            },
+            lineSpacing: 3         // 行间距，使多行文本更清晰
+          }).setOrigin(0.5);
+
+          // 创建背景 - 尺寸会自动适应换行后的文本
+          const textBounds = tooltipText.getBounds();
+          const tooltipBg = this.add.rectangle(
+            0,
+            0,
+            textBounds.width + 20,
+            textBounds.height + 16,
+            0x000000,
+            0.85              // 增强对比度
+          ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
+
+          // 先添加背景再添加文本
+          this.cardTooltip.add(tooltipBg);
+          this.cardTooltip.add(tooltipText);
+
+          // 智能调整位置，避免提示框超出屏幕
+          let finalX = x;
+          let finalY = y;
+
+          // 水平方向调整
+          if (x + textBounds.width / 2 + 10 > this.scale.width) {
+            finalX = this.scale.width - textBounds.width / 2 - 20;
+          }
+          if (x - textBounds.width / 2 - 10 < 0) {
+            finalX = textBounds.width / 2 + 20;
+          }
+
+          // 垂直方向调整 - 确保长文本也不会超出屏幕底部
+          if (y + textBounds.height / 2 + 10 > this.scale.height) {
+            finalY = this.scale.height - textBounds.height / 2 - 20;
+          }
+
+          this.cardTooltip.setPosition(finalX, finalY);
+        };
 
 
         // 修改鼠标悬停事件
@@ -1228,11 +1230,11 @@ onMounted(() => {
           if (gameObject.getData && gameObject.getData('type')) {
             const cardType = gameObject.getData('type');
             if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
-            
+
             if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
-            
+
             this.tooltipTimer = setTimeout(() => {
-              const tooltipX = gameObject.x > this.scale.width/2 ? 
+              const tooltipX = gameObject.x > this.scale.width / 2 ?
                 gameObject.x - 100 : gameObject.x + 100;
               this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
             }, 400);
@@ -1341,7 +1343,7 @@ onMounted(() => {
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const buyText = this.add.text(padding * 2 + 100 + 50, padding + 90 - 200, '诗意卡包\n10金币', {
+        const buyText = this.add.text(padding * 2 + 100 + 50, padding + 90 - 200, '诗意卡包\n5金币', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1358,7 +1360,7 @@ onMounted(() => {
 
         // 添加购买槽的悬浮效果
         buySlot.on('pointerover', () => {
-          if (coins.value >= 10) {
+          if (coins.value >= 5) {
             // 简单的悬浮效果 - 只改变边框颜色和透明度
             buySlot.setStrokeStyle(3, 0xffffff, 1) // 白色边框
             buySlot.setAlpha(0.9) // 轻微透明
@@ -1442,7 +1444,7 @@ onMounted(() => {
 
         // 第一个购买槽处理函数
         const handleBuyClick = () => {
-          if (coins.value >= 10) {
+          if (coins.value >= 5) {
             this.tweens.killTweensOf([buySlot, buyIcon, buyText])
             buySlot.setScale(1)
             buyIcon.setScale(1)
@@ -1482,7 +1484,7 @@ onMounted(() => {
             const costText = this.add.text(
               buySlot.x + 50,
               buySlot.y + 120,
-              '-10',
+              '-5',
               {
                 fontSize: '18px',
                 color: '#ff5722',
@@ -2567,10 +2569,10 @@ onMounted(() => {
           if (this.cardTooltip) {
             this.cardTooltip.destroy();
           }
-          
+
           // 创建新提示容器
           this.cardTooltip = this.add.container(x, y).setDepth(2000);
-          
+
           // 创建文本 - 确保启用自动换行
           const tooltipText = this.add.text(0, 0, text, {
             fontSize: '14px',
@@ -2578,45 +2580,45 @@ onMounted(() => {
             resolution: 2,
             align: 'left',         // 左对齐使多行文本更易读
             padding: { x: 10, y: 8 },
-            wordWrap: { 
+            wordWrap: {
               width: 250,          // 设置适当的宽度以允许文本换行
               useAdvancedWrap: true // 使用高级换行以处理中文等语言
             },
             lineSpacing: 3         // 行间距，使多行文本更清晰
           }).setOrigin(0.5);
-          
+
           // 创建背景 - 尺寸会自动适应换行后的文本
           const textBounds = tooltipText.getBounds();
           const tooltipBg = this.add.rectangle(
-            0, 
-            0, 
-            textBounds.width + 20, 
-            textBounds.height + 16, 
-            0x000000, 
+            0,
+            0,
+            textBounds.width + 20,
+            textBounds.height + 16,
+            0x000000,
             0.85              // 增强对比度
           ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
-          
+
           // 先添加背景再添加文本
           this.cardTooltip.add(tooltipBg);
           this.cardTooltip.add(tooltipText);
-          
+
           // 智能调整位置，避免提示框超出屏幕
           let finalX = x;
           let finalY = y;
-          
+
           // 水平方向调整
-          if (x + textBounds.width/2 + 10 > this.scale.width) {
-            finalX = this.scale.width - textBounds.width/2 - 20;
+          if (x + textBounds.width / 2 + 10 > this.scale.width) {
+            finalX = this.scale.width - textBounds.width / 2 - 20;
           }
-          if (x - textBounds.width/2 - 10 < 0) {
-            finalX = textBounds.width/2 + 20;
+          if (x - textBounds.width / 2 - 10 < 0) {
+            finalX = textBounds.width / 2 + 20;
           }
-          
+
           // 垂直方向调整 - 确保长文本也不会超出屏幕底部
-          if (y + textBounds.height/2 + 10 > this.scale.height) {
-            finalY = this.scale.height - textBounds.height/2 - 20;
+          if (y + textBounds.height / 2 + 10 > this.scale.height) {
+            finalY = this.scale.height - textBounds.height / 2 - 20;
           }
-          
+
           this.cardTooltip.setPosition(finalX, finalY);
         };
 
@@ -2625,11 +2627,11 @@ onMounted(() => {
           if (gameObject.getData && gameObject.getData('type')) {
             const cardType = gameObject.getData('type');
             if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
-            
+
             if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
-            
+
             this.tooltipTimer = setTimeout(() => {
-              const tooltipX = gameObject.x > this.scale.width/2 ? 
+              const tooltipX = gameObject.x > this.scale.width / 2 ?
                 gameObject.x - 100 : gameObject.x + 100;
               this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
             }, 400);
@@ -2663,10 +2665,10 @@ onBeforeUnmount(() => {
     if (battleScene && battleScene.scene.scenes[0].tooltipTimer) {
       clearTimeout(battleScene.scene.scenes[0].tooltipTimer);
     }
-    
+
     game.destroy(true);
   }
-  
+
   clearInterval(countdownInterval);
   clearTimeout(turnTimeout);
 });
