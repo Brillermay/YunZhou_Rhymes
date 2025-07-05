@@ -176,10 +176,7 @@
 
     <!-- 第二屏：游戏统计 -->
     <div class="screen stats-screen" :style="screenStyles.statsScreen">
-      <header class="stats-header">
-        <h1>游戏统计</h1>
-        <p class="subtitle">"在诗词中游戏，在游戏中学习"</p>
-      </header>
+ 、
 
       <main class="stats-container">
         <!-- 总览统计 -->
@@ -217,57 +214,7 @@
           </div>
         </div>
 
-        <!-- 游戏详细统计 -->
-        <div class="game-details">
-          <div class="detail-section">
-            <h3>📈 游戏表现</h3>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">连胜记录</span>
-                <span class="detail-value">{{ gameStats.bestStreak || 0 }} 局</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">平均得分</span>
-                <span class="detail-value">{{ gameStats.averageScore || 0 }} 分</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">游戏时长</span>
-                <span class="detail-value">{{ formatGameTime(gameStats.totalTime) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">最快答题</span>
-                <span class="detail-value">{{ gameStats.fastestAnswer || 0 }} 秒</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="detail-section">
-            <h3>🎯 知识掌握</h3>
-            <div class="knowledge-stats">
-              <div class="knowledge-item">
-                <span class="knowledge-label">诗词识别</span>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${gameStats.poemRecognition || 0}%` }"></div>
-                </div>
-                <span class="knowledge-percent">{{ gameStats.poemRecognition || 0 }}%</span>
-              </div>
-              <div class="knowledge-item">
-                <span class="knowledge-label">作者匹配</span>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${gameStats.authorMatching || 0}%` }"></div>
-                </div>
-                <span class="knowledge-percent">{{ gameStats.authorMatching || 0 }}%</span>
-              </div>
-              <div class="knowledge-item">
-                <span class="knowledge-label">朝代判断</span>
-                <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: `${gameStats.dynastyKnowledge || 0}%` }"></div>
-                </div>
-                <span class="knowledge-percent">{{ gameStats.dynastyKnowledge || 0 }}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+  
 
         <!-- 成就系统 -->
         <div class="achievements-section">
@@ -320,12 +267,7 @@
           </div>
         </div>
 
-        <!-- 刷新按钮 -->
-        <div class="stats-actions">
-          <button @click="refreshGameStats" class="refresh-btn" :disabled="statsLoading">
-            {{ statsLoading ? '🔄 刷新中...' : '🔄 刷新游戏数据' }}
-          </button>
-        </div>
+
       </main>
     </div>
 
@@ -383,7 +325,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useAuth } from './composables/useAuth'
 import { useGameStats } from './composables/useGameStats'
@@ -503,9 +445,26 @@ const goToScreen = (screenIndex) => {
   isScrolling.value = true
   currentScreen.value = screenIndex
   
+  // 当切换到游戏统计页面时，自动刷新游戏数据
+  if (screenIndex === 1) {
+    autoRefreshGameStats()
+  }
+  
   setTimeout(() => {
     isScrolling.value = false
   }, 800)
+}
+
+// 自动刷新游戏数据
+const autoRefreshGameStats = async () => {
+  try {
+    console.log('🔄 自动刷新游戏数据...')
+    await loadGameStats()
+    console.log('✅ 游戏数据刷新完成')
+  } catch (error) {
+    console.error('💥 自动刷新游戏数据失败:', error)
+    // 这里不显示错误弹窗，因为是自动刷新，静默失败
+  }
 }
 
 const showLogin = () => {
@@ -606,16 +565,6 @@ const refreshUserData = async () => {
   }
 }
 
-const refreshGameStats = async () => {
-  try {
-    await loadGameStats()
-    console.log('✅ 游戏数据刷新完成')
-  } catch (error) {
-    console.error('💥 刷新游戏数据失败:', error)
-    alert('刷新游戏数据失败，请稍后重试')
-  }
-}
-
 const formatGameTime = (seconds) => {
   if (!seconds) return '0分钟'
   
@@ -629,6 +578,15 @@ const formatGameTime = (seconds) => {
   }
 }
 
+// 监听登录状态变化，自动刷新数据
+watch(isLoggedIn, (newVal) => {
+  if (newVal) {
+    // 用户登录后自动刷新所有数据
+    console.log('🔄 用户登录，自动刷新所有数据...')
+    refreshUserData()
+  }
+}, { immediate: false })
+
 // 生命周期
 onMounted(async () => {
   console.log('🚀 [UserInfo] 组件开始初始化')
@@ -638,11 +596,11 @@ onMounted(async () => {
     userStore.initFromStorage()
   }
   
-  // 初始化数据
+  // 初始化数据 - 自动刷新游戏数据
   try {
     await Promise.all([
       initializeFavorites(),
-      loadGameStats()
+      loadGameStats() // 组件挂载时自动加载游戏数据
     ])
     
     // 模拟用户统计数据
@@ -688,25 +646,22 @@ onUnmounted(() => {
   height: 100vh;
   transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1rem 2rem;
   box-sizing: border-box;
 }
 
-.user-screen {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.user-screen,.stats-screen {
+  background: rgba(245, 239, 230, 0.98);
 }
 
-.stats-screen {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
 
-.profile-header, .stats-header {
+.profile-header {
   text-align: center;
   margin-bottom: 2rem;
   color: white;
 }
 
-.profile-header h1, .stats-header h1 {
+.profile-header h1{
   font-size: 3rem;
   margin: 0;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
@@ -1136,27 +1091,6 @@ onUnmounted(() => {
   font-size: 1rem;
 }
 
-.game-details {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.detail-section {
-  background: rgba(255,255,255,0.95);
-  border-radius: 15px;
-  padding: 2rem;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  backdrop-filter: blur(10px);
-}
-
-.detail-section h3 {
-  color: #333;
-  margin: 0 0 1.5rem 0;
-  font-size: 1.3rem;
-}
-
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1350,28 +1284,6 @@ onUnmounted(() => {
   text-align: center;
 }
 
-.refresh-btn {
-  padding: 1rem 2rem;
-  background: rgba(255,255,255,0.9);
-  border: 2px solid #4f46e5;
-  border-radius: 10px;
-  color: #4f46e5;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  background: #4f46e5;
-  color: white;
-  transform: translateY(-2px);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 /* 诗词详情弹窗 */
 .poem-modal-overlay {
@@ -1495,10 +1407,7 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
   
-  .game-details {
-    grid-template-columns: 1fr;
-  }
-  
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
