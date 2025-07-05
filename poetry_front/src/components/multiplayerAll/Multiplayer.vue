@@ -62,7 +62,7 @@ function startTurn() {
   clearTimeout(turnTimeout)
 
   let remaining = TURN_DURATION / 1000
-   if (timerEl) timerEl.textContent = remaining;
+  if (timerEl) timerEl.textContent = remaining;
 
   countdownInterval = setInterval(() => {
     remaining--;
@@ -433,7 +433,7 @@ const cardSlotMapping = {
   'byebye': 'buff',
   'flower': 'buff',
   'love': 'buff',
-  
+
   // 攻击槽位卡片
   'fire': 'attack',
   'bird': 'attack',
@@ -491,7 +491,7 @@ const gameState_one = ref({
 //updateCard函数，添加对第一个场景的更新
 const updateCard = (row, col, cardType) => {
   gameState_one.value.cardGrid[row][col] = cardType;
-  
+
   if (battleScene && battleScene.scene.scenes[0]) {
     updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, cardType);
   }
@@ -503,31 +503,31 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
   const height = scene.cameras.main.height;
   const centerX = width / 2;
   const centerY = height / 2;
-  
+
   // 计算卡槽位置（与创建时相同的逻辑）
   const slotWidth = 100;
   const slotHeight = 140;
   const horizontalGap = 60;
   const verticalGap = 20;
-  
+
   const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
   const totalHeight = (slotHeight * 4) + (verticalGap * 3);
-  
+
   const startX = centerX - (totalWidth / 2);
   const startY = (height - totalHeight) / 2;
-  
+
   const x = startX + (col * (slotWidth + horizontalGap));
   const y = startY + (row * (slotHeight + verticalGap));
-  
+
   // 查找并更新对应位置的卡片
   const cardKey = `card_${row}_${col}`;
   const existingCard = scene.children.getByName(cardKey);
-  
+
   if (existingCard) {
     // 如果卡片已存在，更新纹理
     existingCard.setTexture(cardType);
-    existingCard.setDisplaySize(slotWidth, slotHeight); 
-    
+    existingCard.setDisplaySize(slotWidth, slotHeight);
+
     // 添加更新动画
     scene.tweens.add({
       targets: existingCard,
@@ -543,12 +543,12 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
 const removeCardFromSlot = (row, col) => {
   // 重置游戏状态
   gameState_one.value.cardGrid[row][col] = 'cardBack';
-  
+
   // 更新显示
   if (battleScene && battleScene.scene.scenes[0]) {
     updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
   }
-  
+
   console.log(`Removed card from slot [${row}][${col}]`);
 };
 
@@ -641,8 +641,13 @@ onMounted(() => {
         buffs.forEach(buff => {
           this.load.image(buff.key, buff.src);
         });
+
+        heads.forEach(head => {
+          this.load.image(head.key, head.src);
+        });
       },
       create() {
+
         const graphics = this.add.graphics();
 
         // 绘制卡牌背面的花纹
@@ -667,12 +672,7 @@ onMounted(() => {
           this.load.image(buff.key, buff.src);
         });
 
-        // 1. 加载头像素材
-        heads.forEach(head => {
-          this.load.image(head.key, head.src);
-        });
-      },
-      create() {
+
         // 获取游戏画布的中心点和尺寸
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -1339,18 +1339,18 @@ onMounted(() => {
 
           const cardType = card.getData('type')
           console.log('卡片放入攻击槽:', cardType)
-          
+
           // 更新游戏状态
           setTimeout(() => {
             updateCard(3, 0, cardType);
           }, 100);
-          
-          
+
+
           // 添加视觉效果
           const flash = this.add.circle(attackSlot.x + 50, attackSlot.y + 70, 40, 0xff4444, 0.8)
             .setDepth(150)
             .setBlendMode(Phaser.BlendModes.ADD)
-          
+
           this.tweens.add({
             targets: flash,
             scale: { from: 0.1, to: 2 },
@@ -1358,7 +1358,7 @@ onMounted(() => {
             duration: 500,
             onComplete: () => flash.destroy()
           })
-          
+
           // 显示效果文本
           const effectText = this.add.text(attackSlot.x + 50, attackSlot.y + 30, '⚔️ 攻击!', {
             fontSize: '16px',
@@ -1366,7 +1366,7 @@ onMounted(() => {
             backgroundColor: '#ff4444',
             padding: { x: 8, y: 4 }
           }).setOrigin(0.5).setDepth(200)
-          
+
           this.tweens.add({
             targets: effectText,
             y: '-=30',
@@ -1374,7 +1374,7 @@ onMounted(() => {
             duration: 1000,
             onComplete: () => effectText.destroy()
           })
-          
+
           // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
@@ -1390,17 +1390,17 @@ onMounted(() => {
 
           const cardType = card.getData('type')
           console.log('卡片放入防御槽:', cardType)
-          
+
           // 更新游戏状态
           setTimeout(() => {
             updateCard(3, 1, cardType);
           }, 100);
-          
+
           // 添加视觉效果
           const flash = this.add.circle(defenseSlot.x + 50, defenseSlot.y + 70, 40, 0x4488ff, 0.8)
             .setDepth(150)
             .setBlendMode(Phaser.BlendModes.ADD)
-          
+
           this.tweens.add({
             targets: flash,
             scale: { from: 0.1, to: 2 },
@@ -1408,7 +1408,7 @@ onMounted(() => {
             duration: 500,
             onComplete: () => flash.destroy()
           })
-          
+
           // 显示效果文本
           const effectText = this.add.text(defenseSlot.x + 50, defenseSlot.y + 30, '🛡️ 防御!', {
             fontSize: '16px',
@@ -1416,7 +1416,7 @@ onMounted(() => {
             backgroundColor: '#4488ff',
             padding: { x: 8, y: 4 }
           }).setOrigin(0.5).setDepth(200)
-          
+
           this.tweens.add({
             targets: effectText,
             y: '-=30',
@@ -1424,7 +1424,7 @@ onMounted(() => {
             duration: 1000,
             onComplete: () => effectText.destroy()
           })
-          
+
           // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
@@ -1440,17 +1440,17 @@ onMounted(() => {
 
           const cardType = card.getData('type')
           console.log('卡片放入BUFF槽:', cardType)
-          
+
           // 更新游戏状态
           setTimeout(() => {
             updateCard(3, 2, cardType);
           }, 100);
-          
+
           // 添加视觉效果
           const flash = this.add.circle(buffSlot.x + 50, buffSlot.y + 70, 40, 0x44cc44, 0.8)
             .setDepth(150)
             .setBlendMode(Phaser.BlendModes.ADD)
-          
+
           this.tweens.add({
             targets: flash,
             scale: { from: 0.1, to: 2 },
@@ -1458,7 +1458,7 @@ onMounted(() => {
             duration: 500,
             onComplete: () => flash.destroy()
           })
-          
+
           // 显示效果文本
           const effectText = this.add.text(buffSlot.x + 50, buffSlot.y + 30, '✨ BUFF!', {
             fontSize: '16px',
@@ -1466,7 +1466,7 @@ onMounted(() => {
             backgroundColor: '#44cc44',
             padding: { x: 8, y: 4 }
           }).setOrigin(0.5).setDepth(200)
-          
+
           this.tweens.add({
             targets: effectText,
             y: '-=30',
@@ -1474,7 +1474,7 @@ onMounted(() => {
             duration: 1000,
             onComplete: () => effectText.destroy()
           })
-          
+
           // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
@@ -1890,9 +1890,9 @@ onMounted(() => {
 
           // 检查是否在攻击槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= attackSlot.x &&
-              pointer.x <= attackSlot.x + attackSlot.width) {
-            
+            pointer.x >= attackSlot.x &&
+            pointer.x <= attackSlot.x + attackSlot.width) {
+
             if (canPlaceInSlot(cardType, 'attack')) {
               handleAttackSlot(gameObject)
             } else {
@@ -1903,9 +1903,9 @@ onMounted(() => {
 
           // 检查是否在防御槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= defenseSlot.x &&
-              pointer.x <= defenseSlot.x + defenseSlot.width) {
-            
+            pointer.x >= defenseSlot.x &&
+            pointer.x <= defenseSlot.x + defenseSlot.width) {
+
             if (canPlaceInSlot(cardType, 'defense')) {
               handleDefenseSlot(gameObject)
             } else {
@@ -1916,9 +1916,9 @@ onMounted(() => {
 
           // 检查是否在BUFF槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= buffSlot.x &&
-              pointer.x <= buffSlot.x + buffSlot.width) {
-            
+            pointer.x >= buffSlot.x &&
+            pointer.x <= buffSlot.x + buffSlot.width) {
+
             if (canPlaceInSlot(cardType, 'buff')) {
               handleBuffSlot(gameObject)
             } else {
@@ -2166,7 +2166,7 @@ onMounted(() => {
         // 修改拖拽中事件
         this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
 
-            // 添加槽位高亮逻辑
+          // 添加槽位高亮逻辑
           const cardType = gameObject.getData('type')
           const allowedSlotType = cardSlotMapping[cardType]
 
@@ -2183,20 +2183,20 @@ onMounted(() => {
           } else if (allowedSlotType === 'buff') {
             buffSlot.setStrokeStyle(3, 0xffffff, 1)
           }
-        // 添加出售槽状态检测
-        const isInSellArea = dragY < topBarHeight && 
-                            dragX >= sellSlot.x && 
-                            dragX <= sellSlot.x + sellSlot.width
-        
-        //const cardType = gameObject.getData('type')
-        const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
-        
-        // 更新出售槽样式
-        if (isInSellArea && canSell) {
-          sellSlot.setStrokeStyle(2, 0xffffff)
-        } else {
-          sellSlot.setStrokeStyle(2, 0x6e5773)
-        }
+          // 添加出售槽状态检测
+          const isInSellArea = dragY < topBarHeight &&
+            dragX >= sellSlot.x &&
+            dragX <= sellSlot.x + sellSlot.width
+
+          //const cardType = gameObject.getData('type')
+          const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
+
+          // 更新出售槽样式
+          if (isInSellArea && canSell) {
+            sellSlot.setStrokeStyle(2, 0xffffff)
+          } else {
+            sellSlot.setStrokeStyle(2, 0x6e5773)
+          }
           gameObject.x = dragX
           gameObject.y = dragY
 
