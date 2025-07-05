@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class MainService extends TextWebSocketHandler {
 
+    Map<String,Integer>roomNum=new ConcurrentHashMap<>();
     private static final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -174,10 +175,13 @@ public class MainService extends TextWebSocketHandler {
     }
 
     private void handleRoundBeginMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
-
+        //调用playerService.beginService,false
+        //发送roomId,发送uid，均为true再执行
     }
     private void handleRoundEndMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
-
+        //调用playerService.MainService
+        //需要：当前卡牌的英文名，当前roomId
+        //同步所有的
     }
 
 
@@ -244,9 +248,29 @@ public class MainService extends TextWebSocketHandler {
      * @param userId 用户ID
      * @return 返回加入结果信息
      */
-    public String JoinRoom(String roomId,int userId){
-        if(roomMap.containsKey(roomId)) {
-            initService.joinRoom(roomMap.get(roomId),userId);
+    public String JoinRoom(String roomId, int userId) {
+        if (roomMap.containsKey(roomId)) {
+            initService.joinRoom(roomMap.get(roomId), userId);
+
+            // 更新房间人数
+            if (roomNum.containsKey(roomId))
+                roomNum.put(roomId, roomNum.get(roomId) + 1);
+            else
+                roomNum.put(roomId, 1);
+
+            // 广播房间人数变化
+            try {
+                Map<String, Object> roomUpdateMsg = new HashMap<>();
+                roomUpdateMsg.put("type", "room_update");
+                roomUpdateMsg.put("roomId", roomId);
+                roomUpdateMsg.put("playerCount", roomNum.get(roomId));
+
+                String updateMsg = objectMapper.writeValueAsString(roomUpdateMsg);
+                broadcast(updateMsg);
+            } catch (Exception e) {
+                System.err.println("广播房间更新失败: " + e.getMessage());
+            }
+
             return "加入成功!";
         }
         else return "没找到房间！";
