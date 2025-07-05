@@ -365,7 +365,6 @@ export default {
   border-radius: 8px;
   margin-bottom: 2rem;
   font-weight: 600;
-  animation: pulse 2s infinite;
   
   .icon-star {
     font-size: 1.2rem;

@@ -44,8 +44,9 @@ values (#{UID}, #{Difficulty}, #{Sum}, #{Max}, #{Mintime})
 
 <select id="getRank" resultType="com.example.bg.comp.compRec">
 select * from record
-where Difficulty = #{Difficulty} AND Sum = #{Sum}
-order by Max desc,Mintime asc
+where Difficulty = #{param1} AND Sum = #{param2}
+order by Max desc, Mintime asc
+limit 20
 </select>
 
     <!-- 🔧 新增SQL -->

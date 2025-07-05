@@ -5,7 +5,11 @@
       <div class="screen" ref="screen0"></div>
       <!-- 第二个游戏页面 -->
       <div class="screen" ref="screen1">
+
       </div>
+      <teleport to="body">
+        <div id="countdown-timer" class="countdown">30</div>
+      </teleport>
     </div>
   </div>
 </template>
@@ -14,6 +18,70 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
 
+console.log('🏁 script setup 运行了');
+
+// 回合时间（秒）
+const TURN_DURATION = 5 * 1000
+// 结算延迟（毫秒）
+const SETTLE_DELAY = 5 * 1000
+
+let turnTimeout = null;
+let countdownInterval = null;
+let timerEl = null;
+
+
+// 禁止/恢复页面滚动
+function disablePageScroll() { document.body.style.overflow = 'hidden'; }
+function enablePageScroll() { document.body.style.overflow = ''; }
+
+// 强制滚动到第一个 Phaser 容器
+function scrollToFirst() {
+  const el = document.querySelector('.screen-wrapper > .screens .screen');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// 结算逻辑：根据你的 game1/game2 场景状态来写
+function settlement() {
+  console.log('执行回合结算！')
+  // …在这里调用你的分数计算或状态重置…
+}
+
+// 回合结束时的流程
+function onTurnEnd() {
+  clearInterval(countdownInterval)
+
+  settlement()
+
+  startTurn()
+}
+
+// 启动（或重启）一个回合
+function startTurn() {
+  //
+  clearInterval(countdownInterval)
+  clearTimeout(turnTimeout)
+
+  let remaining = TURN_DURATION / 1000
+   if (timerEl) timerEl.textContent = remaining;
+
+  countdownInterval = setInterval(() => {
+    remaining--;
+    if (timerEl) timerEl.textContent = remaining > 0 ? remaining : 0;
+    if (remaining <= 0) {
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+
+  turnTimeout = setTimeout(() => {
+    // 确保显示“0”
+    if (timerEl) timerEl.textContent = 0;
+    // 真正执行回合结束流程
+    onTurnEnd();
+  }, TURN_DURATION);
+
+  // 4. 30 秒后触发回合结束
+  turnTimeout = setTimeout(onTurnEnd, TURN_DURATION)
+}
 //-----------------------------------------
 let buySlot1Animating = false
 let buySlot1OriginalX
@@ -84,17 +152,17 @@ const cardImages = [
   { key: 'shudaonan', src: new URL('../../assets/cards/诗词/蜀道难.png', import.meta.url).href },
   { key: 'xinglunan', src: new URL('../../assets/cards/诗词/行路难.png', import.meta.url).href },
   { key: 'huanghelousongmenghaoranzhiguangling', src: new URL('../../assets/cards/诗词/黄鹤楼送孟浩然之广陵.png', import.meta.url).href },
-  
+
   { key: 'shizhisaishang', src: new URL('../../assets/cards/诗词/使至塞上.png', import.meta.url).href },
   { key: 'xiangsi', src: new URL('../../assets/cards/诗词/相思.png', import.meta.url).href },
   { key: 'shanjuqiuming', src: new URL('../../assets/cards/诗词/山居秋暝.png', import.meta.url).href },
   { key: 'zhuliguan', src: new URL('../../assets/cards/诗词/竹里馆.png', import.meta.url).href },
-  
+
   { key: 'shuidiaogetou_mingyuejishiyou', src: new URL('../../assets/cards/诗词/水调歌头·明月几时有.png', import.meta.url).href },
   { key: 'chibifu', src: new URL('../../assets/cards/诗词/赤壁赋.png', import.meta.url).href },
   { key: 'jichengtansiyeyou', src: new URL('../../assets/cards/诗词/记承天寺夜游.png', import.meta.url).href },
   { key: 'dingfengbo_motingchuanlindayesheng', src: new URL('../../assets/cards/诗词/定风波·莫听穿林打叶声.png', import.meta.url).href },
-  
+
 ]
 
 //合成表
@@ -157,7 +225,7 @@ const checkCrafting = (cards) => {
 // 卡牌价格
 const cardPrices = {
   card_pack_poem: 10,
-                         
+
   love: 7,
   sad: 2,
   spring: 1,
@@ -263,8 +331,8 @@ const handleBuyPack = () => {
         } else {
           // 第二次点击：生成随机卡片并销毁卡包
           const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
-           'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower', 
-           'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
+            'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower',
+            'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
           const numCards = 5
 
           // 创建闪光效果
@@ -391,6 +459,10 @@ const cardSlotMapping = {
 const canPlaceInSlot = (cardType, slotType) => {
   return cardSlotMapping[cardType] === slotType
 }
+const heads = [
+  { key: 'aiboy', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
+  { key: 'aigirl', src: new URL('../../assets/cards/aigirl.png', import.meta.url).href },
+]
 
 //对战双方游戏状态
 const gameState_one = ref({
@@ -538,6 +610,7 @@ let battleScene = null // 添加战斗场景的引用
 
 onMounted(() => {
 
+
   //页面初始化
   const commonConfig = {
     type: Phaser.AUTO,
@@ -550,6 +623,7 @@ onMounted(() => {
     }
   };
 
+  timerEl = document.getElementById('countdown-timer');
   // 第一个 Phaser 实例：对战界面
   battleScene = new Phaser.Game({
     ...commonConfig,
@@ -588,6 +662,17 @@ onMounted(() => {
         graphics.generateTexture('cardBack', 100, 140);
         graphics.destroy();
 
+        // 加载状态效果图片
+        buffs.forEach(buff => {
+          this.load.image(buff.key, buff.src);
+        });
+
+        // 1. 加载头像素材
+        heads.forEach(head => {
+          this.load.image(head.key, head.src);
+        });
+      },
+      create() {
         // 获取游戏画布的中心点和尺寸
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -693,7 +778,14 @@ onMounted(() => {
         const allyBarX = 250;
 
         // 创建己方头像
-        const allyAvatar = this.add.circle(100, allyAvatarY, 40, 0x4A5568);
+        this.allyAvatar = this.add.image(
+          100,
+          allyAvatarY,
+          'aiboy'
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 己方血条和护甲条
         const allyHealthWidth = (gameState_one.value.ally.health / gameState_one.value.ally.maxHealth) * 200;
@@ -726,7 +818,14 @@ onMounted(() => {
         const enemyBarX = width - 250;
 
         // 创建敌方头像
-        const enemyAvatar = this.add.circle(width - 100, enemyAvatarY, 40, 0xE53E3E);
+        this.enemyAvatar = this.add.image(
+          width - 100,
+          enemyAvatarY,
+          'aigirl'        // ← 纹理 key
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 敌方血条和护甲条
         const enemyHealthWidth = (gameState_one.value.enemy.health / gameState_one.value.enemy.maxHealth) * 200;
@@ -801,7 +900,7 @@ onMounted(() => {
             // 查找对应的 buff 图片
             const buff = buffs.find(b => b.key === effectKey);
             if (buff) {
-              const iconX = isAlly ? x + (index * spacing)+100 : x - (index * spacing)+150;
+              const iconX = isAlly ? x + (index * spacing) + 100 : x - (index * spacing) + 150;
               const icon = this.add.image(iconX, y, buff.key)
                 .setDisplaySize(iconSize, iconSize)
                 .setOrigin(0.5, 0.5);
@@ -879,7 +978,7 @@ onMounted(() => {
 
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
-            // 创建顶部边栏背景，并添加交互效果
+        // 创建顶部边栏背景，并添加交互效果
         const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
           .setOrigin(0, 0)
           .setDepth(100)
@@ -902,7 +1001,7 @@ onMounted(() => {
 
         const sellText = this.add.text(sellSlot.x + 50, sellSlot.y + 90, '出售卡牌', {  // y位置上移
           fontSize: '14px',
-          resolution: 2, 
+          resolution: 2,
           color: '#ffffff',
           align: 'center',
           padding: { y: 5 }  // 添加垂直内边距
@@ -944,7 +1043,7 @@ onMounted(() => {
             // 简单的悬浮效果 - 只改变边框颜色和透明度
             buySlot.setStrokeStyle(3, 0xffffff, 1) // 白色边框
             buySlot.setAlpha(0.9) // 轻微透明
-            
+
             // 简单的文字轻微放大
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -963,7 +1062,7 @@ onMounted(() => {
           // 恢复原状
           buySlot.setStrokeStyle(3, 0x8c7853, 0.9)
           buySlot.setAlpha(1)
-          
+
           this.tweens.add({
             targets: [buyIcon, buyText],
             scale: 1,
@@ -981,17 +1080,17 @@ onMounted(() => {
         this.shiftKey.on('down', () => {
           // 切换模式状态
           isStackingMode.value = !isStackingMode.value
-          
+
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
-          
+
           // 颜色渐变动画 - 不改变位置和大小
           this.tweens.add({
             targets: modeHintBackground,
             duration: 300,
             ease: 'Power2.easeOut',
-            onUpdate: function() {
+            onUpdate: function () {
               const progress = this.progress
               const currentColor = Phaser.Display.Color.Interpolate.ColorWithColor(
                 Phaser.Display.Color.ValueToColor(modeHintBackground.fillColor),
@@ -1003,7 +1102,7 @@ onMounted(() => {
               modeHintBackground.setStrokeStyle(2, newStrokeColor, 0.5 + progress * 0.5)
             }
           })
-          
+
           // 文字淡入淡出
           this.tweens.add({
             targets: modeHintText,
@@ -1030,7 +1129,7 @@ onMounted(() => {
             buyIcon.setScale(1)
             buyText.setScale(1)
             handleBuyPack()
-            
+
             // 简单的按下反馈
             this.tweens.add({
               targets: buySlot,
@@ -1043,7 +1142,7 @@ onMounted(() => {
                 buySlot.setScale(1) // 确保动画完成后重置
               }
             })
-            
+
             // 简单的文字反馈
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -1056,10 +1155,10 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简洁的边框闪烁
             buySlot.setStrokeStyle(3, 0xffffff)
-            
+
             // 保留金币消费提示（这个比较实用）
             const costText = this.add.text(
               buySlot.x + 50,
@@ -1072,7 +1171,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: costText,
               y: '-=30',
@@ -1081,7 +1180,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => costText.destroy()
             })
-            
+
           } else {
             if (buySlot1Animating) return
             buySlot1Animating = true
@@ -1107,7 +1206,7 @@ onMounted(() => {
                 buySlot1Animating = false
               }
             })
-            
+
             this.tweens.add({
               targets: [buyIcon, buyText],
               x: '+=3',
@@ -1121,7 +1220,7 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简单的警告提示
             const warningText = this.add.text(
               buySlot.x + 50,
@@ -1134,7 +1233,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: warningText,
               y: '-=20',
@@ -1143,7 +1242,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => warningText.destroy()
             })
-            
+
             buySlot.setStrokeStyle(3, 0xff5722)
           }
         }
@@ -1173,7 +1272,7 @@ onMounted(() => {
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90 , '攻击卡槽', {
+        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90, '攻击卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1185,19 +1284,19 @@ onMounted(() => {
 
 
         // 创建防守卡槽
-        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding , 100, 140, 0x0066cc)
+        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding, 100, 140, 0x0066cc)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x4488ff, 0.9)
 
-        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40 , '🛡️', {
+        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40, '🛡️', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90 , '防守卡槽', {
+        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90, '防守卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1208,19 +1307,19 @@ onMounted(() => {
         }).setOrigin(0.5).setDepth(102)
 
         // 创建BUFF卡槽
-        const buffSlot = this.add.rectangle(padding * 5 + 400, padding , 100, 140, 0x228b22)
+        const buffSlot = this.add.rectangle(padding * 5 + 400, padding, 100, 140, 0x228b22)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x44cc44, 0.9)
 
-        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40 , '✨', {
+        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40, '✨', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90 , 'BUFF卡槽', {
+        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90, 'BUFF卡槽', {
           fontSize: '16px',
           color: '#ffffff',
           align: 'center',
@@ -1385,11 +1484,11 @@ onMounted(() => {
         const finalCraftingX = padding * 6 + 500 + padding;
         const craftingStation = this.add.rectangle(
           finalCraftingX, // 直接设置最终位置，不需要动画
-          padding, 
-          400, 
-          140, 
-          0xa3916a, 
-          1 
+          padding,
+          400,
+          140,
+          0xa3916a,
+          1
         )
           .setOrigin(0, 0)
           .setDepth(100)
@@ -1398,17 +1497,17 @@ onMounted(() => {
         // 创建四个合成槽
         const craftingSlots = []
         const slotWidth = 80
-        const cardWidth = 100; 
-        const cardHeight = 140; 
+        const cardWidth = 100;
+        const cardHeight = 140;
         const slotSpacing = 20
-        const slotTypes = [null, null, null, null] 
+        const slotTypes = [null, null, null, null]
 
         for (let i = 0; i < 4; i++) {
           // 直接使用最终位置，删除动画
           const finalX = finalCraftingX + slotSpacing + i * (cardWidth + slotSpacing);
-          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; 
+          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2;
 
-          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853) 
+          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853)
             .setOrigin(0, 0)
             .setDepth(101)
             .setStrokeStyle(1, 0xffffff)
@@ -1423,9 +1522,9 @@ onMounted(() => {
           let operatorText = null;
           if (i < 3) {
             operatorText = this.add.text(
-              finalX + cardWidth + 5, 
-              y + cardHeight / 2, 
-              i < 2 ? '+' : '=', 
+              finalX + cardWidth + 5,
+              y + cardHeight / 2,
+              i < 2 ? '+' : '=',
               {
                 fontSize: '24px',
                 resolution: 5,
@@ -1454,105 +1553,105 @@ onMounted(() => {
           }
         }
 
-          // 添加拖放事件
-          // 修改合成槽的拖放逻辑
-          this.input.on('drop', (pointer, gameObject, dropZone) => {
-            const cardType = gameObject.getData('type');
-            const slotType = dropZone.getData('type');
+        // 添加拖放事件
+        // 修改合成槽的拖放逻辑
+        this.input.on('drop', (pointer, gameObject, dropZone) => {
+          const cardType = gameObject.getData('type');
+          const slotType = dropZone.getData('type');
 
-            const canPlace = (slotType === null) || 
-                            (slotType === cardType) || 
-                            !dropZone.getData('occupied');
+          const canPlace = (slotType === null) ||
+            (slotType === cardType) ||
+            !dropZone.getData('occupied');
 
-            if (canPlace && !dropZone.getData('occupied')) {
-              // 放置卡牌到槽位
-              dropZone.setData('occupied', true);
-              dropZone.setData('card', gameObject);
+          if (canPlace && !dropZone.getData('occupied')) {
+            // 放置卡牌到槽位
+            dropZone.setData('occupied', true);
+            dropZone.setData('card', gameObject);
 
-              // 调整卡牌位置到槽位中心
-              gameObject.x = dropZone.x + dropZone.width / 2;
-              gameObject.y = dropZone.y + dropZone.height / 2;
-              gameObject.setDepth(102); // 确保在槽位上方
+            // 调整卡牌位置到槽位中心
+            gameObject.x = dropZone.x + dropZone.width / 2;
+            gameObject.y = dropZone.y + dropZone.height / 2;
+            gameObject.setDepth(102); // 确保在槽位上方
 
-              // 检查是否可以合成
-              const materials = craftingSlots.slice(0, 3)
-                .map(slot => slot.getData('card'))
-                .filter(Boolean);
+            // 检查是否可以合成
+            const materials = craftingSlots.slice(0, 3)
+              .map(slot => slot.getData('card'))
+              .filter(Boolean);
 
-              if (materials.length === 3) {
-                console.log('Materials ready:', materials.map(card => card.getData('type')));
-                const resultType = checkCrafting(materials);
-                
-                if (resultType) {
-                  console.log('Creating result card:', resultType);
-                  
-                  // 创建结果卡牌
-                  const resultCard = this.physics.add.image(
-                    craftingSlots[3].x + craftingSlots[3].width / 2,
-                    craftingSlots[3].y + craftingSlots[3].height / 2,
-                    resultType
-                  )
-                    .setDisplaySize(100, 140)
-                    .setInteractive({ cursor: 'pointer', useHandCursor: true })
-                    .setCollideWorldBounds(true)
-                    .setBounce(0.8)
-                    .setData('type', resultType)
-                    .setData('id', Date.now().toString())
-                    .setDepth(102); // 确保可见
+            if (materials.length === 3) {
+              console.log('Materials ready:', materials.map(card => card.getData('type')));
+              const resultType = checkCrafting(materials);
 
-                  this.input.setDraggable(resultCard);
-                  this.cards.push(resultCard);
+              if (resultType) {
+                console.log('Creating result card:', resultType);
 
-                  // 添加合成效果
-                  const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
-                    .setScale(0.1)
-                    .setAlpha(0.8)
-                    .setTint(0xffd700)
-                    .setBlendMode(Phaser.BlendModes.ADD)
-                    .setDepth(103);
+                // 创建结果卡牌
+                const resultCard = this.physics.add.image(
+                  craftingSlots[3].x + craftingSlots[3].width / 2,
+                  craftingSlots[3].y + craftingSlots[3].height / 2,
+                  resultType
+                )
+                  .setDisplaySize(100, 140)
+                  .setInteractive({ cursor: 'pointer', useHandCursor: true })
+                  .setCollideWorldBounds(true)
+                  .setBounce(0.8)
+                  .setData('type', resultType)
+                  .setData('id', Date.now().toString())
+                  .setDepth(102); // 确保可见
 
-                  this.tweens.add({
-                    targets: flash,
-                    alpha: 0,
-                    scale: 1,
-                    duration: 500,
-                    onComplete: () => flash.destroy()
-                  });
+                this.input.setDraggable(resultCard);
+                this.cards.push(resultCard);
 
-                  // 清空材料槽，但保留诗人槽（索引2）
-                  materials.forEach(card => {
-                    // 检查是否是固定的诗人卡片
-                    if (!card.getData('isFixed')) {
-                      // 从cards数组中移除
-                      this.cards = this.cards.filter(c => c !== card);
-                      card.destroy();
-                    }
-                  });
+                // 添加合成效果
+                const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
+                  .setScale(0.1)
+                  .setAlpha(0.8)
+                  .setTint(0xffd700)
+                  .setBlendMode(Phaser.BlendModes.ADD)
+                  .setDepth(103);
 
-                  // 只清空非诗人槽
-                  craftingSlots.forEach((slot, index) => {
-                    if (index !== 2) { // 不清空诗人槽（索引2）
-                      slot.setData('occupied', false);
-                      slot.setData('card', null);
-                    }
-                  });
-                  
-                  console.log('Crafting completed successfully!');
-                } else {
-                  console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
-                }
+                this.tweens.add({
+                  targets: flash,
+                  alpha: 0,
+                  scale: 1,
+                  duration: 500,
+                  onComplete: () => flash.destroy()
+                });
+
+                // 清空材料槽，但保留诗人槽（索引2）
+                materials.forEach(card => {
+                  // 检查是否是固定的诗人卡片
+                  if (!card.getData('isFixed')) {
+                    // 从cards数组中移除
+                    this.cards = this.cards.filter(c => c !== card);
+                    card.destroy();
+                  }
+                });
+
+                // 只清空非诗人槽
+                craftingSlots.forEach((slot, index) => {
+                  if (index !== 2) { // 不清空诗人槽（索引2）
+                    slot.setData('occupied', false);
+                    slot.setData('card', null);
+                  }
+                });
+
+                console.log('Crafting completed successfully!');
+              } else {
+                console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
               }
-            } else {
-              console.log('Cannot place card:', cardType, 'in slot:', slotType);
             }
-          });
+          } else {
+            console.log('Cannot place card:', cardType, 'in slot:', slotType);
+          }
+        });
 
 
         // 对应地修改金币文本的深度值
         const coinDisplay = this.add.text(
-          this.scale.width - padding - 10, 
-          padding + 20, 
-          `💰 ${coins.value}`, 
+          this.scale.width - padding - 10,
+          padding + 20,
+          `💰 ${coins.value}`,
           {
             fontSize: '24px',
             resolution: 2,
@@ -1560,7 +1659,7 @@ onMounted(() => {
           }
         )
           .setOrigin(1, 0.5)
-          .setDepth(101); 
+          .setDepth(101);
 
         // 添加模式提示背景框
         const modeHintBackground = this.add.rectangle(
@@ -1594,16 +1693,16 @@ onMounted(() => {
         this.events.on('update', () => {
           const currentCoins = coins.value
           const displayText = `💰 ${currentCoins}`
-          
+
           // 只更新右上角的金币显示
           if (coinDisplay.text !== displayText) {
             const oldValue = parseInt(coinDisplay.text.replace('💰 ', '')) || 0
             coinDisplay.setText(displayText)
-            
+
             // 添加金币变化动画
             if (currentCoins !== oldValue && oldValue > 0) {
               const diff = currentCoins - oldValue
-              
+
               // 创建变化提示文本
               if (diff !== 0) {
                 const changeText = this.add.text(
@@ -1616,7 +1715,7 @@ onMounted(() => {
                     resolution: 2
                   }
                 ).setDepth(1001)
-                
+
                 this.tweens.add({
                   targets: changeText,
                   y: changeText.y - 30,
@@ -1626,7 +1725,7 @@ onMounted(() => {
                   onComplete: () => changeText.destroy()
                 })
               }
-              
+
               // 金币数字跳动效果
               this.tweens.add({
                 targets: coinDisplay,
@@ -1638,18 +1737,18 @@ onMounted(() => {
             }
           }
 
-          
+
           // 实时检查Shift键状态并更新模式显示
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
-          
+
           // 只在模式真正改变时更新，避免每帧都执行
           if (modeHintText.text !== newText) {
             modeHintText.setText(newText)
             modeHintBackground.setFillStyle(newColor)
             modeHintBackground.setStrokeStyle(2, newStrokeColor)
-            
+
             // 添加轻微的更新动画
             this.tweens.add({
               targets: [modeHintText, modeHintBackground],
@@ -1668,8 +1767,8 @@ onMounted(() => {
           // 更新金币显示位置
           coinDisplay.x = gameSize.width - padding - 10;
 
-          modeHintBackground.x = gameSize.width - padding ;
-          modeHintText.x = gameSize.width - padding -10;
+          modeHintBackground.x = gameSize.width - padding;
+          modeHintText.x = gameSize.width - padding - 10;
         });
         const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
         for (let i = 0; i < initialCards.length; i++) {
@@ -1686,7 +1785,7 @@ onMounted(() => {
           this.cards.push(card)
         }
 
-            // 设置游戏区域边界
+        // 设置游戏区域边界
         this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height)
 
         // 添加堆叠相关属性
@@ -1725,13 +1824,13 @@ onMounted(() => {
 
             // 遍历所有卡片和堆叠组
             this.cards.forEach(otherCard => {
-              if (otherCard !== gameObject && 
-                  otherCard.getData('type') === cardType && 
-                  otherCard.active) {
-                
+              if (otherCard !== gameObject &&
+                otherCard.getData('type') === cardType &&
+                otherCard.active) {
+
                 // 获取目标卡片所在的堆叠组
                 const targetStack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 // 如果是不同的堆叠组或者未堆叠的卡片
                 if (!targetStack || targetStack !== currentStack) {
                   const distance = Phaser.Math.Distance.Between(
@@ -1750,12 +1849,12 @@ onMounted(() => {
             if (closestCard) {
               let targetStack = this.cardStacks.find(s => s.includes(closestCard))
               let cardsToAdd = [gameObject]
-              
+
               // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
               if (currentStack) {
                 const cardIndex = currentStack.indexOf(gameObject)
                 cardsToAdd = currentStack.splice(cardIndex)
-                
+
                 // 如果原堆叠组只剩一张卡，移除该堆叠组
                 if (currentStack.length <= 1) {
                   this.cardStacks.splice(currentStackIndex, 1)
@@ -1778,7 +1877,7 @@ onMounted(() => {
               // 更新堆叠位置
               const baseY = Math.min(...targetStack.map(card => card.y))
               updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
-              
+
               isStacked = true
             }
 
@@ -1829,13 +1928,13 @@ onMounted(() => {
           }
           // 检查是否在出售槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= sellSlot.x &&
-              pointer.x <= sellSlot.x + sellSlot.width) {
-            
+            pointer.x >= sellSlot.x &&
+            pointer.x <= sellSlot.x + sellSlot.width) {
+
             // 获取当前卡片所在的堆叠组
             const currentStack = this.cardStacks.find(s => s.includes(gameObject))
             let cardsToSell = currentStack ? [...currentStack] : [gameObject]
-            
+
             // 计算总价格
             let totalPrice = 0
             cardsToSell.forEach(card => {
@@ -1888,7 +1987,7 @@ onMounted(() => {
               })
               return
             }
-            else{
+            else {
               sellSlot.setStrokeStyle(2, 0x6e5773)
             }
           }
@@ -1898,11 +1997,11 @@ onMounted(() => {
             this.cards.forEach(otherCard => {
               if (otherCard !== gameObject &&
                 Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
-                
+
                 // 获取两张卡片所在的堆叠组
                 const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
                 const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 const card1Type = gameObject.getData('type')
                 const card2Type = otherCard.getData('type')
 
@@ -1970,7 +2069,7 @@ onMounted(() => {
                         }
                       }
                     }
-                    
+
                     if (card2Stack) {
                       const index = card2Stack.indexOf(otherCard)
                       card2Stack.splice(index, 1)
@@ -2033,20 +2132,20 @@ onMounted(() => {
           if (stackIndex !== -1) {
             const stack = this.cardStacks[stackIndex]
             const cardIndex = stack.indexOf(gameObject)
-            
+
             // 从原堆叠组中移除当前卡片及其上方的所有卡片
             const removedCards = stack.splice(cardIndex)
-            
+
             // 如果原堆叠组只剩一张卡，移除该堆叠组
             if (stack.length === 1) {
               this.cardStacks.splice(stackIndex, 1)
             }
-            
+
             // 为移除的卡片创建新的堆叠组
             if (removedCards.length > 1) {
               this.cardStacks.push(removedCards)
             }
-            
+
             // 设置拖动卡片组的层级
             removedCards.forEach((card, index) => {
               card.setDepth(150 + index)
@@ -2118,7 +2217,7 @@ onMounted(() => {
         function updateStackPosition(stack, baseX, baseY, animate = false) {
           stack.forEach((card, index) => {
             if (!card.active) return // 检查卡片是否还存在
-            
+
             if (animate) {
               // 使用动画更新位置
               this.tweens.add({
@@ -2141,11 +2240,16 @@ onMounted(() => {
 
     },
   });
+
+  startTurn();
 });
 
 // 在组件卸载时销毁游戏实例
 onBeforeUnmount(() => {
   if (game) game.destroy(true)
+  clearInterval(countdownInterval);
+  clearTimeout(turnTimeout);
+
 })
 </script>
 
@@ -2168,5 +2272,24 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   position: relative;
+}
+
+.game-wrapper {
+  position: relative;
+}
+
+/* 倒计时样式 */
+.countdown {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 24px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  /* 不拦截点击 */
 }
 </style>

@@ -56,7 +56,7 @@ public class InitService {
         playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
         playerAgainst.setShield(10);
-        playerAgainst.setPlayerCondition(null);
+        playerAgainst.setPlayerCondition(new PlayerCondition());
         return playerAgainst;
     }
 }

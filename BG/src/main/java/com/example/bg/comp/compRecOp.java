@@ -70,24 +70,30 @@ public class compRecOp extends ConnetMySQL {
     }
 
     @PostMapping("/rank")
-    public List<compRec> getRank(@RequestBody compRec rec) {
+    public Map<String, Object> getRank(@RequestBody compRec rec) {
         SqlSession session = null;
         InputStream in = null;
         try {
             in = Resources.getResourceAsStream("SqlMapConfig.xml");
             session = getSession(in);
             compRecOpMapper mapper = session.getMapper(compRecOpMapper.class);
-            return mapper.getRank(rec.Difficulty, rec.Sum);
+            
+            List<compRec> rankList = mapper.getRank(rec.Difficulty, rec.Sum);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", rankList);
+            return response;
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Error: " + e.getMessage());
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("data", null);
+            response.put("message", e.getMessage());
+            return response;
         } finally {
-            try {
-                if (in != null) in.close();
-                if (session != null) session.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            if (in != null) try { in.close(); } catch (Exception e) {}
+            if (session != null) try { session.close(); } catch (Exception e) {}
         }
     }
 

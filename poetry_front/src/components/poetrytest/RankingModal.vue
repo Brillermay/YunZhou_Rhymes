@@ -33,24 +33,24 @@
           <!-- 🔧 排行榜内容 -->
           <div v-else class="ranking-content">
             <!-- 我的排名卡片 -->
-            <div v-if="myRankInfo" class="my-rank-card">
+            <div v-if="processedMyRankInfo" class="my-rank-card">
               <div class="rank-badge">
                 <div class="rank-position">
-                  <span class="rank-number">{{ myRankInfo.rank || '未上榜' }}</span>
+                  <span class="rank-number">{{ processedMyRankInfo.rank || '未上榜' }}</span>
                   <span class="rank-label">我的排名</span>
                 </div>
                 <div class="rank-medal">
-                  <i :class="getMedalIcon(myRankInfo.rank)"></i>
+                  <i :class="getMedalIcon(processedMyRankInfo.rank)"></i>
                 </div>
               </div>
               
               <div class="rank-details">
                 <div class="user-info">
-                  <div class="username">{{ myRankInfo.UserName }}</div>
+                  <div class="username">{{ processedMyRankInfo.UserName }}</div>
                   <div class="user-stats">
-                    <span class="score">{{ myRankInfo.Max }}分</span>
+                    <span class="score">{{ processedMyRankInfo.Max }}分</span>
                     <span class="separator">·</span>
-                    <span class="time">{{ formatTime(myRankInfo.Mintime) }}</span>
+                    <span class="time">{{ formatTime(processedMyRankInfo.Mintime) }}</span>
                   </div>
                 </div>
               </div>
@@ -155,6 +155,8 @@
 </template>
 
 <script>
+import { getCurrentUser } from '@/utils/auth'
+
 export default {
   name: 'RankingModal',
   
@@ -189,7 +191,21 @@ export default {
   
   computed: {
     displayRankList() {
-      return this.rankList.slice(0, 20)
+      // 🔧 为排行榜数据添加用户名
+      return this.rankList.slice(0, 20).map(item => ({
+        ...item,
+        UserName: this.getUserName(item.UID)
+      }))
+    },
+    
+    // 🔧 处理我的排名信息
+    processedMyRankInfo() {
+      if (!this.myRankInfo) return null
+      
+      return {
+        ...this.myRankInfo,
+        UserName: this.getUserName(this.myRankInfo.UID)
+      }
     }
   },
   
@@ -229,7 +245,8 @@ export default {
     },
     
     isMyRank(uid) {
-      return this.myRankInfo && String(this.myRankInfo.UID) === String(uid)
+      const currentUser = getCurrentUser()
+      return currentUser && String(currentUser.uid) === String(uid)
     },
     
     formatTime(seconds) {
@@ -237,6 +254,20 @@ export default {
       const min = Math.floor(seconds / 60)
       const sec = seconds % 60
       return `${min}′${sec.toString().padStart(2, '0')}″`
+    },
+
+        // 🔧 根据UID获取用户名
+  // 🔧 根据UID获取用户名
+    getUserName(uid) {
+      const currentUser = getCurrentUser()
+      
+      // 如果是当前用户，返回当前用户名
+      if (currentUser && String(currentUser.uid) === String(uid)) {
+        return currentUser.username || currentUser.name || '我'
+      }
+      
+      // 如果不是当前用户，返回用户UID
+      return `用户${uid}`
     }
   },
   

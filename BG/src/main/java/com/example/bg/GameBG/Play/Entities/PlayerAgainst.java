@@ -29,9 +29,9 @@ public class PlayerAgainst {
 
     private PlayerCondition playerCondition;
 
-    //fire特性
-    private int fireAdd;
 
+
+    private int cardsNum;
     public int countCardsNum()
     {
         int ans=0;
