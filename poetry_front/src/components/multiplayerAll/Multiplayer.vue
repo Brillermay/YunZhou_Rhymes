@@ -205,6 +205,135 @@ const craftingRecipes = {
 
 };
 
+const cardDescriptions = {
+  // 诗意卡片描述
+  'love': '爱情：恢复5点血量，失去4点金币，下2回合开始时获得3点护盾且免疫所有新增减益,当对手卡牌的附加效果包含针对你的负面状态时，免疫该附加效果（卡牌的主要功能仍正常生效，且不会触发新的负面状态）。，同时每回合开始时减少3枚金币。',
+  'sad': '悲：令对手弃1张手牌。若对手手牌少于3张，失去3点护盾且下一回合无法获得护盾。若对手手牌大于等于5张，那么获得一点金币',
+  'spring': '春天：恢复2点血量。若本回合未受攻击，下回合开始时获得3金币，且抽1张1-3费牌。',
+  'danbo': '淡泊：获得4点护盾。若使用者护盾≥5且本回合没使用战斗类卡牌，恢复3点血量且护盾+1,如果已经满护盾,那么上限加1，同时下回合战斗类牌面值减2。',
+  'home': '故乡：获得2点护盾。若使用后护盾满了，恢复3点血量且下回合抽1张1-2费牌。',
+  'yellowriver': '黄河：造成4点真实伤害。若对方护盾≥5，摧毁所有护盾,该效果不可被免疫。',
+  'fire': '火：造成1点伤害。若对方无护盾，下回合抽1张1-2牌并使其下回合战斗类卡牌伤害+1。',
+  'wine': '酒：造成2点伤害。若本回合受到攻击，抽2张1-2费牌且下回合战斗类卡牌效果+1。',
+  'byebye': '离别：令对手弃2张手牌。若对手护盾小于等于3，造成4点真实伤害且下两回合获得金币-2。',
+  'liu': '柳：获得2点护盾。若本回合受到攻击，恢复2点护盾并免疫下回合1点伤害。',
+  'bird': '鸟：造成1点伤害。若本回合对面使用防守类卡，追加1点真实伤害。',
+  'autumn': '秋：对手金币-2。若其本回合未获得新护盾，弃其1张牌并让他失去1点护盾。',
+  'sun': '日：造成2点伤害。伤害前，若对方有护盾，额外破坏2点护盾并使其下回合防守效果减半。',
+  'mountain': '山：获得1点护盾。若本回合未受伤害，下三回合各+1护盾。',
+  'water': '水：获得1点护盾。若未使用战斗类卡牌，恢复2点血量。',
+  'missing': '思念：造成5点伤害。若对方血量≤10，追加3点真实伤害且无视免疫效果。',
+  'flower': '桃花：恢复3点血量，下三回合各获得2点护盾且每回合回1点血。',
+  'goose': '雁：获得2点护盾。下两回合受到伤害减少1点，若护盾被破则反弹1点真实伤害,同时移除本buff。',
+  'friend': '友情：随机获得1张1-2费牌。若手牌少于3张，再抽2张牌，但下回合攻击卡牌面值-1。',
+  'rain': '雨：造成2点伤害。若对方下回合使用防守卡，该卡无效且追加3点伤害。',
+  'moon': '月：令对手失去1点护盾并随机弃1张牌',
+  'war': '战争：造成2点伤害。若对方下回合使用了进攻，再造成3点真实伤害。',
+  'longriver': '长江：获得5点护盾。护盾上限+3。下三回合每回合恢复4点血量。',
+  'bamboo': '竹：造成3点真实伤害。若未使用其他卡，下回合开始时抽3张1-2费牌并破坏对手1点护盾。',
+  'zhuangzhinanchou': '壮志难酬：对手本回合无法获得护盾。若其下回合获得一定量护盾，则同时给己方添加等量护盾。',
+  'nature': '自然：恢复两点血量.若护盾≥3，获得3点护盾。否则下回合受到伤害时免疫1次破盾的额外伤害。',
+};
+
+class TooltipManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.tooltipTimer = null;
+    this.tooltipDelay = 400; // 悬停多久后显示提示（毫秒）
+    
+    // 创建工具提示容器
+    this.tooltip = scene.add.container(0, 0).setVisible(false).setDepth(1000);
+    
+    // 创建工具提示背景
+    this.tooltipBg = scene.add.rectangle(0, 0, 200, 80, 0x000000, 0.8)
+      .setStrokeStyle(1, 0xffffff, 0.8)
+      .setOrigin(0.5);
+    
+    // 创建工具提示文本
+    this.tooltipText = scene.add.text(0, 0, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      align: 'center',
+      lineSpacing: 5,
+      wordWrap: { width: 180 },
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5);
+    
+    // 添加到容器
+    this.tooltip.add([this.tooltipBg, this.tooltipText]);
+  }
+  
+  // 添加卡片悬停提示功能
+  addTooltipToCard(card) {
+    const self = this;
+    
+    // 鼠标悬停事件
+    card.on('pointerover', function(pointer) {
+      // 清除之前的计时器
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+      }
+      
+      // 创建新计时器
+      self.tooltipTimer = setTimeout(() => {
+        const cardType = card.getData('type');
+        const description = cardDescriptions[cardType] || `${cardType}卡`;
+        
+        // 更新工具提示文本
+        self.tooltipText.setText(description);
+        
+        // 调整背景大小以适应文本
+        const padding = 20;
+        self.tooltipBg.width = self.tooltipText.width + padding * 2;
+        self.tooltipBg.height = self.tooltipText.height + padding;
+        
+        // 定位工具提示（在卡片右侧）
+        const tooltipX = card.x + card.displayWidth/2 + 70;
+        const tooltipY = card.y;
+        
+        // 检查是否超出屏幕右侧
+        const rightEdge = tooltipX + self.tooltipBg.width/2;
+        if (rightEdge > self.scene.scale.width) {
+          // 如果超出，则显示在卡片左侧
+          self.tooltip.setPosition(card.x - card.displayWidth/2 - 70, tooltipY);
+        } else {
+          self.tooltip.setPosition(tooltipX, tooltipY);
+        }
+        
+        self.tooltip.setVisible(true);
+      }, self.tooltipDelay);
+    });
+    
+    // 鼠标移出事件
+    card.on('pointerout', function() {
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+        self.tooltipTimer = null;
+      }
+      self.tooltip.setVisible(false);
+    });
+    
+    // 拖拽开始事件
+    card.on('dragstart', function() {
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+        self.tooltipTimer = null;
+      }
+      self.tooltip.setVisible(false);
+    });
+    
+    return card;
+  }
+  
+  // 隐藏工具提示
+  hide() {
+    if (this.tooltipTimer) {
+      clearTimeout(this.tooltipTimer);
+      this.tooltipTimer = null;
+    }
+    this.tooltip.setVisible(false);
+  }
+}
 // 检查两张卡是否可以合成
 const checkRecipe = (card1Type, card2Type) => {
   // 确保类型按字母顺序排序以保持一致性
@@ -422,6 +551,25 @@ const buffs = [
   { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
 
+// 添加buff描述对象
+const buffDescriptions = {
+  'armor_minus': '减少1点护甲',
+  'armor_plus': '增加1点护甲',
+  'attack_minus': '战斗类卡牌伤害-1',
+  'attack_plus': '战斗类卡牌伤害+1',
+  'bounce_back': '反弹',
+  'break_armor': '护甲无效',
+  'cant_armor': '护甲-1',
+  'copy_armor': '获得与对方相同的护甲',
+  'gold_minus': '金币-1',
+  'gold_plus': '金币+1',
+  'heal': 'HP+1',
+  'immune_damage_point': '免疫破甲伤害的一点伤害',
+  'immune_damage_time': '免疫破甲伤害',
+  'immune_debuff': '负面效果免疫',
+  'rebound_armor': '反弹对方造成的伤害',
+};
+
 const cardSlotMapping = {
   // BUFF槽位卡片
   'spring': 'buff',
@@ -497,7 +645,7 @@ const updateCard = (row, col, cardType) => {
   }
 };
 
-// 3. 添加更新战场显示的函数
+// 添加更新战场显示的函数
 const updateBattleFieldDisplay = (scene, row, col, cardType) => {
   const width = scene.cameras.main.width;
   const height = scene.cameras.main.height;
@@ -527,11 +675,13 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
     // 如果卡片已存在，更新纹理
     existingCard.setTexture(cardType);
     existingCard.setDisplaySize(slotWidth, slotHeight);
+    
+    // 关键修复：更新卡片的类型数据，这样提示系统才能正确显示卡片描述
+    existingCard.setData('type', cardType);
 
     // 添加更新动画
     scene.tweens.add({
       targets: existingCard,
-      //scale: { from: 1.1, to: 1 },  
       duration: 300,
       ease: 'Back.easeOut'
     });
@@ -540,17 +690,17 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
   }
 };
 
-const removeCardFromSlot = (row, col) => {
-  // 重置游戏状态
-  gameState_one.value.cardGrid[row][col] = 'cardBack';
+// const removeCardFromSlot = (row, col) => {
+//   // 重置游戏状态
+//   gameState_one.value.cardGrid[row][col] = 'cardBack';
 
-  // 更新显示
-  if (battleScene && battleScene.scene.scenes[0]) {
-    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
-  }
+//   // 更新显示
+//   if (battleScene && battleScene.scene.scenes[0]) {
+//     updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
+//   }
 
-  console.log(`Removed card from slot [${row}][${col}]`);
-};
+//   console.log(`Removed card from slot [${row}][${col}]`);
+// };
 
 //更新血条护甲
 const updateStatus = (isAlly, newHealth, newArmor) => {
@@ -750,22 +900,32 @@ onMounted(() => {
             const card = this.add.image(x, y, cardType)
               .setOrigin(0, 0)
               .setDisplaySize(slotWidth, slotHeight)
-              .setName(`card_${row}_${col}`); // 确保设置了正确的名称
+              .setName(`card_${row}_${col}`)
+              .setData('type', cardType) // 保留类型数据，这是显示提示的关键
+              .setInteractive(); // 保留交互性
 
-            card.setInteractive()
-              .on('pointerover', () => {
-                card.setTint(0xffff00);
-              })
-              .on('pointerout', () => {
-                card.clearTint();
-              })
-              .on('pointerdown', () => {
-                console.log(`Clicked card at row ${row}, col ${col}`);
-                //点击事件，目前随便用删除该卡片的函数代替
-                if (row === 3 && gameState_one.value.cardGrid[row][col] !== 'cardBack') {
-                  removeCardFromSlot(row, col);
-                }
-              });
+            // 为卡片添加鼠标悬停和移出事件
+            card.on('pointerover', () => {
+              
+              // 如果是有效卡片，显示提示
+              if (cardType !== 'cardBack' && cardDescriptions[cardType]) {
+                if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+                
+                this.tooltipTimer = setTimeout(() => {
+                  // 计算提示位置 - 向右侧显示，除非右侧空间不足
+                  const tooltipX = x + slotWidth + 50;
+                  const tooltipY = y + slotHeight/2;
+                  
+                  this.showCardTooltip(tooltipX, tooltipY, cardDescriptions[cardType]);
+                }, 400);
+              }
+            });
+            
+            card.on('pointerout', () => {
+              // 隐藏提示
+              if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+              if (this.cardTooltip) this.cardTooltip.setVisible(false);
+            });
           }
         }
         // 创建中央分界线
@@ -868,6 +1028,7 @@ onMounted(() => {
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
           fontSize: '18px',
+          padding: { x: 10, y: 5 },
           color: '#ffffff',
           resolution: 2,
         }).setOrigin(0, 0.5);
@@ -888,6 +1049,7 @@ onMounted(() => {
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
           fontSize: '18px',
           color: '#ffffff',
+          padding: { x: 0, y: 5 },
           resolution: 2,
         }).setOrigin(0, 0.5);
 
@@ -903,15 +1065,25 @@ onMounted(() => {
               const iconX = isAlly ? x + (index * spacing) + 100 : x - (index * spacing) + 150;
               const icon = this.add.image(iconX, y, buff.key)
                 .setDisplaySize(iconSize, iconSize)
-                .setOrigin(0.5, 0.5);
+                .setOrigin(0.5, 0.5)
+                .setData('type', effectKey); // 存储buff类型，便于获取描述
 
               // 添加鼠标悬停效果
               icon.setInteractive()
                 .on('pointerover', () => {
-                  //预留显示效果详情
+                  if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+                  
+                  // 添加延迟显示
+                  this.tooltipTimer = setTimeout(() => {
+                    const description = buffDescriptions[effectKey] || `${effectKey} 效果`;
+                    // 使用现有的提示显示函数
+                    this.showCardTooltip(iconX, y - 40, description);
+                  }, 400);
                 })
                 .on('pointerout', () => {
-                  //预留取消显示效果详情
+                  // 隐藏提示
+                  if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+                  if (this.cardTooltip) this.cardTooltip.setVisible(false);
                 });
             }
           });
@@ -933,6 +1105,98 @@ onMounted(() => {
           false
         );
 
+                //显示ui
+                if (this.cardTooltip) {
+          this.cardTooltip.destroy();
+          this.cardTooltip = null;
+        }
+
+  // 创建新的提示UI工具函数
+  this.showCardTooltip = (x, y, text) => {
+  // 每次都创建新的提示组
+  if (this.cardTooltip) {
+    this.cardTooltip.destroy();
+  }
+  
+  // 创建新提示容器
+  this.cardTooltip = this.add.container(x, y).setDepth(2000);
+  
+  // 创建文本 - 确保启用自动换行
+  const tooltipText = this.add.text(0, 0, text, {
+    fontSize: '14px',
+    color: '#ffffff',
+    resolution: 2,
+    align: 'left',         // 左对齐使多行文本更易读
+    padding: { x: 10, y: 8 },
+    wordWrap: { 
+      width: 250,          // 设置适当的宽度以允许文本换行
+      useAdvancedWrap: true // 使用高级换行以处理中文等语言
+    },
+    lineSpacing: 3         // 行间距，使多行文本更清晰
+  }).setOrigin(0.5);
+  
+  // 创建背景 - 尺寸会自动适应换行后的文本
+  const textBounds = tooltipText.getBounds();
+  const tooltipBg = this.add.rectangle(
+    0, 
+    0, 
+    textBounds.width + 20, 
+    textBounds.height + 16, 
+    0x000000, 
+    0.85              // 增强对比度
+  ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
+  
+  // 先添加背景再添加文本
+  this.cardTooltip.add(tooltipBg);
+  this.cardTooltip.add(tooltipText);
+  
+  // 智能调整位置，避免提示框超出屏幕
+  let finalX = x;
+  let finalY = y;
+  
+  // 水平方向调整
+  if (x + textBounds.width/2 + 10 > this.scale.width) {
+    finalX = this.scale.width - textBounds.width/2 - 20;
+  }
+  if (x - textBounds.width/2 - 10 < 0) {
+    finalX = textBounds.width/2 + 20;
+  }
+  
+  // 垂直方向调整 - 确保长文本也不会超出屏幕底部
+  if (y + textBounds.height/2 + 10 > this.scale.height) {
+    finalY = this.scale.height - textBounds.height/2 - 20;
+  }
+  
+  this.cardTooltip.setPosition(finalX, finalY);
+};
+
+
+        // 修改鼠标悬停事件
+        this.input.on('gameobjectover', (pointer, gameObject) => {
+          if (gameObject.getData && gameObject.getData('type')) {
+            const cardType = gameObject.getData('type');
+            if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
+            
+            if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+            
+            this.tooltipTimer = setTimeout(() => {
+              const tooltipX = gameObject.x > this.scale.width/2 ? 
+                gameObject.x - 100 : gameObject.x + 100;
+              this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
+            }, 400);
+          }
+        });
+
+        this.input.on('gameobjectout', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+
+        // 拖动开始时隐藏提示
+        this.input.on('dragstart', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
       },
     },
   });
@@ -977,6 +1241,9 @@ onMounted(() => {
         const STACK_SNAP_DURATION = 150 // 吸附动画持续时间
 
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
+
+        // 创建工具提示管理器
+        this.tooltipManager = new TooltipManager(this);
 
         // 创建顶部边栏背景，并添加交互效果
         const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
@@ -2236,8 +2503,98 @@ onMounted(() => {
             }
           })
         }
-      },
+        //显示ui
+        if (this.cardTooltip) {
+          this.cardTooltip.destroy();
+          this.cardTooltip = null;
+        }
 
+        // 创建新的提示UI工具函数
+        this.showCardTooltip = (x, y, text) => {
+          // 每次都创建新的提示组
+          if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+          }
+          
+          // 创建新提示容器
+          this.cardTooltip = this.add.container(x, y).setDepth(2000);
+          
+          // 创建文本 - 确保启用自动换行
+          const tooltipText = this.add.text(0, 0, text, {
+            fontSize: '14px',
+            color: '#ffffff',
+            resolution: 2,
+            align: 'left',         // 左对齐使多行文本更易读
+            padding: { x: 10, y: 8 },
+            wordWrap: { 
+              width: 250,          // 设置适当的宽度以允许文本换行
+              useAdvancedWrap: true // 使用高级换行以处理中文等语言
+            },
+            lineSpacing: 3         // 行间距，使多行文本更清晰
+          }).setOrigin(0.5);
+          
+          // 创建背景 - 尺寸会自动适应换行后的文本
+          const textBounds = tooltipText.getBounds();
+          const tooltipBg = this.add.rectangle(
+            0, 
+            0, 
+            textBounds.width + 20, 
+            textBounds.height + 16, 
+            0x000000, 
+            0.85              // 增强对比度
+          ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
+          
+          // 先添加背景再添加文本
+          this.cardTooltip.add(tooltipBg);
+          this.cardTooltip.add(tooltipText);
+          
+          // 智能调整位置，避免提示框超出屏幕
+          let finalX = x;
+          let finalY = y;
+          
+          // 水平方向调整
+          if (x + textBounds.width/2 + 10 > this.scale.width) {
+            finalX = this.scale.width - textBounds.width/2 - 20;
+          }
+          if (x - textBounds.width/2 - 10 < 0) {
+            finalX = textBounds.width/2 + 20;
+          }
+          
+          // 垂直方向调整 - 确保长文本也不会超出屏幕底部
+          if (y + textBounds.height/2 + 10 > this.scale.height) {
+            finalY = this.scale.height - textBounds.height/2 - 20;
+          }
+          
+          this.cardTooltip.setPosition(finalX, finalY);
+        };
+
+        // 修改鼠标悬停事件
+        this.input.on('gameobjectover', (pointer, gameObject) => {
+          if (gameObject.getData && gameObject.getData('type')) {
+            const cardType = gameObject.getData('type');
+            if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
+            
+            if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+            
+            this.tooltipTimer = setTimeout(() => {
+              const tooltipX = gameObject.x > this.scale.width/2 ? 
+                gameObject.x - 100 : gameObject.x + 100;
+              this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
+            }, 400);
+          }
+        });
+
+        this.input.on('gameobjectout', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+
+        // 拖动开始时隐藏提示
+        this.input.on('dragstart', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+      },
     },
   });
 
@@ -2246,11 +2603,21 @@ onMounted(() => {
 
 // 在组件卸载时销毁游戏实例
 onBeforeUnmount(() => {
-  if (game) game.destroy(true)
+  if (game) {
+    // 清除任何悬停计时器
+    if (game.scene.scenes[0].tooltipTimer) {
+      clearTimeout(game.scene.scenes[0].tooltipTimer);
+    }
+    if (battleScene && battleScene.scene.scenes[0].tooltipTimer) {
+      clearTimeout(battleScene.scene.scenes[0].tooltipTimer);
+    }
+    
+    game.destroy(true);
+  }
+  
   clearInterval(countdownInterval);
   clearTimeout(turnTimeout);
-
-})
+});
 </script>
 
 <style scoped>
