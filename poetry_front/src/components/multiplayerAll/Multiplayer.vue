@@ -354,6 +354,44 @@ const buffs = [
   { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
 
+const cardSlotMapping = {
+  // BUFF槽位卡片
+  'spring': 'buff',
+  'autumn': 'buff',
+  'moon': 'buff',
+  'sad': 'buff',
+  'home': 'buff',
+  'friend': 'buff',
+  'byebye': 'buff',
+  'flower': 'buff',
+  'love': 'buff',
+  
+  // 攻击槽位卡片
+  'fire': 'attack',
+  'bird': 'attack',
+  'wine': 'attack',
+  'sun': 'attack',
+  'rain': 'attack',
+  'war': 'attack',
+  'bamboo': 'attack',
+  'yellowriver': 'attack',
+  'missing': 'attack',
+
+  // 防御槽位卡片
+  'mountain': 'defense',
+  'water': 'defense',
+  'liu': 'defense',
+  'goose': 'defense',
+  'nature': 'defense',
+  'zhuangzhinanchou': 'defense',
+  'danbo': 'defense',
+  'longriver': 'defense',
+}
+// 验证卡片是否可以放入指定槽位
+const canPlaceInSlot = (cardType, slotType) => {
+  return cardSlotMapping[cardType] === slotType
+}
+
 //对战双方游戏状态
 const gameState_one = ref({
   // 己方角色状态
@@ -378,10 +416,68 @@ const gameState_one = ref({
   cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
 });
 
-//更新3*4卡牌展示
+//updateCard函数，添加对第一个场景的更新
 const updateCard = (row, col, cardType) => {
   gameState_one.value.cardGrid[row][col] = cardType;
-  // 这里可以添加更新 Phaser 显示的逻辑
+  
+  if (battleScene && battleScene.scene.scenes[0]) {
+    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, cardType);
+  }
+};
+
+// 3. 添加更新战场显示的函数
+const updateBattleFieldDisplay = (scene, row, col, cardType) => {
+  const width = scene.cameras.main.width;
+  const height = scene.cameras.main.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  // 计算卡槽位置（与创建时相同的逻辑）
+  const slotWidth = 100;
+  const slotHeight = 140;
+  const horizontalGap = 60;
+  const verticalGap = 20;
+  
+  const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
+  const totalHeight = (slotHeight * 4) + (verticalGap * 3);
+  
+  const startX = centerX - (totalWidth / 2);
+  const startY = (height - totalHeight) / 2;
+  
+  const x = startX + (col * (slotWidth + horizontalGap));
+  const y = startY + (row * (slotHeight + verticalGap));
+  
+  // 查找并更新对应位置的卡片
+  const cardKey = `card_${row}_${col}`;
+  const existingCard = scene.children.getByName(cardKey);
+  
+  if (existingCard) {
+    // 如果卡片已存在，更新纹理
+    existingCard.setTexture(cardType);
+    existingCard.setDisplaySize(slotWidth, slotHeight); 
+    
+    // 添加更新动画
+    scene.tweens.add({
+      targets: existingCard,
+      //scale: { from: 1.1, to: 1 },  
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+  } else {
+    console.log(`Card ${cardKey} not found in scene`);
+  }
+};
+
+const removeCardFromSlot = (row, col) => {
+  // 重置游戏状态
+  gameState_one.value.cardGrid[row][col] = 'cardBack';
+  
+  // 更新显示
+  if (battleScene && battleScene.scene.scenes[0]) {
+    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
+  }
+  
+  console.log(`Removed card from slot [${row}][${col}]`);
 };
 
 //更新血条护甲
@@ -438,6 +534,8 @@ const goToScreen = (idx) => {
 const screen0 = ref(null);
 const screen1 = ref(null);
 
+let battleScene = null // 添加战斗场景的引用
+
 onMounted(() => {
 
   //页面初始化
@@ -446,17 +544,31 @@ onMounted(() => {
     width: '100%',
     height: '100%',
     physics: { default: 'arcade' },
+    audio: {
+      disableWebAudio: true,  // 禁用 Web Audio
+      noAudio: true          // 完全禁用音频
+    }
   };
 
   // 第一个 Phaser 实例：对战界面
-  new Phaser.Game({
+  battleScene = new Phaser.Game({
     ...commonConfig,
     parent: screen0.value,
     scene: {
 
       //预加载
       preload() {
-        // 创建一个纹理生成器来绘制卡牌背面
+        // 只加载图片资源，不生成纹理
+        cardImages.forEach(card => {
+          this.load.image(card.key, card.src);
+        });
+
+        // 加载状态效果图片
+        buffs.forEach(buff => {
+          this.load.image(buff.key, buff.src);
+        });
+      },
+      create() {
         const graphics = this.add.graphics();
 
         // 绘制卡牌背面的花纹
@@ -476,12 +588,6 @@ onMounted(() => {
         graphics.generateTexture('cardBack', 100, 140);
         graphics.destroy();
 
-        // 加载状态效果图片
-        buffs.forEach(buff => {
-          this.load.image(buff.key, buff.src);
-        });
-      },
-      create() {
         // 获取游戏画布的中心点和尺寸
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -554,15 +660,13 @@ onMounted(() => {
           for (let col = 0; col < 3; col++) {
             const x = startX + (col * (slotWidth + horizontalGap));
             const y = startY + (row * (slotHeight + verticalGap));
-
-            // 根据 gameState_one 中的数据创建卡牌
             const cardType = gameState_one.value.cardGrid[row][col];
 
-            // 创建卡牌图像
             const card = this.add.image(x, y, cardType)
-              .setOrigin(0, 0);
+              .setOrigin(0, 0)
+              .setDisplaySize(slotWidth, slotHeight)
+              .setName(`card_${row}_${col}`); // 确保设置了正确的名称
 
-            // 添加互动效果
             card.setInteractive()
               .on('pointerover', () => {
                 card.setTint(0xffff00);
@@ -571,12 +675,14 @@ onMounted(() => {
                 card.clearTint();
               })
               .on('pointerdown', () => {
-                // 可以在这里添加点击事件，比如更新 gameState_one
                 console.log(`Clicked card at row ${row}, col ${col}`);
+                //点击事件，目前随便用删除该卡片的函数代替
+                if (row === 3 && gameState_one.value.cardGrid[row][col] !== 'cardBack') {
+                  removeCardFromSlot(row, col);
+                }
               });
           }
         }
-
         // 创建中央分界线
         const dividerLine = this.add.rectangle(60, centerY, width - 120, 4, 0xC5A880)
           .setOrigin(0, 0.5)
@@ -1126,45 +1232,151 @@ onMounted(() => {
 
         // 攻击卡槽处理函数
         const handleAttackSlot = (card) => {
-          console.log('卡片放入攻击槽:', card.getData('type'))
-          // 在这里添加攻击逻辑
+          // 检查攻击槽位[3][0]是否已被占用
+          if (gameState_one.value.cardGrid[3][0] !== 'cardBack') {
+            console.log('攻击槽位已被占用');
+            return
+          }
+
+          const cardType = card.getData('type')
+          console.log('卡片放入攻击槽:', cardType)
+          
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 0, cardType);
+          }, 100);
           
           
-
-          attackSlot.y = padding
-          attackIcon.y = padding + 40
-          attackText.y = padding + 90
-
-          // 销毁卡片
+          // 添加视觉效果
+          const flash = this.add.circle(attackSlot.x + 50, attackSlot.y + 70, 40, 0xff4444, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+          
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+          
+          // 显示效果文本
+          const effectText = this.add.text(attackSlot.x + 50, attackSlot.y + 30, '⚔️ 攻击!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#ff4444',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+          
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+          
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
-        // 防守卡槽处理函数
+        // 防御卡槽处理函数
         const handleDefenseSlot = (card) => {
-          console.log('卡片放入防守槽:', card.getData('type'))
-          // 在这里添加防守逻辑
+          // 检查防御槽位[3][1]是否已被占用
+          if (gameState_one.value.cardGrid[3][1] !== 'cardBack') {
+            console.log('防御槽位已被占用');
+            return
+          }
+
+          const cardType = card.getData('type')
+          console.log('卡片放入防御槽:', cardType)
           
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 1, cardType);
+          }, 100);
           
-          defenseSlot.y = padding
-          defenseIcon.y = padding + 40
-          defenseText.y = padding + 90
+          // 添加视觉效果
+          const flash = this.add.circle(defenseSlot.x + 50, defenseSlot.y + 70, 40, 0x4488ff, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
           
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+          
+          // 显示效果文本
+          const effectText = this.add.text(defenseSlot.x + 50, defenseSlot.y + 30, '🛡️ 防御!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#4488ff',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+          
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+          
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
         // BUFF卡槽处理函数
         const handleBuffSlot = (card) => {
-          console.log('卡片放入BUFF槽:', card.getData('type'))
-          // 在这里添加BUFF逻辑
-          
+          // 检查BUFF槽位[3][2]是否已被占用
+          if (gameState_one.value.cardGrid[3][2] !== 'cardBack') {
+            console.log('BUFF槽位已被占用');
+            return
+          }
 
+          const cardType = card.getData('type')
+          console.log('卡片放入BUFF槽:', cardType)
           
-          buffSlot.y = padding
-          buffIcon.y = padding + 40
-          buffText.y = padding + 90
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 2, cardType);
+          }, 100);
           
+          // 添加视觉效果
+          const flash = this.add.circle(buffSlot.x + 50, buffSlot.y + 70, 40, 0x44cc44, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+          
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+          
+          // 显示效果文本
+          const effectText = this.add.text(buffSlot.x + 50, buffSlot.y + 30, '✨ BUFF!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#44cc44',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+          
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+          
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
@@ -1484,6 +1696,10 @@ onMounted(() => {
         // 拖拽结束事件
         this.input.on('dragend', (pointer, gameObject) => {
 
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
+
           this.tweens.add({
             targets: gameObject,
             alpha: 1,
@@ -1571,20 +1787,31 @@ onMounted(() => {
               updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
             }
           }
+          //const cardType = gameObject.getData('type')
 
           // 检查是否在攻击槽区域
           if (pointer.y < topBarHeight &&
               pointer.x >= attackSlot.x &&
               pointer.x <= attackSlot.x + attackSlot.width) {
-            handleAttackSlot(gameObject)
+            
+            if (canPlaceInSlot(cardType, 'attack')) {
+              handleAttackSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入攻击槽', attackSlot)
+            }
             return
           }
 
-          // 检查是否在防守槽区域
+          // 检查是否在防御槽区域
           if (pointer.y < topBarHeight &&
               pointer.x >= defenseSlot.x &&
               pointer.x <= defenseSlot.x + defenseSlot.width) {
-            handleDefenseSlot(gameObject)
+            
+            if (canPlaceInSlot(cardType, 'defense')) {
+              handleDefenseSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入防御槽', defenseSlot)
+            }
             return
           }
 
@@ -1592,7 +1819,12 @@ onMounted(() => {
           if (pointer.y < topBarHeight &&
               pointer.x >= buffSlot.x &&
               pointer.x <= buffSlot.x + buffSlot.width) {
-            handleBuffSlot(gameObject)
+            
+            if (canPlaceInSlot(cardType, 'buff')) {
+              handleBuffSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入BUFF槽', buffSlot)
+            }
             return
           }
           // 检查是否在出售槽区域
@@ -1834,12 +2066,30 @@ onMounted(() => {
 
         // 修改拖拽中事件
         this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+
+            // 添加槽位高亮逻辑
+          const cardType = gameObject.getData('type')
+          const allowedSlotType = cardSlotMapping[cardType]
+
+          // 重置所有槽位样式
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
+
+          // 高亮可用槽位
+          if (allowedSlotType === 'attack') {
+            attackSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'defense') {
+            defenseSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'buff') {
+            buffSlot.setStrokeStyle(3, 0xffffff, 1)
+          }
         // 添加出售槽状态检测
         const isInSellArea = dragY < topBarHeight && 
                             dragX >= sellSlot.x && 
                             dragX <= sellSlot.x + sellSlot.width
         
-        const cardType = gameObject.getData('type')
+        //const cardType = gameObject.getData('type')
         const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
         
         // 更新出售槽样式
