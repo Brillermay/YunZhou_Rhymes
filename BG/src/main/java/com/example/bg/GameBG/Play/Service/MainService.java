@@ -59,6 +59,12 @@ public class MainService extends TextWebSocketHandler {
                 case "startGame":
                     handleStartGameMessage(session, messageData);
                     break;
+                case "RoundBegin":
+                    handleRoundBeginMessage(session,messageData);
+                    break;
+                case "RoundEnd":
+                    handleRoundEndMessage(session,messageData);
+                    break;
                 default:
                     sendErrorResponse(session, "未知的消息类型：" + type);
             }
@@ -111,6 +117,11 @@ public class MainService extends TextWebSocketHandler {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
 
+
+    /**
+     * {"type":"createRoom","room":{"uid":"1"}}
+     *
+     * */
     private void handleCreateRoomMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
         Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
         String uidStr = (String) roomData.get("uid");
@@ -161,6 +172,14 @@ public class MainService extends TextWebSocketHandler {
 
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
+
+    private void handleRoundBeginMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+
+    }
+    private void handleRoundEndMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+
+    }
+
 
     private void sendErrorResponse(WebSocketSession session, String errorMessage) throws Exception {
         Map<String, Object> response = new HashMap<>();
