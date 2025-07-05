@@ -311,15 +311,16 @@ export default {
 @import '../feihualing/styles/game-common.scss';
 
 .mode-selector-container {
-  @extend .feihua-component;
+  // 删除 @extend .feihua-component; 这一行
   min-height: 100vh;
   padding: 2rem 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 🔧 确保不影响 fixed 定位 */
   position: static;
   transform: none;
+  background: transparent !important; // 🔧 强制透明背景
+  // 不设置任何背景相关属性
 }
 
 .component-container {

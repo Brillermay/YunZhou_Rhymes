@@ -14,11 +14,32 @@
           </div>
         </div>
         
-        <div class="progress-bar">
-          <div 
-            class="progress-fill"
-            :style="{ width: progressPercent + '%' }"
-          ></div>
+        <!-- 🔧 添加退出按钮 -->
+        <div class="exit-button-container">
+          <button class="exit-button" @click="showExitModal = true">
+            <i class="icon-times"></i>
+            退出
+          </button>
+        </div>
+        
+        <!-- 🔧 优化后的进度条 -->
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div 
+              class="progress-fill"
+              :style="{ width: progressPercent + '%' }"
+            ></div>
+            <!-- 🔧 优化毛笔显示 -->
+            <div 
+              class="progress-brush"
+              :style="{ left: 'calc(' + progressPercent + '% - 25px)' }"
+            >
+              <img src="@/assets/image/imgtest/brush.png" alt="毛笔" />
+            </div>
+          </div>
+          <div class="progress-text">
+            {{ Math.round(progressPercent) }}% 完成
+          </div>
         </div>
       </div>
 
@@ -157,41 +178,6 @@
         </div>
       </div>
 
-      <!-- 🎨 结果反馈区域 - 仿照TestModeSelector的卡片样式 -->
-      <div 
-        v-if="showResult"
-        class="result-section"
-      >
-        <div 
-          class="result-card"
-          :class="{ correct: lastAnswerCorrect, wrong: !lastAnswerCorrect }"
-        >
-          <div class="result-header">
-            <div class="result-icon">
-              <i :class="lastAnswerCorrect ? 'icon-check-circle' : 'icon-times-circle'"></i>
-            </div>
-            <h3 class="result-title">
-              {{ lastAnswerCorrect ? '回答正确！' : '回答错误' }}
-            </h3>
-          </div>
-          
-          <div class="result-content">
-            <div v-if="!lastAnswerCorrect" class="correct-answer">
-              <span class="answer-label">正确答案：</span>
-              <span class="answer-text">{{ correctAnswerText }}</span>
-            </div>
-            
-            <div v-if="currentQuestion.explanation" class="explanation">
-              <div class="explanation-header">
-                <i class="icon-info-circle"></i>
-                <span>解析</span>
-              </div>
-              <p class="explanation-text">{{ currentQuestion.explanation }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- 🎨 操作按钮区域 - 仿照TestModeSelector的按钮样式 -->
       <div class="action-section">
         <button
@@ -214,23 +200,83 @@
           提交答案
         </button>
         
-        <button
-          v-if="isAnswered && currentIndex < totalQuestions - 1"
-          class="btn btn-primary action-btn ready"
-          @click="nextQuestion"
-        >
-          下一题
-          <i class="icon-arrow-right"></i>
-        </button>
-        
-        <button
-          v-if="isAnswered && currentIndex === totalQuestions - 1"
-          class="btn btn-primary action-btn ready"
-          @click="finishTest"
-        >
-          <i class="icon-flag-checkered"></i>
-          完成测试
-        </button>
+        <!-- 🔧 合并结果反馈和下一题按钮 -->
+        <div v-if="isAnswered" class="result-action-merged">
+          <!-- 结果反馈区域 -->
+          <div 
+            class="result-card"
+            :class="{ correct: lastAnswerCorrect, wrong: !lastAnswerCorrect }"
+          >
+            <div class="result-header">
+              <div class="result-icon">
+                <i :class="lastAnswerCorrect ? 'icon-check-circle' : 'icon-times-circle'"></i>
+              </div>
+              <h3 class="result-title">
+                {{ lastAnswerCorrect ? '回答正确！' : '回答错误' }}
+              </h3>
+            </div>
+            
+            <div class="result-content">
+              <div v-if="!lastAnswerCorrect" class="correct-answer">
+                <span class="answer-label">正确答案：</span>
+                <span class="answer-text">{{ correctAnswerText }}</span>
+              </div>
+              
+              <div v-if="currentQuestion.explanation" class="explanation">
+                <div class="explanation-header">
+                  <i class="icon-info-circle"></i>
+                  <span>解析</span>
+                </div>
+                <p class="explanation-text">{{ currentQuestion.explanation }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 下一题按钮 -->
+          <div class="next-button-container">
+            <button
+              v-if="currentIndex < totalQuestions - 1"
+              class="btn btn-primary action-btn ready"
+              @click="nextQuestion"
+            >
+              下一题
+              <i class="icon-arrow-right"></i>
+            </button>
+            
+            <button
+              v-if="currentIndex === totalQuestions - 1"
+              class="btn btn-primary action-btn ready"
+              @click="finishTest"
+            >
+              <i class="icon-flag-checkered"></i>
+              完成测试
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 🔧 退出确认弹窗 -->
+    <div v-if="showExitModal" class="modal-overlay" @click="handleModalOverlayClick">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>退出确认</h3>
+          <button class="modal-close" @click="showExitModal = false">
+            <i class="icon-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>您确定要退出当前测试吗？</p>
+          <p class="warning-text">退出后当前进度将丢失，无法恢复。</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showExitModal = false">
+            取消
+          </button>
+          <button class="btn btn-danger" @click="confirmExit">
+            确认退出
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -262,7 +308,7 @@ export default {
     }
   },
   
-  emits: ['answer-selected', 'next-question', 'back-to-selector'],
+  emits: ['answer-selected', 'next-question', 'back-to-selector', 'pause-timer', 'resume-timer'],
   
   data() {
     return {
@@ -271,13 +317,23 @@ export default {
       ziciAnswer: [],
       showResult: false,
       lastAnswerCorrect: false,
-      correctAnswerText: ''
+      correctAnswerText: '',
+      showExitModal: false
     }
   },
   
   computed: {
+    // 🔧 优化进度条百分比计算
     progressPercent() {
-      return ((this.currentIndex + 1) / this.totalQuestions) * 100
+      if (!this.totalQuestions || this.totalQuestions === 0) {
+        return 0
+      }
+      
+      // 当前题目的进度 = (当前题目索引 + 1) / 总题目数 * 100
+      const progress = ((this.currentIndex + 1) / this.totalQuestions) * 100
+      
+      // 确保进度在0-100之间
+      return Math.max(0, Math.min(100, progress))
     },
     
     canSubmitSpecial() {
@@ -303,6 +359,15 @@ export default {
     isAnswered(newValue) {
       if (!newValue) {
         this.showResult = false
+      }
+    },
+    
+    // 🔧 监听弹窗状态，控制计时器
+    showExitModal(newValue) {
+      if (newValue) {
+        this.$emit('pause-timer')
+      } else {
+        this.$emit('resume-timer')
       }
     }
   },
@@ -411,6 +476,16 @@ export default {
       const min = Math.floor(seconds / 60)
       const sec = seconds % 60
       return `${min}:${sec.toString().padStart(2, '0')}`
+    },
+    
+    // 🔧 退出相关方法
+    handleModalOverlayClick() {
+      this.showExitModal = false
+    },
+    
+    confirmExit() {
+      this.showExitModal = false
+      this.$emit('back-to-selector')
     }
   }
 }
@@ -422,19 +497,21 @@ export default {
 
 // 🎨 主容器 - 完全仿照TestModeSelector
 .question-display-wrapper {
-  @extend .feihua-component;
+  // 删除 @extend .feihua-component; 这一行
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   position: static;
   transform: none;
+  background: transparent !important; // 🔧 强制透明背景
+  // 不设置任何背景相关属性
 }
 
 .component-container {
   max-width: 1200px;
   width: 100%;
-  padding: 2rem;
+  padding: 1rem;
   position: relative;
   z-index: 1;
 }
@@ -442,7 +519,8 @@ export default {
 // 🎨 游戏标题区域 - 仿照TestModeSelector
 .game-header-section {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
+  position: relative;
   
   .game-title {
     @include ancient-title;
@@ -464,10 +542,10 @@ export default {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     
     .question-counter {
-      font-size: 1.2rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--text-color);
     }
@@ -476,11 +554,11 @@ export default {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       color: var(--text-color);
       background: rgba(255, 255, 255, 0.8);
-      padding: 0.5rem 1rem;
+      padding: 0.4rem 0.8rem;
       border-radius: 20px;
       border: 2px solid rgba(140, 120, 83, 0.2);
       
@@ -491,40 +569,192 @@ export default {
     }
   }
   
+  // 🔧 退出按钮样式
+  .exit-button-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    
+    .exit-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(231, 76, 60, 0.9);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(231, 76, 60, 1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+      }
+      
+      i {
+        font-size: 1rem;
+      }
+    }
+  }
+  
+  // 🔧 优化进度条样式
+.progress-bar-container {
+  position: relative;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+  
   .progress-bar {
+    position: relative;
     width: 100%;
-    height: 10px;
-    background: rgba(140, 120, 83, 0.2);
-    border-radius: 5px;
-    overflow: hidden;
+    height: 15px;
+    background: linear-gradient(90deg, 
+      rgba(140, 120, 83, 0.15) 0%, 
+      rgba(140, 120, 83, 0.25) 100%
+    );
+    border-radius: 8px;
+    overflow: visible;
+    box-shadow: 
+      inset 0 2px 4px rgba(0, 0, 0, 0.1),
+      0 2px 8px rgba(0, 0, 0, 0.05);
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-      border-radius: 5px;
-      transition: width 0.6s ease;
+      background: linear-gradient(90deg, 
+        var(--primary-color) 0%, 
+        var(--secondary-color) 100%
+      );
+      border-radius: 8px;
+      transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+    }
+    
+    .progress-brush {
+      position: absolute;
+      top: -30px;
+      transition: left 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      z-index: 10;
+      
+      img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.25));
+        animation: brushFloat 3s ease-in-out infinite alternate;
+      }
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 45px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 5px;
+        height: 20px;
+        background: linear-gradient(180deg, 
+          rgba(140, 120, 83, 0.9) 0%,
+          rgba(140, 120, 83, 0.6) 40%,
+          transparent 100%
+        );
+        border-radius: 2px;
+        animation: inkDrop 2s ease-in-out infinite;
+      }
+    }
+  }
+  
+  .progress-text {
+    text-align: center;
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--text-color);
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+}
+
+
+
+@keyframes brushFloat {
+  0% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(1deg);
+  }
+}
+
+@keyframes inkDrop {
+  0%, 100% {
+    opacity: 0.9;
+    transform: translateX(-50%) scaleY(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(-50%) scaleY(0.8);
+  }
+}
+
+// 🔧 响应式适配
+@media (max-width: 768px) {
+  .progress-bar-container {
+    .progress-brush {
+      top: -25px !important;
+      
+      img {
+        width: 40px !important;
+        height: 40px !important;
+      }
+      
+      &::before {
+        top: 35px !important;
+        height: 16px !important;
+        width: 4px !important;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .progress-bar-container {
+    .progress-brush {
+      top: -22px !important;
+      
+      img {
+        width: 35px !important;
+        height: 35px !important;
+      }
+      
+      &::before {
+        top: 30px !important;
+        height: 14px !important;
+        width: 3px !important;
+      }
     }
   }
 }
 
 // 🎨 题目主区域 - 仿照TestModeSelector的选择区域
 .question-main-area {
-  margin-bottom: 3rem;
+  margin-bottom: 1.5rem;
   
   .question-card {
     @include modern-card;
-    padding: 2.5rem;
+    padding: 1.2rem;          // 原来是 2.5rem，改为 1.5rem
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(140, 120, 83, 0.2);
     
     .question-header {
       display: flex;
       align-items: flex-start;
-      gap: 1rem;
-      margin-bottom: 2rem;
+      gap: 0.8rem;
+      margin-bottom: 1.2rem;  // 原来是 2rem，改为 1.5rem
       
       .question-icon {
-        font-size: 2rem;
+        font-size: 1.3rem;     // 原来是 2rem，改为 1.5rem
         color: var(--secondary-color);
         margin-top: 0.2rem;
         flex-shrink: 0;
@@ -532,7 +762,7 @@ export default {
       
       .question-title {
         @include ancient-title;
-        font-size: 1.4rem;
+        font-size: 1.1rem;     // 原来是 1.4rem，改为 1.2rem
         color: var(--primary-color);
         line-height: 1.6;
         margin: 0;
@@ -546,18 +776,18 @@ export default {
 .options-section {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.8rem;
   
   .option-card {
     @include modern-card;
-    padding: 1.5rem;
+    padding: 0.8rem;
     cursor: pointer;
     transition: all 0.3s ease;
     background: rgba(255, 255, 255, 0.9);
     border: 2px solid transparent;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.8rem;
     position: relative;
     
     &:hover:not(.disabled) {
@@ -601,8 +831,8 @@ export default {
     }
     
     .option-marker {
-      width: 40px;
-      height: 40px;
+      width: 35px;
+      height: 35px;
       background: var(--primary-color);
       color: white;
       border-radius: 50%;
@@ -610,13 +840,13 @@ export default {
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 1rem;
       flex-shrink: 0;
     }
     
     .option-content {
       flex: 1;
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text-color);
       line-height: 1.6;
       font-weight: 500;
@@ -682,8 +912,8 @@ export default {
 .special-question-section {
   .prompt-card {
     @include modern-card;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
     background: linear-gradient(135deg, 
       rgba(140, 120, 83, 0.05) 0%, 
       rgba(140, 120, 83, 0.1) 100%
@@ -699,7 +929,7 @@ export default {
     }
     
     .prompt-text {
-      font-size: 1.1rem;
+      font-size: 1rem;
       color: var(--text-color);
       line-height: 1.6;
       margin: 0;
@@ -710,19 +940,19 @@ export default {
     .answer-slots {
       display: flex;
       justify-content: center;
-      gap: 1rem;
-      margin-bottom: 2rem;
+      gap: 0.8rem;
+      margin-bottom: 1.5rem;
       flex-wrap: wrap;
       
       .answer-slot {
-        width: 60px;
-        height: 60px;
+        width: 50px;
+        height: 50px;
         border: 2px solid rgba(140, 120, 83, 0.3);
         border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: var(--text-color);
         background: rgba(255, 255, 255, 0.9);
@@ -751,18 +981,18 @@ export default {
     .option-buttons {
       display: flex;
       justify-content: center;
-      gap: 1rem;
+      gap: 0.8rem;
       flex-wrap: wrap;
       
       .option-button {
         @include modern-card;
-        min-width: 50px;
-        height: 50px;
+        min-width: 45px;
+        height: 45px;
         padding: 0.5rem;
         border: 2px solid var(--primary-color);
         background: rgba(255, 255, 255, 0.9);
         color: var(--primary-color);
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 700;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -791,15 +1021,63 @@ export default {
   }
 }
 
-// 🎨 结果区域 - 仿照TestModeSelector的卡片样式
-.result-section {
-  margin-bottom: 3rem;
+// 🎨 操作按钮区域 - 仿照TestModeSelector的按钮样式
+.action-section {
+  text-align: center;
+  padding: 1.2rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  border: 2px solid rgba(140, 120, 83, 0.2);
+  
+  .action-btn {
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 180px;
+    justify-content: center;
+    
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
+    color: white !important;
+    border: none !important;
+    transition: all 0.3s ease;
+    
+    &.ready {
+      background: linear-gradient(135deg, #8c7853, #6e5773) !important;
+      animation: pulse 2s ease-in-out infinite alternate;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(140, 120, 83, 0.4);
+      }
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// 🔧 合并结果和下一题按钮的样式
+.result-action-merged {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
   
   .result-card {
     @include modern-card;
-    padding: 2rem;
+    padding: 1.2rem;
     background: rgba(255, 255, 255, 0.95);
     border: 2px solid rgba(140, 120, 83, 0.2);
+    margin-bottom: 0;
     
     &.correct {
       border-color: var(--success-color);
@@ -820,11 +1098,11 @@ export default {
     .result-header {
       display: flex;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
       
       .result-icon {
-        font-size: 2rem;
+        font-size: 1.3rem;
         
         .icon-check-circle {
           color: var(--success-color);
@@ -837,7 +1115,7 @@ export default {
       
       .result-title {
         @include ancient-title;
-        font-size: 1.4rem;
+        font-size: 1.1rem;
         color: var(--primary-color);
         margin: 0;
       }
@@ -845,11 +1123,11 @@ export default {
     
     .result-content {
       .correct-answer {
-        margin-bottom: 1rem;
-        padding: 1rem;
+        margin-bottom: 0.8rem;
+        padding: 0.8rem;
         background: rgba(255, 255, 255, 0.8);
         border-radius: 8px;
-        font-size: 1rem;
+        font-size: 0.9rem;
         
         .answer-label {
           font-weight: 600;
@@ -877,7 +1155,7 @@ export default {
         }
         
         .explanation-text {
-          font-size: 1rem;
+          font-size: 0.9rem;
           line-height: 1.6;
           color: var(--text-color);
           margin: 0;
@@ -885,49 +1163,116 @@ export default {
       }
     }
   }
+  
+  .next-button-container {
+    display: flex;
+    justify-content: center;
+  }
 }
 
-// 🎨 操作按钮区域 - 仿照TestModeSelector的按钮样式
-.action-section {
-  text-align: center;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 16px;
-  border: 2px solid rgba(140, 120, 83, 0.2);
+// 🔧 退出确认弹窗样式
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
   
-  .action-btn {
-    padding: 1rem 2.5rem;
-    font-size: 1.1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    min-width: 200px;
-    justify-content: center;
+  .modal-content {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
     
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d) !important;
-    color: white !important;
-    border: none !important;
-    transition: all 0.3s ease;
-    
-    &.ready {
-      background: linear-gradient(135deg, #8c7853, #6e5773) !important;
-      animation: pulse 2s ease-in-out infinite alternate;
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      border-bottom: 1px solid rgba(140, 120, 83, 0.2);
       
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(140, 120, 83, 0.4);
+      h3 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--text-color);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: rgba(140, 120, 83, 0.1);
+        }
       }
     }
     
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none !important;
+    .modal-body {
+      padding: 2rem;
+      
+      p {
+        margin: 0 0 1rem 0;
+        color: var(--text-color);
+        line-height: 1.6;
+        font-size: 1.1rem;
+        
+        &.warning-text {
+          color: var(--error-color);
+          font-weight: 600;
+          font-size: 1rem;
+        }
+      }
     }
     
-    &:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      padding: 1.5rem;
+      border-top: 1px solid rgba(140, 120, 83, 0.2);
+      
+      .btn {
+        padding: 0.8rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        &.btn-secondary {
+          background: #95a5a6;
+          color: white;
+          
+          &:hover {
+            background: #7f8c8d;
+          }
+        }
+        
+        &.btn-danger {
+          background: #e74c3c;
+          color: white;
+          
+          &:hover {
+            background: #c0392b;
+          }
+        }
+      }
     }
   }
 }
@@ -963,6 +1308,12 @@ export default {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
+  }
+  
+  .exit-button-container {
+    position: static !important;
+    text-align: center;
+    margin-bottom: 1rem;
   }
 }
 
@@ -1007,6 +1358,27 @@ export default {
     min-width: 45px !important;
     height: 45px !important;
     font-size: 1rem !important;
+  }
+  
+  .modal-content {
+    width: 95% !important;
+    
+    .modal-header {
+      padding: 1rem !important;
+    }
+    
+    .modal-body {
+      padding: 1.5rem !important;
+    }
+    
+    .modal-footer {
+      padding: 1rem !important;
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
   }
 }
 
