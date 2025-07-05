@@ -51,11 +51,12 @@ public class InitService {
         playerAgainst.setRoomNumber(roomId);
         List<CardBattle> cardList = new ArrayList<>();
         playerAgainst.setCards(cardList);
-        playerAgainst.setWealthy(10);
+        playerAgainst.setWealthy(5);
         List<Status> statuses = new ArrayList<>();
         playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
-        playerAgainst.setShield(20);
+        playerAgainst.setShield(10);
+        playerAgainst.setPlayerCondition(null);
         return playerAgainst;
     }
 }

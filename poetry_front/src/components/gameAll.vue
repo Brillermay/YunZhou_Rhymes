@@ -88,7 +88,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import Phaser from 'phaser'
 import { gsap } from 'gsap'
-import axios from 'axios'
+// import axios from 'axios'
 import { getCurrentUid } from '@/utils/auth'
 
 const purchaseCount = ref(0)  // 购买卡包计数
@@ -160,82 +160,82 @@ const saveData = ref({
   uid: getCurrentUid(),
 })
 
-// 添加自动保存函数
-const autoSave = async () => {
-  try {
-    // 构建存档数据
-    const currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19)
-    const currentUid = getCurrentUid() // 获取当前用户 ID
+// // 添加自动保存函数
+// const autoSave = async () => {
+//   try {
+//     // 构建存档数据
+//     const currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19)
+//     const currentUid = getCurrentUid() // 获取当前用户 ID
     
-    saveData.value = {
-      achievements: gameState.value.achievements,
-      gold: coins.value,
-      UID: currentUid,
-      cardList: gameState.value.cardList,
-      lastPlayTime: currentTime,
-      pid: 1,
-      uid: currentUid
-    }
+//     saveData.value = {
+//       achievements: gameState.value.achievements,
+//       gold: coins.value,
+//       UID: currentUid,
+//       cardList: gameState.value.cardList,
+//       lastPlayTime: currentTime,
+//       pid: 1,
+//       uid: currentUid
+//     }
 
-    // 发送到后端
-    const response = await axios.post(`${API_CONFIG}/WriteTemp`, saveData.value)
+//     // 发送到后端
+//     const response = await axios.post(`${API_CONFIG}/WriteTemp`, saveData.value)
     
-    if (response.data.success) {
-      console.log('游戏已自动保存')
-    } else {
-      console.error('保存失败:', response.data.message)
-    }
-  } catch (error) {
-    console.error('保存出错:', error)
-  }
-}
+//     if (response.data.success) {
+//       console.log('游戏已自动保存')
+//     } else {
+//       console.error('保存失败:', response.data.message)
+//     }
+//   } catch (error) {
+//     console.error('保存出错:', error)
+//   }
+// }
 
-// 添加加载存档函数
-const loadSaveData = async () => {
-  try {
-    const currentUid = getCurrentUid() // 获取当前用户 ID
+// // 添加加载存档函数
+// const loadSaveData = async () => {
+//   try {
+//     const currentUid = getCurrentUid() // 获取当前用户 ID
     
-    // 构建请求参数
-    const requestData = {
-      UID: currentUid,
-      PID: 1 // 可以根据需要修改PID
-    }
+//     // 构建请求参数
+//     const requestData = {
+//       UID: currentUid,
+//       PID: 1 // 可以根据需要修改PID
+//     }
     
-    // 从后端获取存档数据
-    const response = await axios.post(`${API_CONFIG}/loadTemp`, requestData)
+//     // 从后端获取存档数据
+//     const response = await axios.post(`${API_CONFIG}/loadTemp`, requestData)
 
-    if (response.data && response.data.length > 0) {
-      // 获取最新的存档数据(假设按时间排序，最新的在第一个)
-      const saveData = response.data[0]
+//     if (response.data && response.data.length > 0) {
+//       // 获取最新的存档数据(假设按时间排序，最新的在第一个)
+//       const saveData = response.data[0]
       
-      // 更新游戏状态
-      gameState.value.achievements = saveData.achievements || ""
-      gameState.value.cardList = saveData.cardList || []
-      coins.value = saveData.gold || 100 // 如果没有存档数据则使用默认值100
+//       // 更新游戏状态
+//       gameState.value.achievements = saveData.achievements || ""
+//       gameState.value.cardList = saveData.cardList || []
+//       coins.value = saveData.gold || 100 // 如果没有存档数据则使用默认值100
 
-      // 更新成就状态
-      if (saveData.achievements) {
-        const achievementIds = saveData.achievements.split(',').filter(id => id)
-        achievementIds.forEach(id => {
-          const idNum = parseInt(id)
-          if (idNum <= 10) {
-            const achievement = basicAchievements.value.find(a => a.id === idNum)
-            if (achievement) achievement.unlocked = true
-          } else {
-            const achievement = poemAchievements.value.find(a => a.id === idNum)
-            if (achievement) achievement.unlocked = true
-          }
-        })
-      }
+//       // 更新成就状态
+//       if (saveData.achievements) {
+//         const achievementIds = saveData.achievements.split(',').filter(id => id)
+//         achievementIds.forEach(id => {
+//           const idNum = parseInt(id)
+//           if (idNum <= 10) {
+//             const achievement = basicAchievements.value.find(a => a.id === idNum)
+//             if (achievement) achievement.unlocked = true
+//           } else {
+//             const achievement = poemAchievements.value.find(a => a.id === idNum)
+//             if (achievement) achievement.unlocked = true
+//           }
+//         })
+//       }
 
-      console.log('存档已加载:', saveData)
-    } else {
-      console.log('没有找到存档数据，使用默认值')
-    }
-  } catch (error) {
-    console.error('加载存档出错:', error)
-  }
-}
+//       console.log('存档已加载:', saveData)
+//     } else {
+//       console.log('没有找到存档数据，使用默认值')
+//     }
+//   } catch (error) {
+//     console.error('加载存档出错:', error)
+//   }
+// }
 
 // 添加一个更新卡片收藏的函数
 const updatecardList = (cardType, amount = 1) => {
@@ -1485,7 +1485,7 @@ let game = null
 
 // 游戏主要逻辑
 onMounted(async () => {
-  await loadSaveData() // 加载存档
+  //await loadSaveData() // 加载存档
   nextTick(() => {
     gsap.fromTo(sideBar.value, 
       { x: -250, opacity: 0 },
@@ -1501,13 +1501,13 @@ onMounted(async () => {
   const containerWidth = container.clientWidth
   const containerHeight = container.clientHeight
 
-  // 设置自动保存定时器（每60秒保存一次）
-  const saveInterval = setInterval(autoSave, 1000)
+  // // 设置自动保存定时器（每60秒保存一次）
+  // const saveInterval = setInterval(autoSave, 1000)
   
-  // 在组件销毁时清理定时器
-  onBeforeUnmount(() => {
-    clearInterval(saveInterval)
-  })
+  // // 在组件销毁时清理定时器
+  // onBeforeUnmount(() => {
+  //   clearInterval(saveInterval)
+  // })
 
   const config = {
     type: Phaser.AUTO,
@@ -2930,29 +2930,6 @@ onMounted(async () => {
     });
 
     // 创建初始卡片
-    // 从存档数据创建卡片
-    if (gameState.value.cardList && gameState.value.cardList.length > 0) {
-      gameState.value.cardList.forEach((cardData, index) => {
-        // 为每张卡片创建多个实例,数量由 cardNum 决定
-        for (let i = 0; i < cardData.cardNum; i++) {
-          // 计算每张卡片的随机位置
-          const x = Math.random() * (this.scale.width - 100) + 50
-          const y = Math.random() * (this.scale.height - 140 - 180) + 250
-
-          const card = this.physics.add.image(x, y, cardData.cardType)
-            .setDisplaySize(100, 140)
-            .setInteractive({ cursor: 'pointer', useHandCursor: true })
-            .setCollideWorldBounds(true)
-            .setBounce(0.8)
-            .setData('type', cardData.cardType)
-            .setData('id', Date.now().toString() + i)
-
-          this.input.setDraggable(card)
-          this.cards.push(card)
-        }
-      })
-    } else {
-      // 如果没有存档数据,创建默认的初始卡片
       const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
       for (let i = 0; i < initialCards.length; i++) {
         const cardKey = initialCards[i]
@@ -2967,7 +2944,7 @@ onMounted(async () => {
         this.input.setDraggable(card)
         this.cards.push(card)
       }
-    }
+    
 
 
     // 设置游戏区域边界

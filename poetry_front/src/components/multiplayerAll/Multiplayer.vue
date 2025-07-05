@@ -16,10 +16,11 @@ import Phaser from 'phaser';
 
 //-----------------------------------------
 let buySlot1Animating = false
-let buySlot2Animating = false  
-let buySlot3Animating = false
-let buySlot4Animating = false
-let buySlot1OriginalX, buySlot2OriginalX, buySlot3OriginalX, buySlot4OriginalX
+let buySlot1OriginalX
+
+// 添加角色选择相关的响应式变量
+const selectedPoet = ref('libai') // 默认李白，可以通过路由参数或props传入
+
 
 const isStackingMode = ref(false)
 const gameState = ref({ gold: 100 })
@@ -156,7 +157,6 @@ const checkCrafting = (cards) => {
 // 卡牌价格
 const cardPrices = {
   card_pack_poem: 10,
-  card_pack_poet: 10,
                          
   love: 7,
   sad: 2,
@@ -189,137 +189,6 @@ const cardPrices = {
 let lastCoinValue = 100
 const coins = ref(100) // 初始金币数量
 
-const handleBuyAdvancedPack = () => {
-  const packPrice = 15
-  if (coins.value >= packPrice) {
-    //coins.value -= packPrice
-
-    updateGold(-packPrice)
-  const scene = game.scene.scenes[0]
-  
-  // 在随机位置创建卡包
-  const x = Math.random() * (scene.scale.width - 100) + 50
-  const y = Math.random() * (scene.scale.height - 140 - 180) + 250
-
-  const advancedPack = scene.physics.add.image(x, y, 'card_pack_poet')
-    .setDisplaySize(100, 140)
-    .setInteractive({ cursor: 'pointer', useHandCursor: true, draggable: true })
-    .setCollideWorldBounds(true)
-    .setBounce(0.8)
-    .setData('clickCount', 0)
-    .setData('type', 'card_pack_poet')
-    .setData('isDragging', false)
-    .setData('pointerDown', false)
-    .setData('dragStartX', 0)
-    .setData('dragStartY', 0)
-
-
-  scene.input.setDraggable(advancedPack)
-
-  // 添加点击处理
-  advancedPack.on('pointerup', (pointer) => {
-    const isDragging = advancedPack.getData('isDragging')
-    const startX = advancedPack.getData('dragStartX')
-    const startY = advancedPack.getData('dragStartY')
-    const distance = Phaser.Math.Distance.Between(startX, startY, pointer.x, pointer.y)
-
-    if (distance < 5 && !isDragging) {
-      const clickCount = advancedPack.getData('clickCount')
-
-      if (clickCount === 0) {
-        // 第一次点击：震动效果
-        scene.tweens.add({
-          targets: advancedPack,
-          x: advancedPack.x + 5,
-          duration: 50,
-          yoyo: true,
-          repeat: 3
-        })
-        advancedPack.setData('clickCount', 1)
-      } else {
-        // 第二次点击：生成随机卡片
-        const advancedCards = ['libai','sushi','wangwei']
-        const numCards = 3
-
-        // 创建闪光效果
-        const flash = scene.add.sprite(advancedPack.x, advancedPack.y, 'card_pack_poet')
-          .setScale(0.1)
-          .setAlpha(0.8)
-          .setTint(0xffd700)
-          .setBlendMode(Phaser.BlendModes.ADD)
-
-        scene.tweens.add({
-          targets: flash,
-          alpha: 0,
-          scale: 1,
-          duration: 500,
-          onComplete: () => flash.destroy()
-        })
-
-        // 生成随机卡片
-        for (let i = 0; i < numCards; i++) {
-          const angle = (i / numCards) * Math.PI * 2
-          const radius = 80
-          const randomCard = advancedCards[Math.floor(Math.random() * advancedCards.length)]
-
-          const newX = advancedPack.x + Math.cos(angle) * radius
-          const newY = advancedPack.y + Math.sin(angle) * radius
-
-          const card = scene.physics.add.image(advancedPack.x, advancedPack.y, randomCard)
-            .setDisplaySize(100, 140)
-            .setInteractive({ cursor: 'pointer', useHandCursor: true })
-            .setCollideWorldBounds(true)
-            .setBounce(0.8)
-            .setData('type', randomCard)
-            .setData('id', Date.now().toString() + i)
-
-          scene.input.setDraggable(card)
-          scene.cards.push(card)
-
-          scene.tweens.add({
-            targets: card,
-            x: newX,
-            y: newY,
-            alpha: { from: 0.5, to: 1 },
-            duration: 500,
-            ease: 'Back.easeOut'
-          })
-        }
-
-        // 销毁卡包
-        scene.tweens.add({
-          targets: advancedPack,
-          alpha: 0,
-          scale: 0.5,
-          duration: 300,
-          onComplete: () => advancedPack.destroy()
-        })
-      }
-    }
-    advancedPack.setData('pointerDown', false)
-  })
-
-  // 添加与普通卡包相同的拖动事件处理
-  advancedPack.on('pointerdown', (pointer) => {
-    advancedPack.setData('pointerDown', true)
-    advancedPack.setData('dragStartX', pointer.x)
-    advancedPack.setData('dragStartY', pointer.y)
-  })
-
-  advancedPack.on('dragstart', () => {
-    advancedPack.setData('isDragging', true)
-  })
-
-  advancedPack.on('dragend', () => {
-    if (advancedPack.getData('isDragging')) {
-      setTimeout(() => {
-        advancedPack.setData('isDragging', false)
-        advancedPack.setData('pointerDown', false)
-      }, 100)
-    }
-  })
-}
-}
 // 购买诗意卡包
 const handleBuyPack = () => {
   const packPrice = 10
@@ -783,32 +652,38 @@ onMounted(() => {
         this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
           fontSize: '18px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
         this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
           fontSize: '16px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
           fontSize: '18px',
           color: '#ffffff',
+          resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 渲染状态效果的函数
@@ -928,7 +803,7 @@ onMounted(() => {
         }).setOrigin(0.5).setDepth(102)
 
         // 创建第一个购买槽 - 简化版本
-        const buySlot = this.add.rectangle(padding * 2 + 100, padding - 200, 100, 140, 0x6e5773)
+        const buySlot = this.add.rectangle(padding * 2 + 100, padding, 100, 140, 0x6e5773)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ useHandCursor: true })
@@ -936,7 +811,7 @@ onMounted(() => {
 
         buySlot1OriginalX = buySlot.x
         // 购买槽文本 - 直接使用最终位置
-        const buyIcon = this.add.text(padding * 2 + 100 + 50, padding + 40 - 200, '🎁', {
+        const buyIcon = this.add.text(padding * 2 + 100 + 50, padding + 40, '🎁', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
@@ -952,30 +827,11 @@ onMounted(() => {
           padding: { y: 5 }
         }).setOrigin(0.5).setDepth(102)
 
-        // 购买槽和文本一起入场动画
-        this.tweens.add({
-          targets: buySlot,
-          y: padding,
-          duration: 600,
-          ease: 'Back.easeOut',
-          delay: 300
-        })
+        // 直接设置最终位置，无动画
+        buySlot.y = padding
+        buyIcon.y = padding + 40
+        buyText.y = padding + 90
 
-        this.tweens.add({
-          targets: buyIcon,
-          y: padding + 40,
-          duration: 600,
-          ease: 'Back.easeOut',
-          delay: 300
-        })
-
-        this.tweens.add({
-          targets: buyText,
-          y: padding + 90,
-          duration: 600,
-          ease: 'Back.easeOut',
-          delay: 300
-        })
         // 添加购买槽的悬浮效果
         buySlot.on('pointerover', () => {
           if (coins.value >= 10) {
@@ -1097,9 +953,6 @@ onMounted(() => {
             
             // 简洁的边框闪烁
             buySlot.setStrokeStyle(3, 0xffffff)
-            this.time.delayedCall(200, () => {
-              buySlot.setStrokeStyle(3, 0x8c7853, 0.9)
-            })
             
             // 保留金币消费提示（这个比较实用）
             const costText = this.add.text(
@@ -1186,9 +1039,6 @@ onMounted(() => {
             })
             
             buySlot.setStrokeStyle(3, 0xff5722)
-            this.time.delayedCall(300, () => {
-              buySlot.setStrokeStyle(3, 0x8c7853, 0.9)
-            })
           }
         }
 
@@ -1203,782 +1053,194 @@ onMounted(() => {
             })
           })
 
-          // 创建第二个购买槽 - 完整版本
-          const buySlot2 = this.add.rectangle(padding * 3 + 200, padding - 200, 100, 140, 0x6e5773)
+        // 创建攻击卡槽
+        const attackSlot = this.add.rectangle(padding * 3 + 200, padding, 100, 140, 0x8b0000)
+          .setOrigin(0, 0)
+          .setDepth(101)
+          .setInteractive({ dropZone: true })
+          .setStrokeStyle(3, 0xff4444, 0.9)
+
+        // 攻击槽文本和图标
+        const attackIcon = this.add.text(padding * 3 + 200 + 50, padding + 40, '⚔️', {
+          fontSize: '32px',
+          resolution: 2,
+          padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(102)
+
+        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90 , '攻击卡槽', {
+          fontSize: '16px',
+          resolution: 2,
+          color: '#ffffff',
+          align: 'center',
+          fontWeight: 'bold',
+          lineSpacing: 2,
+          padding: { y: 5 }
+        }).setOrigin(0.5).setDepth(102)
+
+
+        // 创建防守卡槽
+        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding , 100, 140, 0x0066cc)
+          .setOrigin(0, 0)
+          .setDepth(101)
+          .setInteractive({ dropZone: true })
+          .setStrokeStyle(3, 0x4488ff, 0.9)
+
+        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40 , '🛡️', {
+          fontSize: '32px',
+          resolution: 2,
+          padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(102)
+
+        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90 , '防守卡槽', {
+          fontSize: '16px',
+          resolution: 2,
+          color: '#ffffff',
+          align: 'center',
+          fontWeight: 'bold',
+          lineSpacing: 2,
+          padding: { y: 5 }
+        }).setOrigin(0.5).setDepth(102)
+
+        // 创建BUFF卡槽
+        const buffSlot = this.add.rectangle(padding * 5 + 400, padding , 100, 140, 0x228b22)
+          .setOrigin(0, 0)
+          .setDepth(101)
+          .setInteractive({ dropZone: true })
+          .setStrokeStyle(3, 0x44cc44, 0.9)
+
+        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40 , '✨', {
+          fontSize: '32px',
+          resolution: 2,
+          padding: { x: 2, y: 2 }
+        }).setOrigin(0.5).setDepth(102)
+
+        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90 , 'BUFF卡槽', {
+          fontSize: '16px',
+          color: '#ffffff',
+          align: 'center',
+          resolution: 1.5,
+          fontWeight: 'bold',
+          lineSpacing: 2,
+          padding: { y: 5 }
+        }).setOrigin(0.5).setDepth(102)
+
+        // 攻击卡槽处理函数
+        const handleAttackSlot = (card) => {
+          console.log('卡片放入攻击槽:', card.getData('type'))
+          // 在这里添加攻击逻辑
+          
+          
+
+          attackSlot.y = padding
+          attackIcon.y = padding + 40
+          attackText.y = padding + 90
+
+          // 销毁卡片
+          card.destroy()
+          this.cards = this.cards.filter(c => c !== card)
+        }
+
+        // 防守卡槽处理函数
+        const handleDefenseSlot = (card) => {
+          console.log('卡片放入防守槽:', card.getData('type'))
+          // 在这里添加防守逻辑
+          
+          
+          defenseSlot.y = padding
+          defenseIcon.y = padding + 40
+          defenseText.y = padding + 90
+          
+          card.destroy()
+          this.cards = this.cards.filter(c => c !== card)
+        }
+
+        // BUFF卡槽处理函数
+        const handleBuffSlot = (card) => {
+          console.log('卡片放入BUFF槽:', card.getData('type'))
+          // 在这里添加BUFF逻辑
+          
+
+          
+          buffSlot.y = padding
+          buffIcon.y = padding + 40
+          buffText.y = padding + 90
+          
+          card.destroy()
+          this.cards = this.cards.filter(c => c !== card)
+        }
+
+        // 创建合成台背景 - 直接设置最终位置
+        const finalCraftingX = padding * 6 + 500 + padding;
+        const craftingStation = this.add.rectangle(
+          finalCraftingX, // 直接设置最终位置，不需要动画
+          padding, 
+          400, 
+          140, 
+          0xa3916a, 
+          1 
+        )
+          .setOrigin(0, 0)
+          .setDepth(100)
+          .setStrokeStyle(2, 0xa3916a);
+
+        // 创建四个合成槽
+        const craftingSlots = []
+        const slotWidth = 80
+        const cardWidth = 100; 
+        const cardHeight = 140; 
+        const slotSpacing = 20
+        const slotTypes = [null, null, null, null] 
+
+        for (let i = 0; i < 4; i++) {
+          // 直接使用最终位置，删除动画
+          const finalX = finalCraftingX + slotSpacing + i * (cardWidth + slotSpacing);
+          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; 
+
+          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853) 
             .setOrigin(0, 0)
             .setDepth(101)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(3, 0x8c7853, 0.9)
+            .setStrokeStyle(1, 0xffffff)
+            .setData('type', slotTypes[i])
+            .setData('occupied', false)
+            .setData('card', null)
+            .setInteractive({ dropZone: true });
 
-          buySlot2OriginalX = buySlot2.x
-          // 第二个购买槽的文本和图标 - 直接使用最终位置
-          const buyIcon2 = this.add.text(padding * 3 + 200 + 50, padding + 40 - 200, '📦', {
-            fontSize: '32px',
-            resolution: 2,
-            padding: { x: 2, y: 2 }
-          }).setOrigin(0.5).setDepth(102)
+          craftingSlots.push(slot);
 
-          const buyText2 = this.add.text(padding * 3 + 200 + 50, padding + 90 - 200, '诗人卡包\n15金币', {
-            fontSize: '16px',
-            resolution: 2,
-            color: '#ffffff',
-            align: 'center',
-            fontWeight: 'bold',
-            lineSpacing: 2,
-            padding: { y: 5 }
-          }).setOrigin(0.5).setDepth(102)
-
-          // 第二个购买槽入场动画
-          this.tweens.add({
-            targets: buySlot2,
-            y: padding,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 400
-          })
-
-          this.tweens.add({
-            targets: buyIcon2,
-            y: padding + 40,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 400
-          })
-
-          this.tweens.add({
-            targets: buyText2,
-            y: padding + 90,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 400
-          })
-
-          // 第二个购买槽的简化悬浮效果
-          buySlot2.on('pointerover', () => {
-            if (coins.value >= 15) {
-              buySlot2.setStrokeStyle(3, 0xffffff, 1)
-              buySlot2.setAlpha(0.9)
-              this.tweens.add({
-                targets: [buyIcon2, buyText2],
-                scale: 1.05,
-                duration: 150,
-                ease: 'Power2.easeOut'
-              })
-            } else {
-              buySlot2.setStrokeStyle(3, 0xff5722, 1)
-              buySlot2.setAlpha(0.8)
-            }
-          })
-
-          buySlot2.on('pointerout', () => {
-            buySlot2.setStrokeStyle(3, 0x8c7853, 0.9)
-            buySlot2.setAlpha(1)
-            this.tweens.add({
-              targets: [buyIcon2, buyText2],
-              scale: 1,
-              duration: 150,
-              ease: 'Power2.easeOut'
-            })
-          })
-
-          // 第二个购买槽的处理函数
-          const handleBuyClick2 = () => {
-            if (coins.value >= 15) {
-              this.tweens.killTweensOf([buySlot2, buyIcon2, buyText2])
-              buySlot2.setScale(1)
-              buyIcon2.setScale(1)
-              buyText2.setScale(1)
-              coins.value -= 15
-              
-              this.tweens.add({
-                targets: buySlot2,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buySlot2.setScale(1) // 确保动画完成后重置
-                }
-              })
-              
-              this.tweens.add({
-                targets: [buyIcon2, buyText2],
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buyIcon.setScale(1) // 确保动画完成后重置
-                  buyText.setScale(1)
-                }
-              })
-              
-              buySlot2.setStrokeStyle(3, 0xffffff)
-              this.time.delayedCall(200, () => {
-                buySlot2.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-              
-              const costText = this.add.text(
-                buySlot2.x + 50,
-                buySlot2.y + 120,
-                '-15',
-                {
-                  fontSize: '18px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: costText,
-                y: '-=30',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => costText.destroy()
-              })
-              
-              handleBuyAdvancedPack()
-            } else {
-              if (buySlot2Animating) return
-              buySlot2Animating = true
-        
-              // 确保从原始位置开始动画
-              buySlot2.x = buySlot2OriginalX
-              buySlot2.setScale(1)
-              buyIcon2.setScale(1)
-              buyText2.setScale(1)
-              // 简化的金币不足反馈（与第一个槽位相同）
-              this.tweens.add({
-                targets: buySlot2,
-                x: buySlot2OriginalX + 3,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buySlot2.x = buySlot2OriginalX  // 确保回到原始位置
-                  buySlot2.setScale(1)
-                  buySlot2Animating = false  // 重置防抖标记
-                }
-              })
-              
-              buyIcon2.x = buySlot2OriginalX + 50
-              buyText2.x = buySlot2OriginalX + 50
-              
-              this.tweens.add({
-                targets: [buyIcon2, buyText2],
-                x: buySlot2OriginalX + 50 + 3,
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buyIcon2.x = buySlot2OriginalX + 50
-                  buyText2.x = buySlot2OriginalX + 50
-                  buyIcon2.setScale(1)
-                  buyText2.setScale(1)
-                }
-              })
-              const warningText = this.add.text(
-                buySlot2.x + 50,
-                buySlot2.y + 120,
-                '金币不足',
-                {
-                  fontSize: '14px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: warningText,
-                y: '-=20',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => warningText.destroy()
-              })
-              
-              buySlot2.setStrokeStyle(3, 0xff5722)
-              this.time.delayedCall(300, () => {
-                buySlot2.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-            }
-          }
-
-          // 为第二个购买槽添加交互效果
-          ;[buySlot2, buyIcon2, buyText2].forEach(element => {
-            element.on('pointerdown', handleBuyClick2)
-            element.on('pointerover', () => {
-              buySlot2.setStrokeStyle(2, 0xffffff)
-            })
-            element.on('pointerout', () => {
-              buySlot2.setStrokeStyle(2, 0x8c7853)
-            })
-          })
-
-
-          // 第三个购买槽
-          const buySlot3 = this.add.rectangle(padding * 4 + 300, padding - 200, 100, 140, 0x6e5773)
-            .setOrigin(0, 0)
-            .setDepth(101)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(3, 0x8c7853, 0.9)
-
-          buySlot3OriginalX = buySlot3.x  
-          // 第三个购买槽的文本和图标 - 直接使用最终位置
-          const buyIcon3 = this.add.text(padding * 4 + 300 + 50, padding + 40 - 200, '🧙', {
-            fontSize: '32px',
-            resolution: 2,
-            padding: { x: 2, y: 2 }
-          }).setOrigin(0.5).setDepth(102)
-
-          const buyText3 = this.add.text(padding * 4 + 300 + 50, padding + 90 - 200, '书生卡\n10金币', {
-            fontSize: '16px',
-            resolution: 2,
-            color: '#ffffff',
-            align: 'center',
-            fontWeight: 'bold',
-            lineSpacing: 2,
-            padding: { y: 5 }
-          }).setOrigin(0.5).setDepth(102)
-
-          // 第三个购买槽入场动画
-          this.tweens.add({
-            targets: buySlot3,
-            y: padding,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 500
-          })
-
-          this.tweens.add({
-            targets: buyIcon3,
-            y: padding + 40,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 500
-          })
-
-          this.tweens.add({
-            targets: buyText3,
-            y: padding + 90,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 500
-          })
-
-          // 第三个购买槽的简化悬浮效果
-          buySlot3.on('pointerover', () => {
-            if (coins.value >= 10) {
-              buySlot3.setStrokeStyle(3, 0xffffff, 1)
-              buySlot3.setAlpha(0.9)
-              this.tweens.add({
-                targets: [buyIcon3, buyText3],
-                scale: 1.05,
-                duration: 150,
-                ease: 'Power2.easeOut'
-              })
-            } else {
-              buySlot3.setStrokeStyle(3, 0xff5722, 1)
-              buySlot3.setAlpha(0.8)
-            }
-          })
-
-          buySlot3.on('pointerout', () => {
-            buySlot3.setStrokeStyle(3, 0x8c7853, 0.9)
-            buySlot3.setAlpha(1)
-            this.tweens.add({
-              targets: [buyIcon3, buyText3],
-              scale: 1,
-              duration: 150,
-              ease: 'Power2.easeOut'
-            })
-          })
-          // 第四个购买槽
-          const buySlot4 = this.add.rectangle(padding * 5 + 400, padding - 200, 100, 140, 0x6e5773)
-            .setOrigin(0, 0)
-            .setDepth(101)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(3, 0x8c7853, 0.9)
-
-          buySlot4OriginalX = buySlot4.x
-          // 第四个购买槽的文本和图标 - 直接使用最终位置
-          const buyIcon4 = this.add.text(padding * 5 + 400 + 50, padding + 40 - 200, '⛩️', {
-            fontSize: '32px',
-            resolution: 2,
-            padding: { x: 2, y: 2 }
-          }).setOrigin(0.5).setDepth(102)
-
-          const buyText4 = this.add.text(padding * 5 + 400 + 50, padding + 90 - 200, '书斋卡\n10金币', {
-            fontSize: '16px',
-            color: '#ffffff',
-            align: 'center',
-            resolution: 2,
-            fontWeight: 'bold',
-            lineSpacing: 2,
-            padding: { y: 5 }
-          }).setOrigin(0.5).setDepth(102)
-
-          // 第四个购买槽入场动画
-          this.tweens.add({
-            targets: buySlot4,
-            y: padding,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 600
-          })
-
-          this.tweens.add({
-            targets: buyIcon4,
-            y: padding + 40,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 600
-          })
-
-          this.tweens.add({
-            targets: buyText4,
-            y: padding + 90,
-            duration: 600,
-            ease: 'Back.easeOut',
-            delay: 600
-          })
-
-          // 第四个购买槽的简化悬浮效果
-          buySlot4.on('pointerover', () => {
-            if (coins.value >= 10) {
-              buySlot4.setStrokeStyle(3, 0xffffff, 1)
-              buySlot4.setAlpha(0.9)
-              this.tweens.add({
-                targets: [buyIcon4, buyText4],
-                scale: 1.05,
-                duration: 150,
-                ease: 'Power2.easeOut'
-              })
-            } else {
-              buySlot4.setStrokeStyle(3, 0xff5722, 1)
-              buySlot4.setAlpha(0.8)
-            }
-          })
-
-          buySlot4.on('pointerout', () => {
-            buySlot4.setStrokeStyle(3, 0x8c7853, 0.9)
-            buySlot4.setAlpha(1)
-            this.tweens.add({
-              targets: [buyIcon4, buyText4],
-              scale: 1,
-              duration: 150,
-              ease: 'Power2.easeOut'
-            })
-          })
-
-          // 第三个购买槽的处理函数（购买工人卡）- 完整版本
-          const handleBuyWorker = () => {
-            if (coins.value >= 10) {
-              this.tweens.killTweensOf([buySlot3, buyIcon3, buyText3])
-              buySlot3.setScale(1)
-              buyIcon3.setScale(1)
-              buyText3.setScale(1)
-
-              coins.value -= 10
-
-              // 简单的按下反馈
-              this.tweens.add({
-                targets: buySlot3,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buySlot3.setScale(1) // 确保动画完成后重置
-                }
-              })
-
-              // 添加点击反馈动画
-              this.tweens.add({
-                targets: [buyIcon3, buyText3],
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buyIcon3.setScale(1) // 确保动画完成后重置
-                  buyText3.setScale(1)
-                }
-              })
-              
-              buySlot3.setStrokeStyle(3, 0xffffff)
-              this.time.delayedCall(200, () => {
-                buySlot3.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-              
-              const costText = this.add.text(
-                buySlot3.x + 50,
-                buySlot3.y + 120,
-                '-10',
-                {
-                  fontSize: '18px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: costText,
-                y: '-=30',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => costText.destroy()
-              })
-            } else {
-              if (buySlot3Animating) return
-              buySlot3Animating = true
-              
-              buySlot3.x = buySlot3OriginalX
-              buySlot3.setScale(1)
-              buyIcon2.setScale(1)
-              buyText3.setScale(1)
-              // 金币不足的简化反馈
-              this.tweens.add({
-                targets: buySlot3,
-                x: buySlot3OriginalX + 3,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buySlot3.x = buySlot3OriginalX  // 确保回到原始位置
-                  buySlot2.setScale(1)
-                  buySlot3Animating = false  // 重置防抖标记
-                }
-              })
-              
-              buyIcon3.x = buySlot3OriginalX + 50
-              buyText3.x = buySlot3OriginalX + 50
-              
-              this.tweens.add({
-                targets: [buyIcon3, buyText3],
-                x: buySlot3OriginalX + 50 + 3,
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buyIcon3.x = buySlot3OriginalX + 50
-                  buyText3.x = buySlot3OriginalX + 50
-                  buyIcon2.setScale(1)
-                  buyText2.setScale(1)
-                }
-              })
-              
-              const warningText = this.add.text(
-                buySlot3.x + 50,
-                buySlot3.y + 120,
-                '金币不足',
-                {
-                  fontSize: '14px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: warningText,
-                y: '-=20',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => warningText.destroy()
-              })
-              
-              buySlot3.setStrokeStyle(3, 0xff5722)
-              this.time.delayedCall(300, () => {
-                buySlot3.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-            }
-          }
-          // 第四个购买槽的处理函数（购买工厂卡）- 完整版本
-          const handleBuyFactory = () => {
-            if (coins.value >= 10) {
-              this.tweens.killTweensOf([buySlot4, buyIcon4, buyText4])
-              buySlot4.setScale(1)
-              buyIcon4.setScale(1)
-              buyText4.setScale(1)
-
-              coins.value -= 10
-              updateGold(-10)
-
-              // 简单的按下反馈
-              this.tweens.add({
-                targets: buySlot4,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buySlot4.setScale(1) // 确保动画完成后重置
-                }
-              })
-              
-              this.tweens.add({
-                targets: [buyIcon4, buyText4],
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2.easeOut',
-                yoyo: true,
-                onComplete: () => {
-                  buyIcon4.setScale(1) // 确保动画完成后重置
-                  buyText4.setScale(1)
-                }
-              })
-              
-              buySlot4.setStrokeStyle(3, 0xffffff)
-              this.time.delayedCall(200, () => {
-                buySlot4.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-              
-              const costText = this.add.text(
-                buySlot4.x + 50,
-                buySlot4.y + 120,
-                '-10',
-                {
-                  fontSize: '18px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: costText,
-                y: '-=30',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => costText.destroy()
-              })
-
-              // 创建工厂卡
-              const x = Math.random() * (this.scale.width - 100) + 50
-              const y = Math.random() * (this.scale.height - 140 - 180) + 250
-
-              const factoryCard = this.physics.add.image(x, y, 'factory')
-                .setDisplaySize(100, 140)
-                .setInteractive({ cursor: 'pointer', useHandCursor: true })
-                .setCollideWorldBounds(true)
-                .setBounce(0.8)
-                .setData('type', 'factory')
-                .setData('id', Date.now().toString())
-
-              this.input.setDraggable(factoryCard)
-              this.cards.push(factoryCard)
-            } else {
-              if (buySlot4Animating) return
-              buySlot4Animating = true
-              
-              // 确保从原始位置开始动画
-              buySlot4.x = buySlot4OriginalX
-              buySlot4.setScale(1)
-              buyIcon4.setScale(1)
-              buyText4.setScale(1)
-
-              // 金币不足的简化反馈
-              this.tweens.add({
-                targets: buySlot4,
-                x: buySlot4OriginalX + 3,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buySlot4.x = buySlot4OriginalX  // 确保回到原始位置
-                  buySlot4.setScale(1)
-                  buySlot4Animating = false  // 重置防抖标记
-                }
-              })
-              
-              buyIcon4.x = buySlot4OriginalX + 50
-              buyText4.x = buySlot4OriginalX + 50
-              
-              this.tweens.add({
-                targets: [buyIcon4, buyText4],
-                x: buySlot4OriginalX + 50 + 3,
-                scale: 0.9,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                repeat: 2,
-                onComplete: () => {
-                  buyIcon4.x = buySlot4OriginalX + 50
-                  buyText4.x = buySlot4OriginalX + 50
-                  buyIcon4.setScale(1)
-                  buyText4.setScale(1)
-                }
-              })
-              
-              const warningText = this.add.text(
-                buySlot4.x + 50,
-                buySlot4.y + 120,
-                '金币不足',
-                {
-                  fontSize: '14px',
-                  color: '#ff5722',
-                  fontWeight: 'bold',
-                  resolution: 2
-                }
-              ).setDepth(104).setOrigin(0.5)
-              
-              this.tweens.add({
-                targets: warningText,
-                y: '-=20',
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => warningText.destroy()
-              })
-              
-              buySlot4.setStrokeStyle(3, 0xff5722)
-              this.time.delayedCall(300, () => {
-                buySlot4.setStrokeStyle(3, 0x8c7853, 0.9)
-              })
-            }
-          }
-
-
-          // 为第三个购买槽添加交互效果
-          ;[buySlot3, buyIcon3, buyText3].forEach(element => {
-            element.on('pointerdown', handleBuyWorker)
-            element.on('pointerover', () => {
-              buySlot3.setStrokeStyle(2, 0xffffff)
-            })
-            element.on('pointerout', () => {
-              buySlot3.setStrokeStyle(2, 0x8c7853)
-            })
-          })
-
-
-          // 创建合成台背景
-          const craftingStation = this.add.rectangle(
-            this.scale.width + 400, // 初始位置在屏幕右侧（隐藏）
-            padding, 
-            400, 
-            140, 
-            0xa3916a, 
-            1 
-          )
-            .setOrigin(0, 0)
-            .setDepth(100)
-            .setStrokeStyle(2, 0xa3916a);
-
-          // 创建四个合成槽 - 修改初始位置
-          const craftingSlots = []
-          const slotWidth = 80
-          const cardWidth = 100; 
-          const cardHeight = 140; 
-          const slotSpacing = 20
-          const slotTypes = ['card2', 'card3', 'card_worker', null] 
-
-          // 计算最终位置
-          const finalCraftingX = padding * 5 + 500 + padding; // 第四个购买槽右边
-
-          for (let i = 0; i < 4; i++) {
-            // 初始位置在屏幕右侧（隐藏）
-            const initialX = this.scale.width + slotSpacing + i * (cardWidth + slotSpacing);
-            const finalX = finalCraftingX + slotSpacing + i * (cardWidth + slotSpacing);
-            const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; 
-
-            const slot = this.add.rectangle(initialX, y, cardWidth, cardHeight, 0x8c7853) 
-              .setOrigin(0, 0)
-              .setDepth(101)
-              .setStrokeStyle(1, 0xffffff)
-              .setData('type', slotTypes[i])
-              .setData('occupied', false)
-              .setData('card', null)
-              .setInteractive({ dropZone: true })
-              .setData('finalX', finalX); // 存储最终位置
-
-            craftingSlots.push(slot);
-
-            // 添加槽位标识 - 初始位置也在屏幕右侧
-            let operatorText = null;
-            if (i < 3) {
-              operatorText = this.add.text(
-                initialX + cardWidth + 5, 
-                y + cardHeight / 2, 
-                i < 2 ? '+' : '=', 
-                {
-                  fontSize: '24px',
-                  resolution: 5,
-                  color: '#ffffff'
-                }
-              )
-                .setOrigin(0, 0.5)
-                .setDepth(101)
-                .setData('finalX', finalX + cardWidth + 5); // 存储最终位置
-            }
-
-            // 添加合成台入场动画 - 在购买槽动画完成后开始
-            this.time.delayedCall(700, () => {
-              // 合成台背景入场动画
-              this.tweens.add({
-                targets: craftingStation,
-                x: finalCraftingX,
-                duration: 800,
-                ease: 'Back.easeOut',
-                delay: 0
-              });
-
-              // 槽位入场动画 - 依次出现
-              this.tweens.add({
-                targets: slot,
-                x: finalX,
-                duration: 600,
-                ease: 'Back.easeOut',
-                delay: i * 100, // 每个槽位延迟100ms
-                onComplete: () => {
-                  // 槽位到位后添加轻微的弹跳效果
-                  this.tweens.add({
-                    targets: slot,
-                    scaleX: { from: 1, to: 1.05 },
-                    scaleY: { from: 1, to: 1.05 },
-                    duration: 200,
-                    ease: 'Power2',
-                    yoyo: true
-                  });
-                }
-              });
-
-              // 操作符文本入场动画
-              if (operatorText) {
-                this.tweens.add({
-                  targets: operatorText,
-                  x: finalX + cardWidth + 5,
-                  alpha: { from: 0, to: 1 },
-                  duration: 600,
-                  ease: 'Back.easeOut',
-                  delay: i * 100 + 200, // 比槽位稍晚出现
-                });
+          // 添加槽位标识 - 直接设置最终位置
+          let operatorText = null;
+          if (i < 3) {
+            operatorText = this.add.text(
+              finalX + cardWidth + 5, 
+              y + cardHeight / 2, 
+              i < 2 ? '+' : '=', 
+              {
+                fontSize: '24px',
+                resolution: 5,
+                color: '#ffffff'
               }
-            });
+            )
+              .setOrigin(0, 0.5)
+              .setDepth(101);
           }
+
+          // 如果是第3个槽位（索引2），直接放置选择的诗人
+          if (i === 2) {
+            const poetCard = this.physics.add.image(
+              finalX + cardWidth / 2,
+              y + cardHeight / 2,
+              selectedPoet.value
+            )
+              .setDisplaySize(100, 140)
+              .setDepth(102)
+              .setData('type', selectedPoet.value)
+              .setData('id', 'selected_poet')
+              .setData('isFixed', true);
+
+            slot.setData('occupied', true);
+            slot.setData('card', poetCard);
+          }
+        }
 
           // 添加拖放事件
           // 修改合成槽的拖放逻辑
@@ -2045,16 +1307,22 @@ onMounted(() => {
                     onComplete: () => flash.destroy()
                   });
 
-                  // 清空材料槽
+                  // 清空材料槽，但保留诗人槽（索引2）
                   materials.forEach(card => {
-                    // 从cards数组中移除
-                    this.cards = this.cards.filter(c => c !== card);
-                    card.destroy();
+                    // 检查是否是固定的诗人卡片
+                    if (!card.getData('isFixed')) {
+                      // 从cards数组中移除
+                      this.cards = this.cards.filter(c => c !== card);
+                      card.destroy();
+                    }
                   });
-                  
-                  craftingSlots.forEach(slot => {
-                    slot.setData('occupied', false);
-                    slot.setData('card', null);
+
+                  // 只清空非诗人槽
+                  craftingSlots.forEach((slot, index) => {
+                    if (index !== 2) { // 不清空诗人槽（索引2）
+                      slot.setData('occupied', false);
+                      slot.setData('card', null);
+                    }
                   });
                   
                   console.log('Crafting completed successfully!');
@@ -2190,32 +1458,6 @@ onMounted(() => {
 
           modeHintBackground.x = gameSize.width - padding ;
           modeHintText.x = gameSize.width - padding -10;
-
-
-          // 更新合成台位置
-          craftingStation.x = buySlot4.x + buySlot4.width + padding; // 书斋卡右边
-
-          // 更新槽位位置
-          craftingSlots.forEach((slot, i) => {
-            const x = craftingStation.x + slotSpacing + i * (cardWidth + slotSpacing);
-            slot.x = x;
-
-            // 更新槽位标识和提示文本的位置
-            if (i < 3) {
-              const operatorText = this.add.text(x + cardWidth + 5, slot.y + cardHeight / 2, i < 2 ? '+' : '=', {
-                fontSize: '24px',
-                resolution: 2,
-                color: '#ffffff'
-              }).setOrigin(0, 0.5).setDepth(101);
-            }
-
-            const slotText = i === 3 ? '诗词' : i === 2 ? '诗人' : `诗意${i + 1}`;
-            this.add.text(x + cardWidth / 2, slot.y - 5, slotText, {
-              fontSize: '12px',
-              resolution: 2,
-              color: '#ffffff'
-            }).setOrigin(0.5, 1).setDepth(101);
-          });
         });
         const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
         for (let i = 0; i < initialCards.length; i++) {
@@ -2330,6 +1572,29 @@ onMounted(() => {
             }
           }
 
+          // 检查是否在攻击槽区域
+          if (pointer.y < topBarHeight &&
+              pointer.x >= attackSlot.x &&
+              pointer.x <= attackSlot.x + attackSlot.width) {
+            handleAttackSlot(gameObject)
+            return
+          }
+
+          // 检查是否在防守槽区域
+          if (pointer.y < topBarHeight &&
+              pointer.x >= defenseSlot.x &&
+              pointer.x <= defenseSlot.x + defenseSlot.width) {
+            handleDefenseSlot(gameObject)
+            return
+          }
+
+          // 检查是否在BUFF槽区域
+          if (pointer.y < topBarHeight &&
+              pointer.x >= buffSlot.x &&
+              pointer.x <= buffSlot.x + buffSlot.width) {
+            handleBuffSlot(gameObject)
+            return
+          }
           // 检查是否在出售槽区域
           if (pointer.y < topBarHeight &&
               pointer.x >= sellSlot.x &&
@@ -2509,6 +1774,9 @@ onMounted(() => {
 
         // 修改拖拽开始事件
         this.input.on('dragstart', (pointer, gameObject) => {
+          if (gameObject.getData('isFixed')) {
+            return; // 不允许拖动固定的诗人卡片
+          }
           gameObject.setDepth(150)
           gameObject.body.moves = false
 

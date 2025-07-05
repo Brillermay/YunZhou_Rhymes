@@ -191,33 +191,33 @@ const executeEntranceAnimation = async () => {
     rotation: 0,
     scale: 1,
     filter: 'blur(0px)',
-    duration: 1.5,
+    duration: 1.0,
     stagger: {
-      amount: 2.5,
+      amount: 1.2,
       from: "start",
-      ease: "back.out(2)"
+      ease: "back.out(1.5)"
     },
-    ease: "back.out(1.7)"
-  }, "-=1")
+    ease: "back.out(1.5)"
+  }, "-=0.6")
   
   // 4. 汉字的墨迹扩散效果
   .to(titleCharRefs.value, {
     textShadow: '0 0 20px rgba(44, 62, 80, 0.6), 0 0 40px rgba(140, 120, 83, 0.4)',
-    duration: 1,
-    stagger: 0.15,
+    duration: 0.8,
+    stagger: 0.1,
     ease: "power2.out"
-  }, "-=1.5")
+  }, "-=0.8")
   
   // 5. 汉字的轻微摇摆 - 模拟毛笔书写后的自然晃动
   .to(titleCharRefs.value, {
     rotation: 'random(-3, 3)',
     y: 'random(-5, 5)',
-    duration: 0.8,
-    stagger: 0.1,
+    duration: 0.6,
+    stagger: 0.08,
     ease: "elastic.out(1, 0.3)",
     repeat: 1,
     yoyo: true
-  }, "-=0.8")
+  }, "-=0.5")
   
   // 6. 英文标题优雅登场
   .to(englishWordRefs.value, {
@@ -226,28 +226,28 @@ const executeEntranceAnimation = async () => {
     y: 0,
     scale: 1,
     filter: 'blur(0px)',
-    duration: 1.2,
+    duration: 1.0,
     stagger: {
-      amount: 0.8,
+      amount: 0.6,
       from: "center",
       ease: "power2.out"
     },
     ease: "power3.out"
-  }, "-=1.2")
+  }, "-=0.8")
   
   // 7. 装饰粒子绽放
   .to(particleRefs.value, {
     opacity: 0.8,
     scale: 'random(0.8, 1.2)',
     rotation: 'random(0, 360)',
-    duration: 1.5,
+    duration: 1.2,
     stagger: {
-      amount: 1,
+      amount: 0.8,
       from: "random",
       ease: "power2.out"
     },
     ease: "back.out(1.7)"
-  }, "-=1.5")
+  }, "-=1.2")
   
   // 8. 背景光晕绽放
   .to(glowRef.value, {
