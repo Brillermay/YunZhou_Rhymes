@@ -166,7 +166,7 @@ onBeforeUnmount(() => {
 // 监听房间人数变化，如果达到2人自动跳转
 watch(roomPlayerCount, (newCount) => {
   if (newCount >= 2) {
-    addLog('info', `房间人数达到${newCount}人，准备跳转到游戏界面`);
+    addLog('info', `房间人数达到${newCount}人，准备开始游戏`);
 
     // 保存当前房间信息以便在游戏页面使用
     saveData('current_game_room', {
@@ -174,7 +174,20 @@ watch(roomPlayerCount, (newCount) => {
       userId: userInfo.value.uid
     });
 
-    // 延迟1.5秒后跳转，让用户看到提示信息
+    // 发送开始游戏的WebSocket消息
+    sendMessage({
+      type: 'startGame',
+      room: {
+        roomId: currentRoom.value,
+        role1: 'libai',  // 测试用，两个角色都设为libai
+        role2: 'libai',
+        uid: userInfo.value.uid.toString()
+      }
+    });
+
+    addLog('info', '发送开始游戏请求');
+
+    // 延迟跳转时间调整为5秒，确保有足够时间处理初始化
     setTimeout(() => {
       router.push('/multiplay_r');
     }, 5000);
