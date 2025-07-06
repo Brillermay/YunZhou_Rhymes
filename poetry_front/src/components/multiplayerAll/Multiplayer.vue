@@ -972,7 +972,18 @@ onMounted(() => {
         heads.forEach(head => {
           this.load.image(head.key, head.src);
         });
+        sendMessage({
+          type: "RoundBegin",
+          room: {
+            roomId: getData('current_game_room')?.roomId,
+
+            //uid: `getCurrentUid()` 
+            uid: getData('multiGame_userInfo')?.uid
+          }
+        });
       },
+
+      
       create() {
 
         const graphics = this.add.graphics();
@@ -2214,7 +2225,7 @@ onMounted(() => {
           modeHintBackground.x = gameSize.width - padding;
           modeHintText.x = gameSize.width - padding - 10;
         });
-        const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
+        const initialCards = []
         for (let i = 0; i < initialCards.length; i++) {
           const cardKey = initialCards[i]
           const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
@@ -2450,6 +2461,19 @@ onMounted(() => {
                 const card2Type = otherCard.getData('type')
 
                 const resultType = checkRecipe(card1Type, card2Type)
+
+                //在这里完善卡牌合成的消息机制
+                sendMessage({
+                  type: "synthesize",
+                  room: {
+                    //uid: `getCurrentUid()` 
+                    uid: getData('multiGame_userInfo')?.uid,
+                    cardA: card1Type,
+                    cardB: card2Type,
+                    cardC: resultType
+                  }
+                });
+
 
                 if (resultType) {
 
