@@ -1,6 +1,7 @@
 package com.example.bg.GameBG.Play.Service;
 
 import com.example.bg.GameBG.Play.Entities.*;
+import io.netty.channel.ConnectTimeoutException;
 import org.apache.poi.ss.formula.functions.Roman;
 import org.bouncycastle.jcajce.spec.UserKeyingMaterialSpec;
 import org.springframework.cglib.transform.impl.AddStaticInitTransformer;
@@ -139,7 +140,7 @@ public class PlayerService {
         }
         room.setRoundNum(room.getRoundNum()+1);
         BeginService(playerAgainst1,playerAgainst2,
-                listPlayer1,listPlayer2);
+                listPlayer1,listPlayer2,true);
         //接受的是本回合出牌列表
         //首先先丢弃
         DiscardPlayersCards(playerAgainst1,listPlayer1);
@@ -285,28 +286,31 @@ public class PlayerService {
      * @param listPlayer2 玩家2本回合出牌列表
      */
     public void BeginService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2,
-                             List<CardBattle>listPlayer1,List<CardBattle>listPlayer2) {
-        AddCoins(playerAgainst1,5);
-        AddCoins(playerAgainst2,5);
-
+                             List<CardBattle>listPlayer1,List<CardBattle>listPlayer2,boolean goer) {
+        if(!goer) {
+            AddCoins(playerAgainst1, 5);
+            AddCoins(playerAgainst2, 5);
+        }
         for(Status status:playerAgainst1.getStatusesBegin())
         {
             if(status.getName().contains("next"))
             {
+                if(!goer) continue;
                 MainNextBuffService(playerAgainst1,playerAgainst2,
                         listPlayer1,listPlayer2,status.getName());
             }
-            else
+            else if(!goer)
                 MainBuffService(playerAgainst1,playerAgainst2,status.getName());
         }
         for(Status status:playerAgainst2.getStatusesBegin())
         {
             if(status.getName().contains("next"))
             {
+                if(!goer) continue;
                 MainNextBuffService(playerAgainst2,playerAgainst1,
                         listPlayer1,listPlayer2,status.getName());
             }
-            else
+            else if(!goer)
                 MainBuffService(playerAgainst2,playerAgainst1,status.getName());
         }
     }

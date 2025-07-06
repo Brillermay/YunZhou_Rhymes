@@ -255,7 +255,7 @@ export default {
     font-weight: 700;
     letter-spacing: 2px;
     font-size: 1.5rem;
-    color: #8c7853;
+    color: #ffffff;
     margin: 0;
     display: flex;
     align-items: center;
