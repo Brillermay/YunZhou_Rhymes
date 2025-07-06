@@ -19,6 +19,15 @@
         <div v-if="showGameResult" class="game-result-indicator" :class="gameResultClass">
           <span class="result-text">{{ gameResultText }}</span>
         </div>
+
+<!-- 调试按钮，浮动在左上角 -->
+<button
+          class="fetchall-debug-btn"
+          @click="handleFetchAll"
+        >
+          fetchall
+        </button>
+
       </teleport>
     </div>
   </div>
@@ -31,6 +40,18 @@ import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
 import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
 console.log('🏁 script setup 运行了');
+
+
+function handleFetchAll() {
+  console.log('666')
+  sendMessage({
+    type: "fetchall",
+      room: {
+        roomId: getData('current_game_room')?.roomId,
+      }
+  });
+}
+
 
 const isGameOver = ref(false)
 
@@ -3156,6 +3177,28 @@ onBeforeUnmount(() => {
 
 .game-result-indicator.result-draw {
   background: #87ceeb;
+  color: #222;
+}
+
+.fetchall-debug-btn {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10010;
+  background: #ffd700;
+  color: #333;
+  border: none;
+  border-radius: 7px;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 11px 26px;
+  box-shadow: 0 2px 10px #0002;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+.fetchall-debug-btn:hover {
+  background: #ffb800;
   color: #222;
 }
 </style>
