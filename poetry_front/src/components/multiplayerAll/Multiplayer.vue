@@ -405,8 +405,7 @@ function onMessage(event) {
 
         //刷新渲染
         // 重新绘制
-        updateStatus(true, roundBeginData[0].hp, roundBeginData[0].shield, roundBeginData[0].hpMax, roundBeginData[0].shieldMax);
-        updateStatus(false, roundBeginData[1].hp, roundBeginData[1].shield, roundBeginData[1].hpMax, roundBeginData[1].shieldMax);
+        rebuildStatusBars();
         updateEffects(true, roundBeginData[0].statusesBegin);
         updateEffects(false, roundBeginData[1].statusesBegin);
 
@@ -417,6 +416,66 @@ function onMessage(event) {
   } catch (error) {
     console.error('解析消息失败', error, event.data);
   }
+}
+
+// 方案二：完全重绘血条、护甲、文本
+function rebuildStatusBars() {
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 1. 销毁旧的对象
+  if (scene.allyHealthBar) { scene.allyHealthBar.destroy(); scene.allyHealthBar = null; }
+  if (scene.allyArmorBar) { scene.allyArmorBar.destroy(); scene.allyArmorBar = null; }
+  if (scene.allyHpText) { scene.allyHpText.destroy(); scene.allyHpText = null; }
+  if (scene.allyArmorText) { scene.allyArmorText.destroy(); scene.allyArmorText = null; }
+  if (scene.enemyHealthBar) { scene.enemyHealthBar.destroy(); scene.enemyHealthBar = null; }
+  if (scene.enemyArmorBar) { scene.enemyArmorBar.destroy(); scene.enemyArmorBar = null; }
+  if (scene.enemyHpText) { scene.enemyHpText.destroy(); scene.enemyHpText = null; }
+  if (scene.enemyArmorText) { scene.enemyArmorText.destroy(); scene.enemyArmorText = null; }
+
+  // 2. 重新根据 gameState_one 绘制新的
+  const ally = gameState_one.value.ally;
+  const enemy = gameState_one.value.enemy;
+
+  // 己方位置参数
+  const allyAvatarY = scene.cameras.main.height - 100;
+  const allyBarX = 250;
+  // 敌方位置参数
+  const enemyAvatarY = 100;
+  const enemyBarX = scene.cameras.main.width - 250;
+
+  // 计算宽度
+  const allyHealthWidth = (ally.maxHealth > 0 ? (ally.health / ally.maxHealth) : 0) * 200;
+  const allyArmorWidth = (ally.maxArmor > 0 ? (ally.armor / ally.maxArmor) : 0) * 200;
+  const enemyHealthWidth = (enemy.maxHealth > 0 ? (enemy.health / enemy.maxHealth) : 0) * 200;
+  const enemyArmorWidth = (enemy.maxArmor > 0 ? (enemy.armor / enemy.maxArmor) : 0) * 200;
+
+  // 重新 add
+  scene.allyHealthBar = scene.add.rectangle(allyBarX, allyAvatarY - 25, allyHealthWidth, 30, 0x38A169);
+  scene.allyArmorBar = scene.add.rectangle(allyBarX, allyAvatarY + 25, allyArmorWidth, 30, 0x3182CE);
+  scene.allyHpText = scene.add.text(allyBarX, allyAvatarY - 25, `HP: ${ally.health}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+  scene.allyArmorText = scene.add.text(allyBarX, allyAvatarY + 25, `Armor: ${ally.armor}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+
+  scene.enemyHealthBar = scene.add.rectangle(enemyBarX, enemyAvatarY - 25, enemyHealthWidth, 30, 0x38A169);
+  scene.enemyArmorBar = scene.add.rectangle(enemyBarX, enemyAvatarY + 25, enemyArmorWidth, 30, 0x3182CE);
+  scene.enemyHpText = scene.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${enemy.health}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+  scene.enemyArmorText = scene.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${enemy.armor}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
 }
 
 //刷新绘制生命值护甲
