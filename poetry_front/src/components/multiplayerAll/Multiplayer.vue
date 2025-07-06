@@ -56,6 +56,8 @@ function handleFetchAll() {
 
 const router = useRouter();
 
+let initialCards = []
+
 const isGameOver = ref(false)
 
 const showGameResult = ref(false)
@@ -207,9 +209,52 @@ function onMessage(event) {
       console.log(backendCardNames);
     }
     if (data.type === "round_begin_result") {
+
       // 获取本地roomId和uid
       const roomId = getData('current_game_room')?.roomId;
       const uid = getData('multiGame_userInfo')?.uid;
+      // 判断自己是player1还是player2
+      let myPlayer = null;
+      if (String(data.uid1) === String(uid)) {
+        myPlayer = data.player1;
+      } else if (String(data.uid2) === String(uid)) {
+        myPlayer = data.player2;
+      }
+      // 安全判断
+      if (myPlayer && Array.isArray(myPlayer.cards)) {
+        // 提取后端传来的卡牌（假如要渲染手牌/桌面等）
+        // 1. 可用全部cards
+        const cardArray = myPlayer.cards; // 这就是 [{cardType, cardNum, cardName, cardSize}, ...]
+        // 2. 只保留有数量的牌
+        const validCards = cardArray.filter(card => card.cardNum > 0 && card.cardName);
+
+        // 3. 你可以把validCards的cardName取出放进initialCards
+        initialCards = validCards.map(card => card.cardName);
+
+        // 4. 刷新第二屏
+        if (game && game.scene && game.scene.scenes[0]) {
+          const scene = game.scene.scenes[0];
+          if (scene.cards) {
+            scene.cards.forEach(card => card.destroy && card.destroy());
+            scene.cards = [];
+          } else {
+            scene.cards = [];
+          }
+          initialCards.forEach((cardKey, i) => {
+            const x = 180 + i * 120;
+            const y = 250 + 180;
+            const card = scene.physics.add.image(x, y, cardKey)
+              .setDisplaySize(100, 140)
+              .setInteractive({ cursor: 'pointer', useHandCursor: true })
+              .setCollideWorldBounds(true)
+              .setBounce(0.8)
+              .setData('type', cardKey)
+              .setData('id', Date.now().toString() + i);
+            scene.input.setDraggable(card);
+            scene.cards.push(card);
+          });
+        }
+      }
 
       // 初始化临时变量
       let roundBeginData = null;
@@ -349,50 +394,27 @@ function updateStatus(isAlly, newHealth, newArmor, newMaxHealth, newMaxArmor) {
 
   // 己方
   if (isAlly) {
-    // 先移除旧的血条和护甲条
-    if (scene.allyHealthBar) scene.allyHealthBar.destroy();
-    if (scene.allyArmorBar) scene.allyArmorBar.destroy();
-    if (scene.allyHpText) scene.allyHpText.destroy();
-    if (scene.allyArmorText) scene.allyArmorText.destroy();
-
-    // 重新绘制
     const allyAvatarY = scene.cameras.main.height - 100;
     const allyBarX = 250;
-    const healthWidth = (newHealth / newMaxHealth) * 200;
-    const armorWidth = (newArmor / newMaxArmor) * 200;
+    // 计算宽度，最大最小保护
+    const healthWidth = Math.max(0, Math.min(200, (newMaxHealth > 0 ? (newHealth / newMaxHealth) : 0) * 200));
+    const armorWidth = Math.max(0, Math.min(200, (newMaxArmor > 0 ? (newArmor / newMaxArmor) : 0) * 200));
 
-    scene.allyHealthBar = scene.add.rectangle(allyBarX, allyAvatarY - 25, healthWidth, 30, 0x38A169);
-    scene.allyArmorBar = scene.add.rectangle(allyBarX, allyAvatarY + 25, armorWidth, 30, 0x3182CE);
-
-    scene.allyHpText = scene.add.text(allyBarX, allyAvatarY - 25, `HP: ${newHealth}`, {
-      fontSize: '16px', color: '#ffffff', resolution: 2,
-    }).setOrigin(0.5);
-
-    scene.allyArmorText = scene.add.text(allyBarX, allyAvatarY + 25, `Armor: ${newArmor}`, {
-      fontSize: '16px', color: '#ffffff', resolution: 2,
-    }).setOrigin(0.5);
+    // 动态调整宽度和文本，不destroy不add
+    if (scene.allyHealthBar) scene.allyHealthBar.width = healthWidth;
+    if (scene.allyArmorBar) scene.allyArmorBar.width = armorWidth;
+    if (scene.allyHpText) scene.allyHpText.setText(`HP: ${newHealth}`);
+    if (scene.allyArmorText) scene.allyArmorText.setText(`Armor: ${newArmor}`);
   } else {
-    // 敌方
-    if (scene.enemyHealthBar) scene.enemyHealthBar.destroy();
-    if (scene.enemyArmorBar) scene.enemyArmorBar.destroy();
-    if (scene.enemyHpText) scene.enemyHpText.destroy();
-    if (scene.enemyArmorText) scene.enemyArmorText.destroy();
-
     const enemyAvatarY = 100;
     const enemyBarX = scene.cameras.main.width - 250;
-    const healthWidth = (newHealth / newMaxHealth) * 200;
-    const armorWidth = (newArmor / newMaxArmor) * 200;
+    const healthWidth = Math.max(0, Math.min(200, (newMaxHealth > 0 ? (newHealth / newMaxHealth) : 0) * 200));
+    const armorWidth = Math.max(0, Math.min(200, (newMaxArmor > 0 ? (newArmor / newMaxArmor) : 0) * 200));
 
-    scene.enemyHealthBar = scene.add.rectangle(enemyBarX, enemyAvatarY - 25, healthWidth, 30, 0x38A169);
-    scene.enemyArmorBar = scene.add.rectangle(enemyBarX, enemyAvatarY + 25, armorWidth, 30, 0x3182CE);
-
-    scene.enemyHpText = scene.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${newHealth}`, {
-      fontSize: '16px', color: '#ffffff', resolution: 2,
-    }).setOrigin(0.5);
-
-    scene.enemyArmorText = scene.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${newArmor}`, {
-      fontSize: '16px', color: '#ffffff', resolution: 2,
-    }).setOrigin(0.5);
+    if (scene.enemyHealthBar) scene.enemyHealthBar.width = healthWidth;
+    if (scene.enemyArmorBar) scene.enemyArmorBar.width = armorWidth;
+    if (scene.enemyHpText) scene.enemyHpText.setText(`HP: ${newHealth}`);
+    if (scene.enemyArmorText) scene.enemyArmorText.setText(`Armor: ${newArmor}`);
   }
 }
 //刷新绘制状态栏
@@ -1567,39 +1589,39 @@ onMounted(() => {
         // 己方文本显示
         this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
           fontSize: '18px',
           padding: { x: 10, y: 5 },
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
         this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
           fontSize: '18px',
-          color: '#ffffff',
+          color: '#000000',
           padding: { x: 0, y: 5 },
           resolution: 2,
         }).setOrigin(0, 0.5);
@@ -2588,7 +2610,7 @@ onMounted(() => {
           modeHintBackground.x = gameSize.width - padding;
           modeHintText.x = gameSize.width - padding - 10;
         });
-        const initialCards = []
+
         for (let i = 0; i < initialCards.length; i++) {
           const cardKey = initialCards[i]
           const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
