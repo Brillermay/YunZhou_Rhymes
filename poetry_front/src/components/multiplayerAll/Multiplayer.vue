@@ -4,9 +4,7 @@
       <!-- 第一个游戏页面 -->
       <div class="screen" ref="screen0"></div>
       <!-- 第二个游戏页面 -->
-      <div class="screen" ref="screen1">
-
-      </div>
+      <div class="screen" ref="screen1"></div>
       <teleport to="body">
         <div id="countdown-timer" class="countdown">
           <div class="round">
@@ -17,6 +15,9 @@
             <span class="time-num">{{ countdown }}</span>
             <span>秒</span>
           </div>
+        </div>
+        <div v-if="showGameResult" class="game-result-indicator" :class="gameResultClass">
+          <span class="result-text">{{ gameResultText }}</span>
         </div>
       </teleport>
     </div>
@@ -30,6 +31,25 @@ import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
 import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
 console.log('🏁 script setup 运行了');
+
+const isGameOver = ref(false)
+
+const showGameResult = ref(false)
+const gameResult = ref("") // "win" | "lose" | "draw" | ""
+
+const gameResultText = computed(() => {
+  if (gameResult.value === "win") return "胜利"
+  if (gameResult.value === "lose") return "失败"
+  if (gameResult.value === "draw") return "平局"
+  return ""
+})
+const gameResultClass = computed(() => {
+  if (gameResult.value === "win") return "result-win"
+  if (gameResult.value === "lose") return "result-lose"
+  if (gameResult.value === "draw") return "result-draw"
+  return ""
+})
+
 
 let websocket = ref(null);
 let isConnected = ref(false);
@@ -84,6 +104,25 @@ function onMessage(event) {
     const data = JSON.parse(event.data);
     // 根据data.type处理消息
     // 例如：if (data.type === "xxx") { ... }
+
+
+    // 监听 game_over 广播
+    if (data.type === "game_over") {
+      // 你自己的uid
+      const uid = getData('multiGame_userInfo')?.uid
+      if (data.winner_id == -1) {
+        gameResult.value = "draw"
+      } else if (String(data.winner_id) === String(uid)) {
+        gameResult.value = "win"
+      } else {
+        gameResult.value = "lose"
+      }
+      showGameResult.value = true
+      isGameOver.value = true
+      clearInterval(countdownInterval)
+      clearTimeout(turnTimeout)
+    }
+
 
     //解析开卡包等逻辑
     if (data.type === "open_card_groups_result" && data.success && Array.isArray(data.cards)) {
@@ -360,6 +399,7 @@ function settlement() {
 
 // 回合结束时的流程
 function onTurnEnd() {
+  if (isGameOver.value) return
   clearInterval(countdownInterval)
   settlement()
   if (round.value < maxRound) {
@@ -375,6 +415,7 @@ function onTurnEnd() {
 
 // 启动（或重启）一个回合
 function startTurn() {
+  if (isGameOver.value) return;
   clearInterval(countdownInterval)
   clearTimeout(turnTimeout)
 
@@ -870,6 +911,28 @@ const buffs = [
   { key: 'immune_debuff', src: new URL('../../assets/cards/buff/immune_debuff.png', import.meta.url).href },
   { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
+
+//映射
+const cardToBuff = {
+  'sun': ['armor_minus', 'armor_minus', 'armor_minus'],
+  'spring': ['gold_plus'],
+  'fire': ['attack_plus'],
+  'mountain': ['armor_plus'],
+  'sad': ['cant_armor'],
+  'wine': ['attack_plus'],
+  'liu': ['immune_damage_point'],
+  'goose': ['rebound_armor'],
+  'friend': ['attack_minus'],
+  'rain_next': ['break_armor'],
+  'war_next': ['bounce_back'],
+  'nature': ['immune_damage_time', 'armor_plus', 'armor_plus', 'heal'],
+  'byebye': ['gold_minus', 'gold_minus'],
+  'flower': ['armor_plus', 'armor_plus', 'heal'],
+  'zhuangzhinanchou_next': ['copy_armor'],
+  'danbo': ['attack_minus', 'attack_minus'],
+  'longriver': ['heal', 'heal', 'heal', 'heal'],
+  'love': ['armor_plus', 'armor_plus', 'armor_plus', 'armor_plus', 'immune_debuff', 'gold_minus', 'gold_minus', 'gold_minus'],
+}
 
 // 添加buff描述对象
 const buffDescriptions = {
@@ -2592,20 +2655,21 @@ onMounted(() => {
                 const resultType = checkRecipe(card1Type, card2Type)
 
                 //在这里完善卡牌合成的消息机制
-                sendMessage({
-                  type: "synthesize",
-                  room: {
-                    //uid: `getCurrentUid()` 
-                    uid: getData('multiGame_userInfo')?.uid,
-                    cardA: card1Type,
-                    cardB: card2Type,
-                    cardC: resultType
-                  }
-                });
+
 
 
                 if (resultType) {
 
+                  sendMessage({
+                    type: "synthesize",
+                    room: {
+                      //uid: `getCurrentUid()` 
+                      uid: getData('multiGame_userInfo')?.uid,
+                      cardA: card1Type,
+                      cardB: card2Type,
+                      cardC: resultType
+                    }
+                  });
                   const x = (gameObject.x + otherCard.x) / 2
                   const y = (gameObject.y + otherCard.y) / 2
 
@@ -3039,5 +3103,47 @@ onBeforeUnmount(() => {
   color: #fff238;
   font-weight: bold;
   font-size: 1.4em;
+}
+
+.game-result-indicator {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 10001;
+  min-width: 240px;
+  background: #333b;
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 18px 0 rgba(21, 204, 155, 0.20);
+  padding: 40px 60px 32px 60px;
+  font-size: 2.6em;
+  font-weight: bold;
+  letter-spacing: 6px;
+  text-align: center;
+  user-select: none;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: background-color 0.3s;
+}
+
+.game-result-indicator .result-text {
+  font-size: 2.1em;
+  color: #fff;
+  text-shadow: 0 2px 12px #222c;
+}
+
+.game-result-indicator.result-win {
+  background: #ffd700;
+  color: #222;
+}
+
+.game-result-indicator.result-lose {
+  background: #b0b0b0;
+  color: #222;
+}
+
+.game-result-indicator.result-draw {
+  background: #87ceeb;
+  color: #222;
 }
 </style>
