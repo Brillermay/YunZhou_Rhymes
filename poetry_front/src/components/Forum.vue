@@ -238,7 +238,7 @@ export default {
   computed: {
     recentDailyTopics() {
       return this.posts
-        .filter(p => p.category === '每日话题')
+         .filter(p => p.isAdmin === true || p.isAdmin === 1)  // 同时支持boolean和number
         .slice(0, 5);
     }, 
     sortedPosts() {
@@ -254,13 +254,19 @@ export default {
       return this.categories;
     },
     filteredPosts() {
-      if (this.selectedTag) {
-        const regex = new RegExp(`#${this.selectedTag}(?=\\W|$)`);
-        return this.posts.filter(post => regex.test(post.content));
-      }
-      if (this.selectedCategory === '全部') return this.posts;
-      return this.posts.filter(post => post.category === this.selectedCategory);
-    },
+    if (this.selectedTag) {
+      const regex = new RegExp(`#${this.selectedTag}(?=\\W|$)`);
+      return this.posts.filter(post => regex.test(post.content));
+    }
+    if (this.selectedCategory === '全部') return this.posts;
+    
+    // 特殊处理每日话题分类
+    if (this.selectedCategory === '每日话题') {
+      return this.posts.filter(post => post.isAdmin === 1);
+    }
+    
+    return this.posts.filter(post => post.category === this.selectedCategory);
+  },
     tagStats() {
       const stats = {};
       for (const post of this.posts) {
@@ -668,6 +674,7 @@ export default {
             isExpanded: false,
             newComment: '',
             commentError: '',
+            isAdmin: post.isAdmin  // 添加这一行
           };
         }));
       } catch (error) {

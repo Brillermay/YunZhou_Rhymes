@@ -3,7 +3,7 @@ package com.example.bg.user;
 import io.swagger.v3.oas.annotations.Operation;
 
 import org.apache.shiro.SecurityUtils;
-import org.apache.shiro.authc.AuthenticationException; // 🔧 添加这一行
+import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.subject.Subject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,13 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-
 @RestController
 @RequestMapping("/admin")
 public class GMController {
     @Autowired
     private UserService userService;
-    // 在第 27 行左右，修改 addGM 方法
+    
     @PostMapping("/add")
     @Operation(summary = "添加管理员")
     public String addGM(@RequestBody Map<String, String> request) {
@@ -30,7 +29,7 @@ public class GMController {
         user.setStatus("active");
         user.setIsadmin(1); // 管理员
         
-        // 🔧 新增：处理新字段
+        // 处理新字段
         user.setNickname(request.get("Nickname"));
         if (user.getNickname() == null || user.getNickname().trim().isEmpty()) {
             user.setNickname(user.getName()); // 默认昵称为用户名
@@ -41,24 +40,54 @@ public class GMController {
         return result > 0 ? "添加成功" : "添加失败，请修改用户名";
     }
 
-    // 使用Shiro的认证机制
-    // 在第 36 行左右，修改 login 方法
     @PostMapping("/login")
     @Operation(summary = "管理员登录")
     public Map<String, Object> login(@RequestBody Map<String, String> request) {
         String username = request.get("UserName");
         String password = request.get("PassWord");
         
+        // 添加参数验证
+        if (username == null || username.trim().isEmpty()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "用户名不能为空");
+            return errorResponse;
+        }
+        
+        if (password == null || password.trim().isEmpty()) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "密码不能为空");
+            return errorResponse;
+        }
+        
         Subject subject = SecurityUtils.getSubject();
+        
+        // 如果当前已有会话，先清理
+        if (subject.isAuthenticated()) {
+            subject.logout();
+        }
+        
         UsernamePasswordToken token = new UsernamePasswordToken(username, password);
         
         try {
             subject.login(token);
             
-            // 🔧 新增：获取完整用户信息并验证是否为管理员
+            // 获取完整用户信息并验证是否为管理员
             User user = userService.findByUsername(username);
+            if (user == null) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "用户不存在");
+                return errorResponse;
+            }
+            
             if (user.getIsadmin() != 1) {
-                return Map.of("success", false, "message", "非管理员账户");
+                subject.logout(); // 非管理员，登出
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("message", "非管理员账户");
+                return errorResponse;
             }
             
             Map<String, Object> response = new HashMap<>();
@@ -71,9 +100,20 @@ public class GMController {
             
             return response;
         } catch (AuthenticationException e) {
-            return Map.of("success", false, "message", "登录失败: " + e.getMessage());
+            System.out.println("登录失败: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "登录失败: 用户名或密码错误");
+            return errorResponse;
+        } catch (Exception e) {
+            System.out.println("登录异常: " + e.getMessage());
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("message", "登录失败: 系统异常");
+            return errorResponse;
         }
     }
+    
     @DeleteMapping("/del/{uid}")
     @Operation(summary = "根据UID删除用户")
     public String delUser(@PathVariable int uid) {

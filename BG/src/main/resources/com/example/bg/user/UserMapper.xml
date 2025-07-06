@@ -21,13 +21,92 @@
         select UID
         from user where name =#{name};
     </select>
-    <!-- 修改查询用户的SQL，包含新字段 -->
+    <!-- 修改查询用户的SQL，包含新字段和头像 -->
     <select id="findByUsername" resultType="com.example.bg.user.User">
         SELECT UID as uid, Name as name, Pwd as pwd, Salt as salt, 
             Status as status, IsAdmin as isadmin,
             Nickname as nickname, Email as email,
-            CreateTime as createTime, UpdateTime as updateTime
+            CreateTime as createTime, UpdateTime as updateTime,
+            Avatar as avatar
         FROM user 
         WHERE Name = #{name}
     </select>
+        <!-- 新增：根据UID查找用户 -->
+    <select id="findByUID" resultType="com.example.bg.user.User">
+        SELECT UID as uid, Name as name, Pwd as pwd, Salt as salt, 
+            Status as status, IsAdmin as isadmin,
+            Nickname as nickname, Email as email,
+            CreateTime as createTime, UpdateTime as updateTime,
+            Avatar as avatar
+        FROM user 
+        WHERE UID = #{uid}
+    </select>
+    <update id="updateUser" parameterType="com.example.bg.user.User">
+        UPDATE user 
+        SET Name = #{name},
+            Nickname = #{nickname},
+            Email = #{email},
+            Pwd = #{pwd},
+            Salt = #{salt},
+            Status = #{status},
+            Avatar = #{avatar},
+            UpdateTime = NOW()
+        WHERE UID = #{UID}
+    </update>
+
+    <!-- 在 UserMapper.xml 中添加以下查询 -->
+
+<select id="getAchievementData" resultType="java.util.Map">
+    SELECT 
+        -- 游戏相关数据
+        COALESCE(game_stats.game_count, 0) as gameCount,
+        COALESCE(game_stats.win_count, 0) as winCount,
+        COALESCE(game_stats.highest_score, 0) as highestScore,
+        
+        -- 收藏相关数据
+        COALESCE(collection_stats.collection_count, 0) as collectionCount,
+        COALESCE(collection_stats.poet_count, 0) as poetCount,
+        
+        -- 评论相关数据
+        COALESCE(comment_stats.comment_count, 0) as commentCount
+        
+    FROM user u
+    
+    -- 游戏统计
+    LEFT JOIN (
+        SELECT 
+            user_id,
+            COUNT(*) as game_count,
+            SUM(CASE WHEN score > 0 THEN 1 ELSE 0 END) as win_count,
+            MAX(score) as highest_score
+        FROM feihua_records 
+        WHERE user_id = #{uid}
+        GROUP BY user_id
+    ) game_stats ON u.UID = game_stats.user_id
+    
+    -- 收藏统计
+    LEFT JOIN (
+        SELECT 
+            s.UID,
+            COUNT(*) as collection_count,
+            COUNT(DISTINCT p.poet) as poet_count
+        FROM starlist s
+        LEFT JOIN poem p ON s.PID = p.PID
+        WHERE s.UID = #{uid}
+        GROUP BY s.UID
+    ) collection_stats ON u.UID = collection_stats.UID
+    
+    -- 评论统计
+    LEFT JOIN (
+        SELECT 
+            PersonID,
+            COUNT(*) as comment_count
+        FROM comment 
+        WHERE PersonID = #{uid}
+        GROUP BY PersonID
+    ) comment_stats ON u.UID = comment_stats.PersonID
+    
+    WHERE u.UID = #{uid}
+</select>
+    
 </mapper>
