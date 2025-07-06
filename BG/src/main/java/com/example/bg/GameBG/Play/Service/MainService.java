@@ -104,6 +104,9 @@ public class MainService extends TextWebSocketHandler {
                 case "openCardGroups":
                     handleOpenCardGroups(session,messageData);
                     break;
+                case "discardCard":
+                    handleDiscardCard(session,messageData);
+                    break;
                 default:
                     sendErrorResponse(session, "未知的消息类型：" + type);
             }
@@ -215,6 +218,46 @@ public class MainService extends TextWebSocketHandler {
         response.put("message", "卡牌合成成功");
         response.put("uid", uid);
         response.put("cards", Map.of("cardA", cardA, "cardB", cardB, "cardC", cardC));
+
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+    }
+
+    /**
+     * 处理弃牌消息
+     * 前端发送格式: {"type":"discardCard","room":{"uid":1,"card":"cardName","money":2}}
+     * 逻辑：直接给玩家加money金币，然后移除一张指定名称的卡牌（假设必然存在，不做校验），返回成功和最新卡牌与金币
+     */
+    private void handleDiscardCard(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+        Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
+        String uidStr = String.valueOf(roomData.get("uid"));
+        int uid = Integer.parseInt(uidStr);
+        String cardName = (String) roomData.get("card");
+        int money = 0;
+        Object moneyObj = roomData.get("money");
+        if (moneyObj instanceof Integer) {
+            money = (Integer) moneyObj;
+        } else if (moneyObj instanceof String) {
+            money = Integer.parseInt((String) moneyObj);
+        }
+
+        PlayerAgainst playerAgainst = playerAgainstMap.get(uid);
+        // 加金币
+        playerService.AddCoins(playerAgainst, money);
+        // 丢弃卡牌
+        playerAgainst.setCards(playerService.cardService.DiscardCard(playerAgainst.getCards(), cardName));
+
+        // 打印弃牌后信息
+        System.out.println("【弃牌后】玩家ID: " + uid +
+                " 金币: " + playerAgainst.getWealthy() +
+                " 手牌: " + cardListSummary(playerAgainst.getCards()));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "discard_card_result");
+        response.put("success", true);
+        response.put("message", "弃牌成功");
+        response.put("uid", uid);
+        response.put("wealthy", playerAgainst.getWealthy());
+        response.put("cards", playerAgainst.getCards());
 
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
     }
