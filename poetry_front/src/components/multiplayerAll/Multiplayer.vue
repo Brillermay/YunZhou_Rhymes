@@ -26,7 +26,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
-import { isLoggedIn, getCurrentUid ,requireLogin } from '@/utils/auth';
+import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
 import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
 console.log('🏁 script setup 运行了');
@@ -42,14 +42,13 @@ let reconnectTimer = null;
 function connectWebSocket() {
   try {
     if (websocket.value) {
-      try { websocket.value.close(); } catch (e) {}
+      try { websocket.value.close(); } catch (e) { }
     }
     connectionStatus.value = 'connecting';
     connectionStatusText.value = '连接中...';
 
     const wsUrl = 'ws://localhost:8081/ws/game'; // 按你后端实际端口
     websocket.value = new WebSocket(wsUrl);
-
     websocket.value.onopen = onOpen;
     websocket.value.onmessage = onMessage;
     websocket.value.onclose = onClose;
@@ -63,7 +62,7 @@ function connectWebSocket() {
 
 function disconnectWebSocket() {
   if (websocket.value) {
-    try { websocket.value.close(); } catch (e) {}
+    try { websocket.value.close(); } catch (e) { }
   }
   isConnected.value = false;
   connectionStatus.value = 'disconnected';
@@ -79,12 +78,6 @@ function resetReconnection() {
   }
 }
 
-function onOpen() {
-  isConnected.value = true;
-  connectionStatus.value = 'connected';
-  connectionStatusText.value = '已连接';
-  reconnectAttempts.value = 0;
-}
 
 function onMessage(event) {
   try {
@@ -99,13 +92,140 @@ function onMessage(event) {
 
       // 解析并添加，每种卡牌按cardNum数量依次push
       data.cards.forEach(card => {
-        for (let i = 0; i <card.cardNum ; i++) {
+        for (let i = 0; i < card.cardNum; i++) {
           backendCardNames.push(card.cardName);
         }
       });
 
       console.log(backendCardNames);
     }
+    if (data.type === "round_begin_result") {
+      // 获取本地roomId和uid
+      const roomId = getData('current_game_room')?.roomId;
+      const uid = getData('multiGame_userInfo')?.uid;
+
+      // 初始化临时变量
+      let roundBeginData = null;
+
+      // 判断roomNumber（消息中叫roomNumber，而不是roomId）和本地roomId是否一致
+      // player1
+      if (
+        data.player1 &&
+        data.player1.roomNumber === roomId &&
+        String(data.uid1) === String(uid)
+      ) {
+        roundBeginData = {
+          hp: data.player1.hp,
+          cards: data.player1.cards,
+          wealthy: data.player1.wealthy,
+          statusesBegin: data.player1.statusesBegin,
+          shield: data.player1.shield,
+          hpMax: data.player1.hpMax,
+          shieldMax: data.player1.shieldMax
+        };
+      }
+      // player2
+      else if (
+        data.player2 &&
+        data.player2.roomNumber === roomId &&
+        String(data.uid2) === String(uid)
+      ) {
+        roundBeginData = {
+          hp: data.player2.hp,
+          cards: data.player2.cards,
+          wealthy: data.player2.wealthy,
+          statusesBegin: data.player2.statusesBegin,
+          shield: data.player2.shield,
+          hpMax: data.player2.hpMax,
+          shieldMax: data.player2.shieldMax
+        };
+      }
+      // 否则不保存
+    }
+
+    if (data.type === "round_begin_result") {
+      // 获取本地roomId和uid
+      const roomId = getData('current_game_room')?.roomId;
+      const uid = getData('multiGame_userInfo')?.uid;
+
+      // 初始化临时变量
+      let roundBeginData = null;
+
+      // 判断roomNumber（消息中叫roomNumber，而不是roomId）和本地roomId是否一致
+      // player1
+
+
+
+      if (data.player1 &&
+        data.player1.roomNumber === roomId) {
+        if (String(data.uid1) === String(uid)) {
+          roundBeginData = [{
+            hp: data.player1.hp,
+            cards: data.player1.cards,
+            wealthy: data.player1.wealthy,
+            statusesBegin: data.player1.statusesBegin,
+            shield: data.player1.shield,
+            hpMax: data.player1.hpMax,
+            shieldMax: data.player1.shieldMax
+          }, {
+            hp: data.player2.hp,
+            cards: data.player2.cards,
+            wealthy: data.player2.wealthy,
+            statusesBegin: data.player2.statusesBegin,
+            shield: data.player2.shield,
+            hpMax: data.player2.hpMax,
+            shieldMax: data.player2.shieldMax
+          }
+          ]
+        }
+        else if (String(data.uid2) === String(uid)) {
+          roundBeginData = [{
+
+            hp: data.player2.hp,
+            cards: data.player2.cards,
+            wealthy: data.player2.wealthy,
+            statusesBegin: data.player2.statusesBegin,
+            shield: data.player2.shield,
+            hpMax: data.player2.hpMax,
+            shieldMax: data.player2.shieldMax
+          }, {
+            hp: data.player1.hp,
+            cards: data.player1.cards,
+            wealthy: data.player1.wealthy,
+            statusesBegin: data.player1.statusesBegin,
+            shield: data.player1.shield,
+            hpMax: data.player1.hpMax,
+            shieldMax: data.player1.shieldMax
+          }
+          ]
+        }
+      }
+
+      if (roundBeginData.length > 0) {
+        // 写入己方
+        gameState_one.value.ally.health = roundBeginData[0].hp;
+        gameState_one.value.ally.maxHealth = roundBeginData[0].hpMax;
+        gameState_one.value.ally.armor = roundBeginData[0].shield;
+        gameState_one.value.ally.maxArmor = roundBeginData[0].shieldMax;
+        coins.value = roundBeginData[0].wealthy;
+        gameState_one.value.ally.effects = roundBeginData[0].statusesBegin;
+        // 可以根据需要扩展，这里只写数值型，效果数组如有需要可额外处理
+
+        // 写入敌方
+        gameState_one.value.enemy.health = roundBeginData[1].hp;
+        gameState_one.value.enemy.maxHealth = roundBeginData[1].hpMax;
+        gameState_one.value.enemy.armor = roundBeginData[1].shield;
+        gameState_one.value.enemy.maxArmor = roundBeginData[1].shieldMax;
+        gameState_one.value.ally.effects = roundBeginData[1].statusesBegin;
+
+        // 这里刷新
+        updateStatus(true, roundBeginData[0].hp, roundBeginData[0].shield);
+        updateStatus(false, roundBeginData[1].hp, roundBeginData[1].shield);
+        updateEffects(true, roundBeginData[0].statusesBegin);
+        updateEffects(false, roundBeginData[1].statusesBegin);
+      }
+    }
+
     console.log('收到消息:', data);
   } catch (error) {
     console.error('解析消息失败', error, event.data);
@@ -245,8 +365,8 @@ function onTurnEnd() {
   if (round.value < maxRound) {
     round.value++
     startTurn()
-    updateGold(5)
-    coins.value += 5
+    // updateGold(5)
+    // coins.value += 5
   } else {
     // 游戏结束，可以加其他逻辑
     // alert('游戏结束！')
@@ -933,10 +1053,25 @@ const screen0 = ref(null);
 const screen1 = ref(null);
 
 let battleScene = null // 添加战斗场景的引用
+function onOpen() {
+  isConnected.value = true;
+  connectionStatus.value = 'connected';
+  connectionStatusText.value = '已连接';
+  reconnectAttempts.value = 0;
 
+  // 连接成功后发送RoundBegin消息
+  sendMessage({
+    type: "RoundBegin",
+    room: {
+      roomId: getData('current_game_room')?.roomId,
+      uid: getData('multiGame_userInfo')?.uid
+    }
+  });
+}
 onMounted(() => {
   connectWebSocket();
 
+  console.log("hey");
 
   //页面初始化
   const commonConfig = {
@@ -972,18 +1107,10 @@ onMounted(() => {
         heads.forEach(head => {
           this.load.image(head.key, head.src);
         });
-        sendMessage({
-          type: "RoundBegin",
-          room: {
-            roomId: getData('current_game_room')?.roomId,
 
-            //uid: `getCurrentUid()` 
-            uid: getData('multiGame_userInfo')?.uid
-          }
-        });
       },
 
-      
+
       create() {
 
         const graphics = this.add.graphics();
@@ -2427,16 +2554,18 @@ onMounted(() => {
                 ease: 'Back.easeOut'
               })
 
-              // 移除堆叠组
-              if (currentStack) {
-                const stackIndex = this.cardStacks.indexOf(currentStack)
-                if (stackIndex !== -1) {
-                  this.cardStacks.splice(stackIndex, 1)
-                }
-              }
-
-              // 销毁所有要出售的卡片
+              // 发送出售消息并销毁卡牌
               cardsToSell.forEach(card => {
+                const cardType = card.getData('type');
+                const price = cardPrices[cardType] || 0;
+                sendMessage({
+                  type: "discardCard",
+                  room: {
+                    uid: getData('multiGame_userInfo')?.uid,
+                    card: cardType,
+                    money: price
+                  }
+                });
                 card.destroy()
                 this.cards = this.cards.filter(c => c !== card)
               })

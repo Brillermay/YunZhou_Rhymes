@@ -419,6 +419,8 @@ public class MainService extends TextWebSocketHandler {
                 // 加入两个玩家的所有信息
                 response.put("player1", playerAgainst1);
                 response.put("player2", playerAgainst2);
+                response.put("uid1",room.getUid1());
+                response.put("uid2",room.getUid2());
                 for (Integer puid : Arrays.asList(room.getUid1(), room.getUid2())) {
                     if (userSessions.containsKey(puid)) {
                         userSessions.get(puid).sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
