@@ -191,7 +191,7 @@ public class MainService extends TextWebSocketHandler {
         response.put("room", room);
 
         // 记录日志
-        System.out.println("【fetchall】roomId=" + roomId + " 玩家信息: " + playersStatus);
+        System.out.println("【fetchall】roomId=" + roomId + " 玩家信息: " + playersStatus + "room 信息：" + room);
 
         // 广播给房间内所有用户
         for (Integer uid : uids) {
@@ -630,6 +630,12 @@ public class MainService extends TextWebSocketHandler {
             response.put("success", true);
             response.put("roomId", roomId);
             response.put("round", room.getRoundNum());
+            response.put("uid1",room.getUid1());
+            response.put("uid2",room.getUid2());
+            response.put("list1",listPlayer1);
+            response.put("list2",listPlayer2);
+
+
             response.put("message", "回合处理完成");
 
             for (Integer uid : Arrays.asList(room.getUid1(), room.getUid2())) {

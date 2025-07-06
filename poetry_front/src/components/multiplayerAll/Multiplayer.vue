@@ -510,6 +510,9 @@ function settlement() {
 
   const roomId = getData('current_game_room')?.roomId;
   const uid = getData('multiGame_userInfo')?.uid;
+  console.log("extracted:")
+  console.log(extracted)
+
   if (roomId && uid && extracted && extracted.length > 0) {
     sendMessage({
       type: "RoundEnd",
