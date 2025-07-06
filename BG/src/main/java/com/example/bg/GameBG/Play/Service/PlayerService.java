@@ -177,10 +177,19 @@ public class PlayerService {
         //接着这样排序
         sortCardBattleByPriority(listPlayer1);
         sortCardBattleByPriority(listPlayer2);
+
+        System.out.println("卡牌运行前:");
+        System.out.println("Player1:"+playerAgainst1);
+        System.out.println("player2:"+playerAgainst2);
+
         for(int i=0;i<3;i++){
             MainOpService(playerAgainst1,playerAgainst2,listPlayer1.get(i));
             MainOpService(playerAgainst2,playerAgainst1,listPlayer2.get(i));
         }
+
+        System.out.println("卡牌运行后:");
+        System.out.println("Player1:"+playerAgainst1);
+        System.out.println("player2:"+playerAgainst2);
 
         EndService(playerAgainst1,
                 playerAgainst2);
@@ -636,7 +645,7 @@ public class PlayerService {
      */
     private void BuffAction_spring_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合未受攻击，下回合开始时获得3金币，且抽1张牌。
-        if(user.getPlayerCondition().isAttacked()){
+        if(!user.getPlayerCondition().isAttacked()){
             user.getStatusesBegin().add(new Status("spring",1,"回合开始时获得3金币，且抽1张牌"));
         }
     }
@@ -835,6 +844,8 @@ public class PlayerService {
         //实现效果：恢复1点血量。若本回合未受伤害，下回合获得3金币，且抽1张牌。
         //添加的spring_judge:
         //如果本回合没受到攻击，那么添加spring状态到statusBegin
+        System.out.println("spring called");
+
         user.getPlayerCondition().setUsedProfitOrDecreaseCard(true);
         AddHP(user,2);
 
