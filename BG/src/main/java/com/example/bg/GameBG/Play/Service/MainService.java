@@ -512,6 +512,15 @@ public class MainService extends TextWebSocketHandler {
                     userSessions.get(uid).sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
                 }
             }
+            if(room.getRoundNum()%3 == 0 && room.getRoundNum()!=0)
+            {
+                playerService.AddShield(playerAgainst1,1);
+                playerService.AddShield(playerAgainst2,1);
+            }
+            room.setRoundNum(room.getRoundNum()+1);
+
+            playerService.BeginService(playerAgainst1, playerAgainst2, null, null, false);
+
         } else {
             RoundEndDTO newData = new RoundEndDTO();
             newData.setRoomId(roomId);

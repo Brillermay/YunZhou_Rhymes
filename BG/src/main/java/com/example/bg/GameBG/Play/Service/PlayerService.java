@@ -151,12 +151,12 @@ public class PlayerService {
     public void MainService(PlayerAgainst playerAgainst1, PlayerAgainst playerAgainst2,
                             List<CardBattle>listPlayer1, List<CardBattle>listPlayer2,
                             Room room){
-        if(room.getRoundNum()%3 == 0 && room.getRoundNum()!=0)
-        {
-            AddShield(playerAgainst1,1);
-            AddShield(playerAgainst2,1);
-        }
-        room.setRoundNum(room.getRoundNum()+1);
+//        if(room.getRoundNum()%3 == 0 && room.getRoundNum()!=0)
+//        {
+//            AddShield(playerAgainst1,1);
+//            AddShield(playerAgainst2,1);
+//        }
+//        room.setRoundNum(room.getRoundNum()+1);
         BeginService(playerAgainst1,playerAgainst2,
                 listPlayer1,listPlayer2,true);
         //接受的是本回合出牌列表
