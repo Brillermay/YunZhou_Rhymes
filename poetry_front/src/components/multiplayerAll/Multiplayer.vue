@@ -18,13 +18,11 @@
         </div>
         <div v-if="showGameResult" class="game-result-indicator" :class="gameResultClass">
           <span class="result-text">{{ gameResultText }}</span>
+          <button class="return-btn" @click="handleReturnToGameCenter">返回大厅</button>
         </div>
 
-<!-- 调试按钮，浮动在左上角 -->
-<button
-          class="fetchall-debug-btn"
-          @click="handleFetchAll"
-        >
+        <!-- 调试按钮，浮动在左上角 -->
+        <button class="fetchall-debug-btn" @click="handleFetchAll">
           fetchall
         </button>
 
@@ -36,22 +34,27 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
+import { useRouter } from 'vue-router';
 import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
 import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
 console.log('🏁 script setup 运行了');
 
+function handleReturnToGameCenter() {
+  router.push('/game-center')
+}
 
 function handleFetchAll() {
   console.log('666')
   sendMessage({
     type: "fetchall",
-      room: {
-        roomId: getData('current_game_room')?.roomId,
-      }
+    room: {
+      roomId: getData('current_game_room')?.roomId,
+    }
   });
 }
 
+const router = useRouter();
 
 const isGameOver = ref(false)
 
@@ -278,9 +281,10 @@ function onMessage(event) {
         gameState_one.value.enemy.maxArmor = roundBeginData[1].shieldMax;
         gameState_one.value.ally.effects = roundBeginData[1].statusesBegin;
 
-        // 这里刷新
-        updateStatus(true, roundBeginData[0].hp, roundBeginData[0].shield);
-        updateStatus(false, roundBeginData[1].hp, roundBeginData[1].shield);
+        //刷新渲染
+        // 重新绘制
+        updateStatus(true, roundBeginData[0].hp, roundBeginData[0].shield, roundBeginData[0].hpMax, roundBeginData[0].shieldMax);
+        updateStatus(false, roundBeginData[1].hp, roundBeginData[1].shield, roundBeginData[1].hpMax, roundBeginData[1].shieldMax);
         updateEffects(true, roundBeginData[0].statusesBegin);
         updateEffects(false, roundBeginData[1].statusesBegin);
       }
@@ -289,6 +293,114 @@ function onMessage(event) {
     console.log('收到消息:', data);
   } catch (error) {
     console.error('解析消息失败', error, event.data);
+  }
+}
+
+//刷新绘制生命值护甲
+function updateStatus(isAlly, newHealth, newArmor, newMaxHealth, newMaxArmor) {
+  // 获取场景对象
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 己方
+  if (isAlly) {
+    // 先移除旧的血条和护甲条
+    if (scene.allyHealthBar) scene.allyHealthBar.destroy();
+    if (scene.allyArmorBar) scene.allyArmorBar.destroy();
+    if (scene.allyHpText) scene.allyHpText.destroy();
+    if (scene.allyArmorText) scene.allyArmorText.destroy();
+
+    // 重新绘制
+    const allyAvatarY = scene.cameras.main.height - 100;
+    const allyBarX = 250;
+    const healthWidth = (newHealth / newMaxHealth) * 200;
+    const armorWidth = (newArmor / newMaxArmor) * 200;
+
+    scene.allyHealthBar = scene.add.rectangle(allyBarX, allyAvatarY - 25, healthWidth, 30, 0x38A169);
+    scene.allyArmorBar = scene.add.rectangle(allyBarX, allyAvatarY + 25, armorWidth, 30, 0x3182CE);
+
+    scene.allyHpText = scene.add.text(allyBarX, allyAvatarY - 25, `HP: ${newHealth}`, {
+      fontSize: '16px', color: '#ffffff', resolution: 2,
+    }).setOrigin(0.5);
+
+    scene.allyArmorText = scene.add.text(allyBarX, allyAvatarY + 25, `Armor: ${newArmor}`, {
+      fontSize: '16px', color: '#ffffff', resolution: 2,
+    }).setOrigin(0.5);
+  } else {
+    // 敌方
+    if (scene.enemyHealthBar) scene.enemyHealthBar.destroy();
+    if (scene.enemyArmorBar) scene.enemyArmorBar.destroy();
+    if (scene.enemyHpText) scene.enemyHpText.destroy();
+    if (scene.enemyArmorText) scene.enemyArmorText.destroy();
+
+    const enemyAvatarY = 100;
+    const enemyBarX = scene.cameras.main.width - 250;
+    const healthWidth = (newHealth / newMaxHealth) * 200;
+    const armorWidth = (newArmor / newMaxArmor) * 200;
+
+    scene.enemyHealthBar = scene.add.rectangle(enemyBarX, enemyAvatarY - 25, healthWidth, 30, 0x38A169);
+    scene.enemyArmorBar = scene.add.rectangle(enemyBarX, enemyAvatarY + 25, armorWidth, 30, 0x3182CE);
+
+    scene.enemyHpText = scene.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${newHealth}`, {
+      fontSize: '16px', color: '#ffffff', resolution: 2,
+    }).setOrigin(0.5);
+
+    scene.enemyArmorText = scene.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${newArmor}`, {
+      fontSize: '16px', color: '#ffffff', resolution: 2,
+    }).setOrigin(0.5);
+  }
+}
+//刷新绘制状态栏
+function updateEffects(isAlly, effects) {
+  // 获取scene
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 先清理以前的buff图标
+  if (!scene.allyBuffIcons) scene.allyBuffIcons = [];
+  if (!scene.enemyBuffIcons) scene.enemyBuffIcons = [];
+
+  if (isAlly) {
+    scene.allyBuffIcons.forEach(icon => icon.destroy());
+    scene.allyBuffIcons = [];
+  } else {
+    scene.enemyBuffIcons.forEach(icon => icon.destroy());
+    scene.enemyBuffIcons = [];
+  }
+
+  // 重新绘制
+  const spacing = 60;
+  const iconSize = 50;
+  if (isAlly) {
+    const allyAvatarY = scene.cameras.main.height - 100;
+    const allyBarX = 250;
+    const allyStatusBarY = allyAvatarY - 80;
+    effects.forEach((effectKey, index) => {
+      const buff = buffs.find(b => b.key === effectKey);
+      if (buff) {
+        const iconX = allyBarX - 160 + (index * spacing) + 100;
+        const icon = scene.add.image(iconX, allyStatusBarY, buff.key)
+          .setDisplaySize(iconSize, iconSize)
+          .setOrigin(0.5, 0.5)
+          .setData('type', effectKey);
+        scene.allyBuffIcons.push(icon);
+      }
+    });
+  } else {
+    const enemyAvatarY = 100;
+    const enemyBarX = scene.cameras.main.width - 250;
+    const enemyStatusBarY = enemyAvatarY + 80;
+    effects.forEach((effectKey, index) => {
+      const buff = buffs.find(b => b.key === effectKey);
+      if (buff) {
+        const iconX = enemyBarX - 160 - (index * spacing) + 150;
+        const icon = scene.add.image(iconX, enemyStatusBarY, buff.key)
+          .setDisplaySize(iconSize, iconSize)
+          .setOrigin(0.5, 0.5)
+          .setData('type', effectKey);
+        scene.enemyBuffIcons.push(icon);
+      }
+    });
   }
 }
 
@@ -346,7 +458,7 @@ const gameState_one = ref({
     maxHealth: 20,
     armor: 10,
     maxArmor: 10,
-    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
+    effects: [], // 状态效果数组
   },
 
   // 敌方角色状态
@@ -355,7 +467,7 @@ const gameState_one = ref({
     maxHealth: 20,
     armor: 10,
     maxArmor: 10,
-    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
+    effects: [], // 状态效果数组
   },
 
   // 卡牌网格 3*4，初始化为全是 'cardBack'
@@ -403,7 +515,7 @@ function settlement() {
       room: {
         roomId: roomId,
         uid: uid,
-        extracted: extracted // string数组
+        cardList1: extracted // string数组
       }
     });
   }
@@ -1094,27 +1206,7 @@ const updateBattleFieldDisplay = (scene, row, col, cardType) => {
 //   console.log(`Removed card from slot [${row}][${col}]`);
 // };
 
-//更新血条护甲
-const updateStatus = (isAlly, newHealth, newArmor) => {
-  if (isAlly) {
-    gameState_one.value.ally.health = newHealth;
-    gameState_one.value.ally.armor = newArmor;
-  } else {
-    gameState_one.value.enemy.health = newHealth;
-    gameState_one.value.enemy.armor = newArmor;
-  }
-  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
-};
 
-//更新buff
-const updateEffects = (isAlly, effects) => {
-  if (isAlly) {
-    gameState_one.value.ally.effects = effects;
-  } else {
-    gameState_one.value.enemy.effects = effects;
-  }
-  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
-};
 
 // 计算容器的 translateY，实现滚动切换
 const containerStyle = computed(() => ({
@@ -3154,7 +3246,6 @@ onBeforeUnmount(() => {
   letter-spacing: 6px;
   text-align: center;
   user-select: none;
-  pointer-events: none;
   transform: translate(-50%, -50%);
   transition: background-color 0.3s;
 }
@@ -3197,8 +3288,27 @@ onBeforeUnmount(() => {
   outline: none;
   transition: background-color 0.2s;
 }
+
 .fetchall-debug-btn:hover {
   background: #ffb800;
   color: #222;
+
+  .return-btn {
+    margin-top: 28px;
+    padding: 12px 38px;
+    font-size: 1.2em;
+    border-radius: 10px;
+    border: none;
+    background: #ffd700;
+    color: #222;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .return-btn:hover {
+    background: #ffb800;
+    color: #111;
+  }
 }
 </style>
