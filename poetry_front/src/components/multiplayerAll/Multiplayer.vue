@@ -90,8 +90,9 @@ function connectWebSocket() {
     }
     connectionStatus.value = 'connecting';
     connectionStatusText.value = '连接中...';
+    const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
 
-    const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
+    //const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
     websocket.value = new WebSocket(wsUrl);
     websocket.value.onopen = onOpen;
     websocket.value.onmessage = onMessage;
@@ -468,7 +469,7 @@ function sendMessage(message) {
   }
 }
 // 回合时间（秒）
-const TURN_DURATION = 30 * 1000
+const TURN_DURATION =30 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
 //回合数

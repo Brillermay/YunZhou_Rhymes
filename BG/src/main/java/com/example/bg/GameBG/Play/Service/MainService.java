@@ -553,7 +553,7 @@ public class MainService extends TextWebSocketHandler {
         Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
 
         String roomId = (String) roomData.get("roomId");
-        String uid1Str = (String) roomData.get("uid1");
+        String uid1Str = (String) roomData.get("uid");
         int uid1 = Integer.parseInt(uid1Str);
         List<String> cardList1 = (List<String>) roomData.get("cardList1");
 
