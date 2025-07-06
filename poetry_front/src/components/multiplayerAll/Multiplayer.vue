@@ -145,10 +145,10 @@ function onMessage(event) {
       console.log('本回合对手打出的牌:', enemyCards);
       // TODO: 这里可以触发UI更新或动画
 
-      const battleCard = enemyList.find(item => item.cardType === 'battle' && item.cardName);
-      const defenseCard = enemyList.find(item => item.cardType === 'defense' && item.cardName);
+      const battleCard = enemyCards.find(item => item.cardType === 'battle' && item.cardName);
+      const defenseCard = enemyCards.find(item => item.cardType === 'defense' && item.cardName);
       // profit/decrease 可能有多个，这里只取第一个
-      const profitOrDecreaseCard = enemyList.find(item =>
+      const profitOrDecreaseCard = enemyCards.find(item =>
         (item.cardType === 'profit' || item.cardType === 'decrease') && item.cardName
       );
 
@@ -161,6 +161,16 @@ function onMessage(event) {
 
       // 替换第二行
       gameState_one.value.cardGrid[1] = newRow;
+
+      if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
+        const sceneObj = battleScene.scene.scenes[0];
+        const grid = gameState_one.value.cardGrid;
+        for (let row = 0; row < grid.length; row++) {
+          for (let col = 0; col < grid[row].length; col++) {
+            updateBattleFieldDisplay(sceneObj, row, col, grid[row][col]);
+          }
+        }
+      }
     }
 
 
@@ -469,7 +479,7 @@ function sendMessage(message) {
   }
 }
 // 回合时间（秒）
-const TURN_DURATION =30 * 1000
+const TURN_DURATION = 30 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
 //回合数
