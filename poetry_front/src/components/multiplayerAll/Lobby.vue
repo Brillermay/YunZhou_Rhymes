@@ -535,9 +535,9 @@ async function connect() {
     connectionStatusText.value = '连接中...';
 
     // 根据您的后端地址调整WebSocket URL
-    //const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
+    const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
 
-    const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 请根据实际端口调整
+    //const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 请根据实际端口调整
 
     websocket.value = new WebSocket(wsUrl);
 

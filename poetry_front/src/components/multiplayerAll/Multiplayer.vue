@@ -87,8 +87,9 @@ function connectWebSocket() {
     }
     connectionStatus.value = 'connecting';
     connectionStatusText.value = '连接中...';
+    const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
 
-    const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
+    //const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
     websocket.value = new WebSocket(wsUrl);
     websocket.value.onopen = onOpen;
     websocket.value.onmessage = onMessage;
@@ -322,7 +323,7 @@ function sendMessage(message) {
   }
 }
 // 回合时间（秒）
-const TURN_DURATION = 30 * 1000
+const TURN_DURATION =30 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
 //回合数
@@ -346,7 +347,7 @@ const gameState_one = ref({
     maxHealth: 20,
     armor: 10,
     maxArmor: 10,
-    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
+    effects: [], // 状态效果数组
   },
 
   // 敌方角色状态
@@ -355,7 +356,7 @@ const gameState_one = ref({
     maxHealth: 20,
     armor: 10,
     maxArmor: 10,
-    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
+    effects: [], // 状态效果数组
   },
 
   // 卡牌网格 3*4，初始化为全是 'cardBack'
@@ -403,7 +404,7 @@ function settlement() {
       room: {
         roomId: roomId,
         uid: uid,
-        extracted: extracted // string数组
+        cardList1: extracted // string数组
       }
     });
   }

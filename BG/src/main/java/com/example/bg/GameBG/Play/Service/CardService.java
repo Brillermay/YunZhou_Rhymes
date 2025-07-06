@@ -54,7 +54,7 @@ public class CardService {
             }
         }
 
-        return null; // 未找到返回null
+        return new CardBattle(); // 未找到返回空
     }
     /**
      * 合并两个卡牌列表，将相同名称的卡牌数量相加

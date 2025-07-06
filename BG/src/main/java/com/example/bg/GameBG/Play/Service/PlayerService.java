@@ -135,8 +135,19 @@ public class PlayerService {
     //三个流程实现函数
     public List<CardBattle> GetList(List<String>lst){
         List<CardBattle>ans=new ArrayList<>();
+        if(lst == null)
+        {
+            ans.add(new CardBattle());
+            ans.add(new CardBattle());
+            ans.add(new CardBattle());
+            return ans;
+        }
         for(String s: lst) {
             ans = cardService.GetCardByName(ans, s);
+        }
+        // 补足3张
+        while (ans.size() < 3) {
+            ans.add(new CardBattle());
         }
         return ans;
     }

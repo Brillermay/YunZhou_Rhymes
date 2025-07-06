@@ -18,7 +18,11 @@ public class CardBattle {
     *   decrease，减益
     * */
 
-    public CardBattle(){}
+    public CardBattle(){
+        this.cardName="";
+        this.cardType="";
+        this.cardNum=this.cardSize=0;
+    }
     public CardBattle(String cardType,int cardNum,String cardName,int cardSize)
     {
         this.cardName=cardName;
