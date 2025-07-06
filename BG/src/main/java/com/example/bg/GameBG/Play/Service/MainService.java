@@ -548,6 +548,22 @@ public class MainService extends TextWebSocketHandler {
 
             roundEndDTOMapHistory.remove(roundKey);
 
+            // 判断胜负
+            int hp1 = playerAgainst1.getHp();
+            int hp2 = playerAgainst2.getHp();
+            int winnerId = 0;
+            if (hp1 <= 0 && hp2 <= 0) {
+                winnerId = -1;
+            } else if (hp1 <= 0) {
+                winnerId = room.getUid2();
+            } else if (hp2 <= 0) {
+                winnerId = room.getUid1();
+            } else {
+                winnerId = 0;
+            }
+
+            // 广播结算结果
+
             Map<String, Object> response = new HashMap<>();
             response.put("type", "round_end_result");
             response.put("success", true);
@@ -567,8 +583,41 @@ public class MainService extends TextWebSocketHandler {
             }
             room.setRoundNum(room.getRoundNum()+1);
 
-            playerService.BeginService(playerAgainst1, playerAgainst2, null, null, false);
+            //判断：如果playerAgainst1/2的hp小于等于0，那么对应的人输，返回赢家id
+            // 如果都小于等于0，id返回-1，
+            // 那么广播消息，然后return，否则不广播
+            // 如果有胜负，广播赢家
+            if (winnerId != 0) {
+                Map<String, Object> winMsg = new HashMap<>();
+                winMsg.put("type", "game_over");
+                winMsg.put("room", roomMap.get(roomId));
+                winMsg.put("winner_id", winnerId);
+                winMsg.put("message", winnerId == -1 ? "双方同时失败，平局" : "赢家ID: " + winnerId);
 
+                for (Integer uid : Arrays.asList(room.getUid1(), room.getUid2())) {
+                    if (userSessions.containsKey(uid)) {
+                        userSessions.get(uid).sendMessage(new TextMessage(objectMapper.writeValueAsString(winMsg)));
+                    }
+                }
+                return;
+            }
+            playerService.BeginService(playerAgainst1, playerAgainst2, null, null, false);
+            response = new HashMap<>();
+            response.put("type", "round_begin_result");
+            response.put("success", true);
+            response.put("roomId", roomId);
+            response.put("round", room.getRoundNum());
+            response.put("message", "回合正式开始");
+            // 加入两个玩家的所有信息
+            response.put("player1", playerAgainst1);
+            response.put("player2", playerAgainst2);
+            response.put("uid1",room.getUid1());
+            response.put("uid2",room.getUid2());
+            for (Integer puid : Arrays.asList(room.getUid1(), room.getUid2())) {
+                if (userSessions.containsKey(puid)) {
+                    userSessions.get(puid).sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+                }
+            }
         } else {
             RoundEndDTO newData = new RoundEndDTO();
             newData.setRoomId(roomId);

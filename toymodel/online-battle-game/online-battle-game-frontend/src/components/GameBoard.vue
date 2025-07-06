@@ -36,6 +36,8 @@
         <button @click="fillOpenCardGroupsTemplate" class="btn btn-info">填充 OpenCardGroups</button>
         <button @click="fillRoundBeginTemplate" class="btn btn-info">填充 RoundBegin</button>
         <button @click="fillGetRoomStatusTemplate" class="btn btn-info">填充 GetRoomStatus</button>
+        <button @click="fillDiscardCardTemplate" class="btn btn-info">填充 DiscardCard</button>
+        <button @click="fillSynthesizeTemplate" class="btn btn-info">填充 Synthesize</button>
       </div>
     </div>
 
@@ -149,6 +151,22 @@
       </div>
     </div>
 
+    <!-- 弃牌 -->
+    <div class="section">
+      <h3>弃牌测试</h3>
+      <div class="form-group">
+        <label>用户ID:</label>
+        <input v-model="discardCardData.uid" type="number" placeholder="输入用户ID">
+        <label>卡牌名称:</label>
+        <input v-model="discardCardData.card" type="text" placeholder="输入要弃掉的卡牌名">
+        <label>金币变动:</label>
+        <input v-model="discardCardData.money" type="number" placeholder="金币增减(正为加)">
+        <button @click="sendDiscardCard" :disabled="!isConnected" class="btn btn-warning">
+          发送 DiscardCard
+        </button>
+      </div>
+    </div>
+
     <!-- 自定义消息 -->
     <div class="section">
       <h3>自定义消息</h3>
@@ -194,30 +212,21 @@ export default {
       connectionStatus: 'disconnected',
       connectionStatusText: '未连接',
       wsUrl: 'ws://localhost:8081/ws/game',
+
       // RoundBegin表单
-      roundBeginData: {
-        roomId: '',
-        uid: '',
-      },
+      roundBeginData: { roomId: '', uid: '' },
       // RoundEnd表单
-      roundEndData: {
-        roomId: '',
-        uid1: '',
-        cardList1: '',
-      },
+      roundEndData: { roomId: '', uid1: '', cardList1: '' },
       // 开启卡组表单
-      openCardGroupsData: {
-        uid: '',
-      },
+      openCardGroupsData: { uid: '' },
       // 获取房间状态表单
-      getRoomStatusData: {
-        roomId: '',
-      },
+      getRoomStatusData: { roomId: '' },
       // 其它表单数据
       createRoomData: { uid: 1 },
       joinRoomData: { roomId: '', uid: 2 },
       startGameData: { roomId: '', role1: '战士', role2: '法师' },
-      synthesizeData: { uid: 1, cardA: 'FireCard', cardB: 'WaterCard', cardC: 'EarthCard' },
+      synthesizeData: { uid: 1, cardA: 'fire', cardB: 'water', cardC: 'bamboo' },
+      discardCardData: { uid: 1, card: 'fire', money: 2 },
       customMessage: '{\n  "type": "test",\n  "room": {\n    "uid": "1"\n  }\n}',
       messageLog: [],
     }
@@ -290,7 +299,6 @@ export default {
       this.sendMessage(message);
       this.customMessage = JSON.stringify(message, null, 2);
     },
-    // 一键填充 RoundBegin
     fillRoundBeginTemplate() {
       this.roundBeginData.roomId = 'aaaabbbbccccdddd';
       this.roundBeginData.uid = '1';
@@ -299,7 +307,6 @@ export default {
         room: { roomId: 'aaaabbbbccccdddd', uid: '1' }
       }, null, 2);
     },
-    // 发送RoundEnd报文
     sendRoundEnd() {
       const cards = this.roundEndData.cardList1.split(',').map(s => s.trim()).filter(Boolean);
       const message = {
@@ -313,7 +320,6 @@ export default {
       this.sendMessage(message);
       this.customMessage = JSON.stringify(message, null, 2);
     },
-    // 一键填充 RoundEnd 玩家1
     fillRoundEndTemplate() {
       this.roundEndData.roomId = 'aaaabbbbccccdddd';
       this.roundEndData.uid1 = '1';
@@ -323,7 +329,6 @@ export default {
         room: { roomId: 'aaaabbbbccccdddd', uid1: '1', cardList1: ["bird", "fire", "mountain"] }
       }, null, 2);
     },
-    // 一键填充 RoundEnd 玩家2
     fillRoundEndTemplate2() {
       this.roundEndData.roomId = 'aaaabbbbccccdddd';
       this.roundEndData.uid1 = '2';
@@ -333,32 +338,54 @@ export default {
         room: { roomId: 'aaaabbbbccccdddd', uid1: '2', cardList1: ["water", "earth", "wind"] }
       }, null, 2);
     },
-    // 一键填充 JoinRoom
     fillJoinRoomTemplate() {
+      this.joinRoomData.roomId = 'aaaabbbbccccdddd';
+      this.joinRoomData.uid = 2;
       this.customMessage = JSON.stringify({
         type: "joinRoom",
         room: { roomId: "aaaabbbbccccdddd", uid: "2" }
       }, null, 2);
     },
-    // 一键填充 StartGame
     fillStartGameTemplate() {
+      this.startGameData.roomId = 'aaaabbbbccccdddd';
+      this.startGameData.role1 = '战士';
+      this.startGameData.role2 = '法师';
       this.customMessage = JSON.stringify({
         type: "startGame",
         room: { roomId: "aaaabbbbccccdddd", role1: "战士", role2: "法师" }
       }, null, 2);
     },
-    // 一键填充 OpenCardGroups
     fillOpenCardGroupsTemplate() {
+      this.openCardGroupsData.uid = 1;
       this.customMessage = JSON.stringify({
         type: "openCardGroups",
         room: { uid: "1" }
       }, null, 2);
     },
-    // 一键填充 GetRoomStatus
     fillGetRoomStatusTemplate() {
+      this.getRoomStatusData.roomId = "aaaabbbbccccdddd";
       this.customMessage = JSON.stringify({
         type: 'getRoomStatus',
         room: { roomId: 'aaaabbbbccccdddd' }
+      }, null, 2);
+    },
+    fillDiscardCardTemplate() {
+      this.discardCardData.uid = 1;
+      this.discardCardData.card = 'fire';
+      this.discardCardData.money = 2;
+      this.customMessage = JSON.stringify({
+        type: "discardCard",
+        room: { uid: 1, card: "fire", money: 2 }
+      }, null, 2);
+    },
+    fillSynthesizeTemplate() {
+      this.synthesizeData.uid = 1;
+      this.synthesizeData.cardA = 'fire';
+      this.synthesizeData.cardB = 'water';
+      this.synthesizeData.cardC = 'bamboo';
+      this.customMessage = JSON.stringify({
+        type: "synthesize",
+        room: { uid: 1, cardA: "fire", cardB: "water", cardC: "bamboo" }
       }, null, 2);
     },
     // 创建房间
@@ -428,6 +455,19 @@ export default {
         type: 'getRoomStatus',
         room: {
           roomId: this.getRoomStatusData.roomId
+        }
+      };
+      this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
+    },
+    // 发送弃牌
+    sendDiscardCard() {
+      const message = {
+        type: 'discardCard',
+        room: {
+          uid: this.discardCardData.uid,
+          card: this.discardCardData.card,
+          money: Number(this.discardCardData.money)
         }
       };
       this.sendMessage(message);
