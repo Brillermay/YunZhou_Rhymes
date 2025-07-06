@@ -130,6 +130,39 @@ function onMessage(event) {
     // 根据data.type处理消息
     // 例如：if (data.type === "xxx") { ... }
 
+    if (data.type === "round_end_result") {
+      const myUid = getData('multiGame_userInfo')?.uid;
+      let myCards = [];
+      let enemyCards = [];
+      if (String(data.uid1) === String(myUid)) {
+        myCards = data.list1.filter(item => item.cardNum > 0);
+        enemyCards = data.list2.filter(item => item.cardNum > 0);
+      } else if (String(data.uid2) === String(myUid)) {
+        myCards = data.list2.filter(item => item.cardNum > 0);
+        enemyCards = data.list1.filter(item => item.cardNum > 0);
+      }
+      console.log('本回合我打出的牌:', myCards);
+      console.log('本回合对手打出的牌:', enemyCards);
+      // TODO: 这里可以触发UI更新或动画
+
+      const battleCard = enemyList.find(item => item.cardType === 'battle' && item.cardName);
+      const defenseCard = enemyList.find(item => item.cardType === 'defense' && item.cardName);
+      // profit/decrease 可能有多个，这里只取第一个
+      const profitOrDecreaseCard = enemyList.find(item =>
+        (item.cardType === 'profit' || item.cardType === 'decrease') && item.cardName
+      );
+
+      // 构建顺序
+      const newRow = [
+        battleCard ? battleCard.cardName : "cardBack",
+        defenseCard ? defenseCard.cardName : "cardBack",
+        profitOrDecreaseCard ? profitOrDecreaseCard.cardName : "cardBack"
+      ];
+
+      // 替换第二行
+      gameState_one.value.cardGrid[1] = newRow;
+    }
+
 
     // 监听 game_over 广播
     if (data.type === "game_over") {
@@ -288,6 +321,7 @@ function onMessage(event) {
         updateStatus(false, roundBeginData[1].hp, roundBeginData[1].shield, roundBeginData[1].hpMax, roundBeginData[1].shieldMax);
         updateEffects(true, roundBeginData[0].statusesBegin);
         updateEffects(false, roundBeginData[1].statusesBegin);
+
       }
     }
 
