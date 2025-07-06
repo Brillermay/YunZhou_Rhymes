@@ -19,6 +19,35 @@
           断开连接
         </button>
       </div>
+      <div class="ws-debug">
+        <span>WebSocket URL: </span>
+        <input v-model="wsUrl" style="width: 350px;" />
+      </div>
+    </div>
+
+    <!-- 常用报文快捷填充 -->
+    <div class="section">
+      <h3>一键填充常用消息</h3>
+      <div class="form-group">
+        <button @click="fillRoundEndTemplate" class="btn btn-info">填充 RoundEnd 玩家1</button>
+        <button @click="fillRoundEndTemplate2" class="btn btn-info">填充 RoundEnd 玩家2</button>
+        <button @click="fillJoinRoomTemplate" class="btn btn-info">填充 JoinRoom</button>
+        <button @click="fillStartGameTemplate" class="btn btn-info">填充 StartGame</button>
+      </div>
+    </div>
+
+    <!-- RoundEnd 专用测试 -->
+    <div class="section">
+      <h3>RoundEnd 回合结束测试</h3>
+      <div class="form-group">
+        <label>roomId:</label>
+        <input v-model="roundEndData.roomId" type="text" placeholder="房间ID">
+        <label>uid1:</label>
+        <input v-model="roundEndData.uid1" type="number" placeholder="玩家1ID">
+        <label>cardList1 (英文逗号分隔):</label>
+        <input v-model="roundEndData.cardList1" type="text" placeholder="如: bird,fire,mountain">
+        <button @click="sendRoundEnd" :disabled="!isConnected" class="btn btn-warning">发送 RoundEnd</button>
+      </div>
     </div>
 
     <!-- 创建房间 -->
@@ -98,121 +127,154 @@
       <h3>消息日志</h3>
       <div class="message-log">
         <div v-for="(message, index) in messageLog" :key="index"
-             :class="['message-item', message.type]">
+             :class="['message-item', message.type]"
+             @dblclick="showRaw(index)">
           <span class="timestamp">{{ message.timestamp }}</span>
           <span class="message-type">[{{ message.type }}]</span>
-          <span class="message-content">{{ message.content }}</span>
+          <span class="message-content">
+            {{ message.content }}
+            <span v-if="message.raw && message.showRaw" style="display:block;white-space:pre;color:#888;background:#f6f6f6;margin-top:4px;font-size:12px">
+              {{ message.raw }}
+            </span>
+          </span>
         </div>
       </div>
       <button @click="clearLog" class="btn btn-secondary">清空日志</button>
+      <p style="color:#666;font-size:12px;margin-top:10px;">* 双击日志项可展开/收起原始JSON</p>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'WebSocketTest',
+  name: 'GameBoard',
   data() {
     return {
-      // WebSocket连接
       websocket: null,
       isConnected: false,
       connectionStatus: 'disconnected',
       connectionStatusText: '未连接',
-
-
-      // 表单数据
-      createRoomData: {
-        uid: 1
-      },
-      joinRoomData: {
+      wsUrl: 'ws://localhost:8081/ws/game',
+      // RoundEnd表单
+      roundEndData: {
         roomId: '',
-        uid: 2
+        uid1: '',
+        cardList1: '',
       },
-      startGameData: {
-        roomId: '',
-        role1: '战士',
-        role2: '法师'
-      },
-      synthesizeData: {
-        uid: 1,
-        cardA: 'FireCard',
-        cardB: 'WaterCard',
-        cardC: 'EarthCard'
-      },
+      // 其它表单数据
+      createRoomData: { uid: 1 },
+      joinRoomData: { roomId: '', uid: 2 },
+      startGameData: { roomId: '', role1: '战士', role2: '法师' },
+      synthesizeData: { uid: 1, cardA: 'FireCard', cardB: 'WaterCard', cardC: 'EarthCard' },
       customMessage: '{\n  "type": "test",\n  "room": {\n    "uid": "1"\n  }\n}',
-
-      // 消息日志
-      messageLog: []
+      messageLog: [],
     }
   },
   methods: {
-    // 连接WebSocket
     connect() {
       try {
-        // 根据您的后端地址调整WebSocket URL
-        const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
-        this.websocket = new WebSocket(wsUrl);
-
+        if (this.websocket && this.isConnected) {
+          this.addLog('info', 'WebSocket已连接');
+          return;
+        }
+        this.websocket = new window.WebSocket(this.wsUrl);
         this.websocket.onopen = this.onOpen;
         this.websocket.onmessage = this.onMessage;
         this.websocket.onclose = this.onClose;
         this.websocket.onerror = this.onError;
-
         this.connectionStatus = 'connecting';
         this.connectionStatusText = '连接中...';
-
+        this.addLog('info', '正在连接到: ' + this.wsUrl);
       } catch (error) {
         this.addLog('error', `连接失败: ${error.message}`);
       }
     },
-
-    // 断开连接
     disconnect() {
       if (this.websocket) {
         this.websocket.close();
       }
     },
-
-    // WebSocket事件处理
-    onOpen(event) {
+    onOpen() {
       this.isConnected = true;
       this.connectionStatus = 'connected';
       this.connectionStatusText = '已连接';
       this.addLog('success', 'WebSocket连接已建立');
     },
-
     onMessage(event) {
       try {
         const data = JSON.parse(event.data);
-        this.addLog('received', `收到消息: ${JSON.stringify(data, null, 2)}`);
+        this.addLog('received', `收到: ${JSON.stringify(data, null, 2)}`, event.data);
       } catch (error) {
-        this.addLog('received', `收到消息: ${event.data}`);
+        this.addLog('received', `收到: ${event.data}`, event.data);
       }
     },
-
     onClose(event) {
       this.isConnected = false;
       this.connectionStatus = 'disconnected';
       this.connectionStatusText = '未连接';
       this.addLog('info', `连接已关闭: ${event.code} - ${event.reason}`);
     },
-
     onError(event) {
-      this.addLog('error', `连接错误: ${event}`);
+      this.addLog('error', `连接错误: ${event && event.message ? event.message : ''}`);
     },
-
-    // 发送消息的通用方法
     sendMessage(message) {
       if (this.websocket && this.isConnected) {
         const messageStr = JSON.stringify(message);
         this.websocket.send(messageStr);
-        this.addLog('sent', `发送消息: ${messageStr}`);
+        this.addLog('sent', `发送: ${messageStr}`, messageStr);
       } else {
         this.addLog('error', 'WebSocket未连接');
       }
     },
-
+    // 发送RoundEnd报文
+    sendRoundEnd() {
+      const cards = this.roundEndData.cardList1.split(',').map(s => s.trim()).filter(Boolean);
+      const message = {
+        type: 'RoundEnd',
+        room: {
+          roomId: this.roundEndData.roomId,
+          uid1: this.roundEndData.uid1 + '',
+          cardList1: cards,
+        },
+      };
+      this.sendMessage(message);
+      // 同步填充到自定义区
+      this.customMessage = JSON.stringify(message, null, 2);
+    },
+    // 一键填充 RoundEnd 玩家1
+    fillRoundEndTemplate() {
+      this.roundEndData.roomId = 'aaaabbbbccccdddd';
+      this.roundEndData.uid1 = '1';
+      this.roundEndData.cardList1 = 'bird,fire,mountain';
+      this.customMessage = JSON.stringify({
+        type: 'RoundEnd',
+        room: { roomId: 'aaaabbbbccccdddd', uid1: '1', cardList1: ["bird", "fire", "mountain"] }
+      }, null, 2);
+    },
+    // 一键填充 RoundEnd 玩家2
+    fillRoundEndTemplate2() {
+      this.roundEndData.roomId = 'aaaabbbbccccdddd';
+      this.roundEndData.uid1 = '2';
+      this.roundEndData.cardList1 = 'water,earth,wind';
+      this.customMessage = JSON.stringify({
+        type: 'RoundEnd',
+        room: { roomId: 'aaaabbbbccccdddd', uid1: '2', cardList1: ["water", "earth", "wind"] }
+      }, null, 2);
+    },
+    // 一键填充 JoinRoom
+    fillJoinRoomTemplate() {
+      this.customMessage = JSON.stringify({
+        type: "joinRoom",
+        room: { roomId: "aaaabbbbccccdddd", uid: "2" }
+      }, null, 2);
+    },
+    // 一键填充 StartGame
+    fillStartGameTemplate() {
+      this.customMessage = JSON.stringify({
+        type: "startGame",
+        room: { roomId: "aaaabbbbccccdddd", role1: "战士", role2: "法师" }
+      }, null, 2);
+    },
     // 创建房间
     createRoom() {
       const message = {
@@ -222,8 +284,8 @@ export default {
         }
       };
       this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
     },
-
     // 加入房间
     joinRoom() {
       const message = {
@@ -234,8 +296,8 @@ export default {
         }
       };
       this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
     },
-
     // 开始游戏
     startGame() {
       const message = {
@@ -247,8 +309,8 @@ export default {
         }
       };
       this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
     },
-
     // 合成卡牌
     synthesizeCards() {
       const message = {
@@ -261,9 +323,9 @@ export default {
         }
       };
       this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
     },
-
-    // 发送自定义消息
+    // 发送自定义JSON
     sendCustomMessage() {
       try {
         const message = JSON.parse(this.customMessage);
@@ -272,42 +334,32 @@ export default {
         this.addLog('error', `自定义消息格式错误: ${error.message}`);
       }
     },
-
-    // 添加日志
-    addLog(type, content) {
+    addLog(type, content, raw = null) {
       const now = new Date();
       const timestamp = now.toLocaleTimeString();
       this.messageLog.push({
         type,
         content,
-        timestamp
+        timestamp,
+        raw,
+        showRaw: false,
       });
-
-      // 限制日志数量
-      if (this.messageLog.length > 100) {
-        this.messageLog.shift();
-      }
-
-      // 自动滚动到底部
+      if (this.messageLog.length > 300) this.messageLog.shift();
       this.$nextTick(() => {
         const logElement = document.querySelector('.message-log');
-        if (logElement) {
-          logElement.scrollTop = logElement.scrollHeight;
-        }
+        if (logElement) logElement.scrollTop = logElement.scrollHeight;
       });
     },
-
-    // 清空日志
     clearLog() {
       this.messageLog = [];
-    }
+    },
+    showRaw(idx) {
+      // 展开/收起原始内容
+      this.$set(this.messageLog[idx], 'showRaw', !this.messageLog[idx].showRaw);
+    },
   },
-
-  // 组件销毁时断开连接
   beforeDestroy() {
-    if (this.websocket) {
-      this.websocket.close();
-    }
+    if (this.websocket) this.websocket.close();
   }
 }
 </script>
@@ -352,6 +404,12 @@ export default {
 
 .status-indicator.disconnected {
   background-color: #F44336;
+}
+
+.ws-debug {
+  margin-top: 8px;
+  color: #333;
+  font-size: 13px;
 }
 
 .section {
@@ -477,6 +535,7 @@ export default {
   border-radius: 3px;
   font-size: 12px;
   font-family: monospace;
+  cursor: pointer;
 }
 
 .message-item.sent {

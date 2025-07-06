@@ -76,6 +76,18 @@ public class PlayerService {
         initializeBuffActions();
         initializeNextBuffActions();
     }
+
+    public String OpenCards(PlayerAgainst playerAgainst){
+        if(playerAgainst.getWealthy()<5){
+            return"没有足够的金币";
+        }
+        AddCoins(playerAgainst,-5);
+        List<CardBattle>list=cardService.RandomGetCardsByNumAndCost(5,1);
+        list= cardService.MergeCardList(playerAgainst.getCards(),list);
+        playerAgainst.setCards(list);
+        return "购买成功";
+    }
+
     //两个功能函数：合成和丢弃已经出的卡牌
     /**
      * 卡牌合成功能：消耗两种材料卡牌，生成一种目标卡牌
@@ -121,7 +133,13 @@ public class PlayerService {
 
     //一个顶端流程调度函数
     //三个流程实现函数
-
+    public List<CardBattle> GetList(List<String>lst){
+        List<CardBattle>ans=new ArrayList<>();
+        for(String s: lst) {
+            ans = cardService.GetCardByName(ans, s);
+        }
+        return ans;
+    }
 
     /**
      * 主服务方法，处理回合内的卡牌使用
