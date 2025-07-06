@@ -297,8 +297,14 @@ public class PlayerService {
         if(playerAgainst2.getPlayerCondition().isHasZhuangZhiNanChou())
             AddShield(playerAgainst2,playerAgainst1.getPlayerCondition().getNumOfShieldAdd());
 
+        System.out.println("enter endservice");
+        System.out.println("buffs:");
+        System.out.println(playerAgainst1.getStatusesEnd());
+        System.out.println(playerAgainst2.getStatusesEnd());
         for(Status status:playerAgainst1.getStatusesEnd())
         {
+
+            System.out.println(status.getName());
             if(status.getName().contains("judge"))
                 MainBuffService(playerAgainst1,playerAgainst2,status.getName());
             else
@@ -308,6 +314,7 @@ public class PlayerService {
         playerAgainst1.setStatusesEnd(new ArrayList<>());
         for(Status status: playerAgainst2.getStatusesEnd())
         {
+            System.out.println(status.getName());
             if(status.getName().contains("judge"))
                 MainBuffService(playerAgainst2,playerAgainst1,status.getName());
             else
@@ -645,7 +652,9 @@ public class PlayerService {
      */
     private void BuffAction_spring_judge(PlayerAgainst user, PlayerAgainst target) {
         //若本回合未受攻击，下回合开始时获得3金币，且抽1张牌。
+        System.out.println("spring_judge_called");
         if(!user.getPlayerCondition().isAttacked()){
+            System.out.println("spring_judge_valid");
             user.getStatusesBegin().add(new Status("spring",1,"回合开始时获得3金币，且抽1张牌"));
         }
     }

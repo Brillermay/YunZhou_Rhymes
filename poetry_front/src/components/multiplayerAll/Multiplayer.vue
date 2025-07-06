@@ -224,6 +224,9 @@ function onMessage(event) {
         enemyPlayer = data.player1;
       }
 
+      console.log("当前状态：");
+      console.log(myPlayer.statusesBegin);
+
       // 渲染己方状态栏
       let allyEffects = [];
       (myPlayer.statusesBegin || []).forEach(status => {
@@ -408,6 +411,8 @@ function onMessage(event) {
         gameState_one.value.enemy.maxArmor = roundBeginData[1].shieldMax;
         gameState_one.value.ally.effects = roundBeginData[1].statusesBegin;
 
+        console.log(roundBeginData[0]);
+        console.log(roundBeginData[1]);
         //刷新渲染
         // 重新绘制
         updateStatus(true, roundBeginData[0].hp, roundBeginData[0].shield, roundBeginData[0].hpMax, roundBeginData[0].shieldMax);

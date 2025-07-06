@@ -599,6 +599,10 @@ public class MainService extends TextWebSocketHandler {
                 listPlayer2 = playerService.GetList(cardList1);
             }
 
+            System.out.println("handleRoundEndMessage's playerAgainst:");
+            System.out.println(playerAgainst1);
+            System.out.println(playerAgainst2);
+
             playerService.MainService(playerAgainst1, playerAgainst2, listPlayer1, listPlayer2, room);
 
             // 打印回合后状态
