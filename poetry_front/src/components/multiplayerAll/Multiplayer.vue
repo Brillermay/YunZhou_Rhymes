@@ -210,21 +210,54 @@ function onMessage(event) {
     }
     if (data.type === "round_begin_result") {
 
+
       // 获取本地roomId和uid
       const roomId = getData('current_game_room')?.roomId;
       const uid = getData('multiGame_userInfo')?.uid;
-      // 判断自己是player1还是player2
-      let myPlayer = null;
+
+      let myPlayer, enemyPlayer;
       if (String(data.uid1) === String(uid)) {
         myPlayer = data.player1;
+        enemyPlayer = data.player2;
       } else if (String(data.uid2) === String(uid)) {
         myPlayer = data.player2;
+        enemyPlayer = data.player1;
+      }
+
+      // 渲染己方状态栏
+      let allyEffects = [];
+      (myPlayer.statusesBegin || []).forEach(status => {
+        const buffs = cardToBuff[status.name];
+        if (buffs && Array.isArray(buffs)) {
+          allyEffects = allyEffects.concat(buffs);
+        }
+      });
+      gameState_one.value.ally.effects = allyEffects;
+      updateEffects(true, allyEffects);
+
+      // 渲染敌方状态栏
+      let enemyEffects = [];
+      (enemyPlayer.statusesBegin || []).forEach(status => {
+        const buffs = cardToBuff[status.name];
+        if (buffs && Array.isArray(buffs)) {
+          enemyEffects = enemyEffects.concat(buffs);
+        }
+      });
+      gameState_one.value.enemy.effects = enemyEffects;
+      updateEffects(false, enemyEffects);
+
+      // 判断自己是player1还是player2
+      let my1Player = null;
+      if (String(data.uid1) === String(uid)) {
+        my1Player = data.player1;
+      } else if (String(data.uid2) === String(uid)) {
+        my1Player = data.player2;
       }
       // 安全判断
-      if (myPlayer && Array.isArray(myPlayer.cards)) {
+      if (my1Player && Array.isArray(my1Player.cards)) {
         // 提取后端传来的卡牌（假如要渲染手牌/桌面等）
         // 1. 可用全部cards
-        const cardArray = myPlayer.cards; // 这就是 [{cardType, cardNum, cardName, cardSize}, ...]
+        const cardArray = my1Player.cards; // 这就是 [{cardType, cardNum, cardName, cardSize}, ...]
         // 2. 只保留有数量的牌
         const validCards = cardArray.filter(card => card.cardNum > 0 && card.cardName);
 
