@@ -262,8 +262,13 @@ function onMessage(event) {
         const validCards = cardArray.filter(card => card.cardNum > 0 && card.cardName);
 
         // 3. 你可以把validCards的cardName取出放进initialCards
-        initialCards = validCards.map(card => card.cardName);
-
+        // 展开成一张张卡牌
+        const initialCards = [];
+        validCards.forEach(card => {
+          for (let i = 0; i < card.cardNum; i++) {
+            initialCards.push(card.cardName); // 只要 cardName 就可以
+          }
+        });
         // 4. 刷新第二屏
         if (game && game.scene && game.scene.scenes[0]) {
           const scene = game.scene.scenes[0];
