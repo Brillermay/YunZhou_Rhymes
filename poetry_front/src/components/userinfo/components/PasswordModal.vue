@@ -27,11 +27,11 @@
               v-model="form.new"
               type="password"
               class="form-input"
-              placeholder="请输入新密码"
+              placeholder="请输入新密码（至少6位）"
               required
             >
             
-            <!-- 密码强度指示器 -->
+            <!-- 简化的密码强度 -->
             <div class="password-strength">
               <div class="strength-bar">
                 <div 
@@ -59,26 +59,9 @@
             </div>
           </div>
           
-          <!-- 密码要求提示 -->
+          <!-- 简化的密码要求 -->
           <div class="password-tips">
-            <h4>密码要求：</h4>
-            <ul>
-              <li :class="{ valid: form.new.length >= 8 }">
-                至少8个字符
-              </li>
-              <li :class="{ valid: hasUpperCase }">
-                包含大写字母（推荐）
-              </li>
-              <li :class="{ valid: hasLowerCase }">
-                包含小写字母（推荐）
-              </li>
-              <li :class="{ valid: hasNumber }">
-                包含数字（推荐）
-              </li>
-              <li :class="{ valid: hasSpecialChar }">
-                包含特殊字符（推荐）
-              </li>
-            </ul>
+            <p>密码要求：至少6位字符，建议包含字母和数字</p>
           </div>
           
           <div class="form-actions">
@@ -115,26 +98,18 @@ const form = reactive({
 
 const loading = ref(false)
 
-// 计算属性 - 密码验证规则
-const hasUpperCase = computed(() => /[A-Z]/.test(form.new))
-const hasLowerCase = computed(() => /[a-z]/.test(form.new))
-const hasNumber = computed(() => /[0-9]/.test(form.new))
-const hasSpecialChar = computed(() => /[!@#$%^&*(),.?":{}|<>]/.test(form.new))
-
 // 密码匹配检查
 const passwordsMatch = computed(() => {
   return form.new === form.confirm
 })
 
-// 密码强度计算
+// 简化的密码强度计算
 const passwordStrength = computed(() => {
   let score = 0
+  if (form.new.length >= 6) score += 40
   if (form.new.length >= 8) score += 20
-  if (form.new.length >= 12) score += 10
-  if (hasUpperCase.value) score += 20
-  if (hasLowerCase.value) score += 20
-  if (hasNumber.value) score += 15
-  if (hasSpecialChar.value) score += 15
+  if (/[a-zA-Z]/.test(form.new)) score += 20
+  if (/[0-9]/.test(form.new)) score += 20
   
   return Math.min(score, 100)
 })
@@ -143,24 +118,22 @@ const strengthPercentage = computed(() => passwordStrength.value)
 
 const strengthClass = computed(() => {
   const strength = passwordStrength.value
-  if (strength < 30) return 'weak'
-  if (strength < 60) return 'fair'
-  if (strength < 80) return 'good'
-  return 'strong'
+  if (strength < 40) return 'weak'
+  if (strength < 70) return 'fair'
+  return 'good'
 })
 
 const strengthText = computed(() => {
   const strength = passwordStrength.value
-  if (strength < 30) return '弱'
-  if (strength < 60) return '一般'
-  if (strength < 80) return '良好'
+  if (strength < 40) return '弱'
+  if (strength < 70) return '一般'
   return '强'
 })
 
 // 表单验证
 const isFormValid = computed(() => {
   return form.current.length > 0 &&
-         form.new.length >= 8 &&
+         form.new.length >= 6 &&
          passwordsMatch.value &&
          form.new !== form.current
 })
@@ -172,7 +145,6 @@ const handleSubmit = async () => {
   loading.value = true
   
   try {
-    // 发送密码数据到父组件
     await emit('confirm', {
       currentPassword: form.current,
       newPassword: form.new
@@ -194,14 +166,13 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-/* 🔧 修复：完整的弹窗样式 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
@@ -212,31 +183,33 @@ const handleSubmit = async () => {
 }
 
 .password-modal-content {
-  background: white;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 246, 240, 0.95));
   border-radius: 20px;
   width: 100%;
-  max-width: 480px;
+  max-width: 450px;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease-out;
+  border: 2px solid rgba(140, 120, 83, 0.3);
 }
 
 .modal-header {
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 2px solid rgba(140, 120, 83, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #fafafa, #ffffff);
-  border-radius: 20px 20px 0 0;
+  background: linear-gradient(135deg, rgba(140, 120, 83, 0.1), rgba(140, 120, 83, 0.05));
+  border-radius: 18px 18px 0 0;
 }
 
 .modal-header h3 {
   margin: 0;
-  color: #333;
+  color: #8c7853;
   font-size: 1.3rem;
   font-weight: 600;
+  font-family: 'Noto Serif SC', serif;
 }
 
 .close-btn {
@@ -244,7 +217,7 @@ const handleSubmit = async () => {
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #999;
+  color: #8c7853;
   padding: 0.5rem;
   border-radius: 50%;
   transition: all 0.3s ease;
@@ -256,8 +229,8 @@ const handleSubmit = async () => {
 }
 
 .close-btn:hover {
-  background: #f0f0f0;
-  color: #666;
+  background: rgba(140, 120, 83, 0.1);
+  color: #6e5773;
   transform: rotate(90deg);
 }
 
@@ -280,31 +253,32 @@ const handleSubmit = async () => {
 }
 
 .form-group label {
-  color: #333;
+  color: #8c7853;
   font-weight: 500;
   font-size: 0.9rem;
+  font-family: 'Noto Serif SC', serif;
 }
 
 .form-input {
   width: 100%;
   padding: 0.8rem 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid rgba(140, 120, 83, 0.3);
   border-radius: 8px;
   font-size: 0.9rem;
   box-sizing: border-box;
   transition: all 0.3s ease;
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #4f46e5;
+  border-color: #8c7853;
   background: white;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(140, 120, 83, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: rgba(140, 120, 83, 0.6);
 }
 
 .password-strength {
@@ -313,7 +287,7 @@ const handleSubmit = async () => {
 
 .strength-bar {
   height: 4px;
-  background: #e0e0e0;
+  background: rgba(140, 120, 83, 0.2);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 0.3rem;
@@ -326,77 +300,42 @@ const handleSubmit = async () => {
 }
 
 .strength-fill.weak {
-  background: linear-gradient(90deg, #ff6b6b, #ff8a8a);
+  background: linear-gradient(90deg, #e74c3c, #c0392b);
 }
 
 .strength-fill.fair {
-  background: linear-gradient(90deg, #ffa726, #ffcc02);
+  background: linear-gradient(90deg, #f39c12, #e67e22);
 }
 
 .strength-fill.good {
-  background: linear-gradient(90deg, #66bb6a, #81c784);
-}
-
-.strength-fill.strong {
-  background: linear-gradient(90deg, #4caf50, #66bb6a);
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
 }
 
 .strength-text {
   font-size: 0.8rem;
-  color: #666;
+  color: rgba(140, 120, 83, 0.8);
 }
 
 .password-mismatch {
-  color: #dc2626;
+  color: #e74c3c;
   font-size: 0.8rem;
   margin-top: 0.3rem;
   animation: shake 0.3s ease-in-out;
 }
 
 .password-tips {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  background: rgba(140, 120, 83, 0.08);
   border-radius: 8px;
   padding: 1rem;
-  margin-top: 0.5rem;
-  border-left: 4px solid #4f46e5;
+  border-left: 4px solid #8c7853;
+  border: 1px solid rgba(140, 120, 83, 0.2);
 }
 
-.password-tips h4 {
-  margin: 0 0 0.5rem 0;
-  color: #333;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.password-tips ul {
+.password-tips p {
   margin: 0;
-  padding-left: 1.2rem;
-  list-style: none;
-}
-
-.password-tips li {
-  position: relative;
-  color: #666;
+  color: #8c7853;
   font-size: 0.85rem;
-  margin-bottom: 0.3rem;
-  padding-left: 1.5rem;
-}
-
-.password-tips li::before {
-  content: '✗';
-  position: absolute;
-  left: 0;
-  color: #dc2626;
-  font-weight: bold;
-}
-
-.password-tips li.valid {
-  color: #16a34a;
-}
-
-.password-tips li.valid::before {
-  content: '✓';
-  color: #16a34a;
+  line-height: 1.4;
 }
 
 .form-actions {
@@ -405,7 +344,7 @@ const handleSubmit = async () => {
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid rgba(140, 120, 83, 0.2);
 }
 
 .btn-cancel,
@@ -421,18 +360,18 @@ const handleSubmit = async () => {
 }
 
 .btn-cancel {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.9);
+  color: #8c7853;
+  border: 2px solid rgba(140, 120, 83, 0.3);
 }
 
 .btn-cancel:hover {
-  background: #e2e8f0;
+  background: rgba(140, 120, 83, 0.1);
   transform: translateY(-1px);
 }
 
 .btn-confirm {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #8c7853, #6e5773);
   color: white;
   display: flex;
   align-items: center;
@@ -441,9 +380,9 @@ const handleSubmit = async () => {
 }
 
 .btn-confirm:hover:not(:disabled) {
-  background: linear-gradient(135deg, #4338ca, #6d28d9);
+  background: linear-gradient(135deg, #6e5773, #5a4a5f);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 4px 12px rgba(140, 120, 83, 0.3);
 }
 
 .btn-confirm:disabled {

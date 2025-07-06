@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\Administrator\Desktop\YunZhou_Rhymes\poetry_front\src\components\admin\AdminLogin.vue -->
 <template>
   <div class="admin-login-layout">
     <div class="login-container">
@@ -10,15 +9,26 @@
           <p class="subtitle">系统管理员登录</p>
         </div>
 
-        <!-- 默认账号提示 -->
-        <div class="demo-info">
-          <p>🔧 开发模式 - 默认登录信息：</p>
-          <p><strong>账号：</strong> admin</p>
-          <p><strong>密码：</strong> admin123</p>
+        <!-- 切换按钮 -->
+        <div class="mode-switch">
+          <button 
+            :class="{ active: isLoginMode }" 
+            @click="isLoginMode = true"
+            class="mode-btn"
+          >
+            登录
+          </button>
+          <button 
+            :class="{ active: !isLoginMode }" 
+            @click="isLoginMode = false"
+            class="mode-btn"
+          >
+            注册
+          </button>
         </div>
 
         <!-- 登录表单 -->
-        <form @submit.prevent="handleLogin" class="login-form">
+        <form v-if="isLoginMode" @submit.prevent="handleLogin" class="login-form">
           <div class="form-group">
             <label>管理员账号</label>
             <input
@@ -64,14 +74,76 @@
           >
             {{ loginLoading ? '登录中...' : '登录' }}
           </button>
+        </form>
 
-          <!-- 快速登录按钮 -->
+        <!-- 注册表单 -->
+        <form v-else @submit.prevent="handleRegister" class="login-form">
+          <div class="form-group">
+            <label>管理员账号</label>
+            <input
+                v-model="registerForm.username"
+                type="text"
+                placeholder="请输入管理员账号"
+                class="form-input"
+                required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>密码</label>
+            <input
+                v-model="registerForm.password"
+                type="password"
+                placeholder="请输入密码"
+                class="form-input"
+                required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>昵称</label>
+            <input
+                v-model="registerForm.nickname"
+                type="text"
+                placeholder="请输入昵称"
+                class="form-input"
+                required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>邮箱</label>
+            <input
+                v-model="registerForm.email"
+                type="email"
+                placeholder="请输入邮箱"
+                class="form-input"
+                required
+            >
+          </div>
+
+          <div class="form-group">
+            <label>验证码</label>
+            <div class="captcha-group">
+              <input
+                  v-model="registerForm.captcha"
+                  type="text"
+                  placeholder="请输入验证码"
+                  class="form-input captcha-input"
+                  required
+              >
+              <div class="captcha-code" @click="refreshCaptcha">
+                {{ captchaCode }}
+              </div>
+            </div>
+          </div>
+
           <button
-              type="button"
-              @click="quickLogin"
-              class="quick-login-btn"
+              type="submit"
+              :disabled="registerLoading"
+              class="login-btn"
           >
-            🚀 一键登录
+            {{ registerLoading ? '注册中...' : '注册管理员' }}
           </button>
         </form>
 
@@ -105,29 +177,33 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import API_BASE_URL from '@/config/api';
 
 const router = useRouter();
 
-// 默认账号配置
-const DEFAULT_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin123'
-};
-
 // 响应式数据
+const isLoginMode = ref(true);
+
 const loginForm = reactive({
   username: '',
   password: '',
   captcha: ''
 });
 
+const registerForm = reactive({
+  username: '',
+  password: '',
+  nickname: '',
+  email: '',
+  captcha: ''
+});
+
 const loginLoading = ref(false);
+const registerLoading = ref(false);
 const loginError = ref('');
 const loginSuccess = ref('');
 const captchaCode = ref('');
-
-
 
 // 生成验证码
 const generateCaptcha = () => {
@@ -144,83 +220,10 @@ const refreshCaptcha = () => {
   captchaCode.value = generateCaptcha();
 };
 
-// 快速登录（自动填入默认账号密码）
-const quickLogin = () => {
-  loginForm.username = DEFAULT_CREDENTIALS.username;
-  loginForm.password = DEFAULT_CREDENTIALS.password;
-  loginForm.captcha = captchaCode.value;
-  
-  // 自动提交
-  handleLogin();
-};
-
-// 登录处理（使用默认验证，不调用接口）
+// 管理员登录处理
 const handleLogin = async () => {
   loginError.value = '';
   loginSuccess.value = '';
-
-  // 验证码检查
-  if (loginForm.captcha.toUpperCase() !== captchaCode.value) {
-    loginError.value = '验证码错误';
-    refreshCaptcha();
-    return;
-  }
-
-  // 账号密码验证（本地验证）
-  if (loginForm.username !== DEFAULT_CREDENTIALS.username) {
-    loginError.value = '管理员账号错误';
-    refreshCaptcha();
-    return;
-  }
-
-  if (loginForm.password !== DEFAULT_CREDENTIALS.password) {
-    loginError.value = '密码错误';
-    refreshCaptcha();
-    return;
-  }
-
-  loginLoading.value = true;
-
-  try {
-    // 模拟登录加载时间
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // 模拟登录成功，保存管理员信息
-    const adminInfo = {
-      id: 1,
-      username: 'admin',
-      role: 'super_admin',
-      permissions: ['all'],
-      loginTime: new Date().toISOString()
-    };
-
-    // 生成模拟token
-    const token = 'admin_token_' + Date.now();
-
-    // 保存到localStorage
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('adminInfo', JSON.stringify(adminInfo));
-
-    loginSuccess.value = '登录成功，正在跳转...';
-
-    // 延迟跳转，显示成功信息
-    setTimeout(() => {
-      router.push('/admin/dashboard');
-    }, 1000);
-
-  } catch (error) {
-    console.error('登录模拟失败:', error);
-    loginError.value = '登录处理异常，请重试';
-    refreshCaptcha();
-  } finally {
-    loginLoading.value = false;
-  }
-};
-
-// 真实接口登录（暂时注释）
-const handleRealLogin = async () => {
-  /*
-  loginError.value = '';
 
   // 验证码检查
   if (loginForm.captcha.toUpperCase() !== captchaCode.value) {
@@ -233,55 +236,113 @@ const handleRealLogin = async () => {
 
   try {
     // 调用管理员登录接口
-    const response = await fetch(`${API_BASE_URL}/admin/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: loginForm.username,
-        password: loginForm.password
-      })
+    const response = await axios.post(`${API_BASE_URL}/admin/login`, {
+      UserName: loginForm.username,
+      PassWord: loginForm.password
     });
 
-    const result = await response.json();
+    console.log('登录接口返回:', response.data);
 
-    if (result.success) {
-      // 保存管理员信息
-      localStorage.setItem('adminToken', result.token);
-      localStorage.setItem('adminInfo', JSON.stringify(result.adminInfo));
-
-      // 跳转到管理后台
-      router.push('/admin/dashboard');
+    if (response.data.success) {
+      // 检查是否为管理员
+      if (response.data.isAdmin) {
+        // 只保存必要的验证信息到localStorage
+        const adminToken = 'admin_token_' + Date.now();
+        localStorage.setItem('adminToken', adminToken);
+        
+        loginSuccess.value = '管理员身份验证成功，正在跳转...';
+        
+        // 延迟跳转
+        setTimeout(() => {
+          router.push('/admin/dashboard');
+        }, 1000);
+      } else {
+        loginError.value = '您不是管理员，无权访问管理后台';
+        refreshCaptcha();
+      }
     } else {
-      loginError.value = result.message || '登录失败';
+      loginError.value = response.data.message || '登录失败';
       refreshCaptcha();
     }
   } catch (error) {
     console.error('登录失败:', error);
-    loginError.value = '网络错误，请稍后重试';
+    
+    if (error.response) {
+      loginError.value = error.response.data.message || '登录失败';
+    } else if (error.request) {
+      loginError.value = '网络错误，请检查网络连接';
+    } else {
+      loginError.value = '登录请求失败，请稍后重试';
+    }
     refreshCaptcha();
   } finally {
     loginLoading.value = false;
   }
-  */
+};
+
+// 管理员注册处理
+const handleRegister = async () => {
+  loginError.value = '';
+  loginSuccess.value = '';
+
+  // 验证码检查
+  if (registerForm.captcha.toUpperCase() !== captchaCode.value) {
+    loginError.value = '验证码错误';
+    refreshCaptcha();
+    return;
+  }
+
+  registerLoading.value = true;
+
+  try {
+    // 调用管理员注册接口
+    const response = await axios.post(`${API_BASE_URL}/admin/add`, {
+      UserName: registerForm.username,
+      PassWord: registerForm.password,
+      Nickname: registerForm.nickname,
+      Email: registerForm.email
+    });
+
+    console.log('注册接口返回:', response.data);
+
+    if (response.data === '添加成功') {
+      loginSuccess.value = '管理员注册成功，请登录';
+      
+      // 清空注册表单
+      registerForm.username = '';
+      registerForm.password = '';
+      registerForm.nickname = '';
+      registerForm.email = '';
+      registerForm.captcha = '';
+      
+      // 切换到登录模式
+      setTimeout(() => {
+        isLoginMode.value = true;
+        loginSuccess.value = '';
+      }, 2000);
+    } else {
+      loginError.value = response.data || '注册失败';
+      refreshCaptcha();
+    }
+  } catch (error) {
+    console.error('注册失败:', error);
+    
+    if (error.response) {
+      loginError.value = error.response.data || '注册失败';
+    } else if (error.request) {
+      loginError.value = '网络错误，请检查网络连接';
+    } else {
+      loginError.value = '注册请求失败，请稍后重试';
+    }
+    refreshCaptcha();
+  } finally {
+    registerLoading.value = false;
+  }
 };
 
 // 生命周期
 onMounted(() => {
   refreshCaptcha();
-
-  // 检查是否已经登录
-  const token = localStorage.getItem('adminToken');
-  if (token) {
-    router.push('/admin/dashboard');
-  }
-
-  // 开发模式提示
-  console.log('🔧 开发模式 - 默认登录信息:');
-  console.log('账号: admin');
-  console.log('密码: admin123');
-  console.log('或者直接点击"一键登录"按钮');
 });
 </script>
 
@@ -336,25 +397,30 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-/* 新增：开发模式提示 */
-.demo-info {
-  background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
-  border: 1px solid #4caf50;
+.mode-switch {
+  display: flex;
+  background: #f0f0f0;
   border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  padding: 4px;
+  margin-bottom: 2rem;
 }
 
-.demo-info p {
-  margin: 0.3rem 0;
-  color: #2e7d32;
-  font-size: 0.85rem;
+.mode-btn {
+  flex: 1;
+  padding: 0.8rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  color: #666;
 }
 
-.demo-info p:first-child {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
+.mode-btn.active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-weight: 500;
 }
 
 .login-form {
@@ -439,26 +505,6 @@ onMounted(() => {
   transform: none;
 }
 
-/* 新增：快速登录按钮 */
-.quick-login-btn {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #4caf50, #45a049);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.quick-login-btn:hover {
-  background: linear-gradient(135deg, #45a049, #3d8b40);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
-}
-
 .error-message {
   background: #ffe6e6;
   color: #d32f2f;
@@ -469,7 +515,6 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
-/* 新增：成功提示 */
 .success-message {
   background: #e8f5e8;
   color: #2e7d32;
@@ -531,10 +576,6 @@ onMounted(() => {
 
   .captcha-code {
     width: 100%;
-  }
-
-  .demo-info {
-    font-size: 0.8rem;
   }
 }
 </style>

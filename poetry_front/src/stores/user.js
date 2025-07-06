@@ -7,8 +7,10 @@ export const useUserStore = defineStore('user', {
     username: null,
     nickname: null,
     email: null,
+    avatar: null, // 🔧 添加头像字段
     isAdmin: false,
     status: null,
+    createTime: null, // 🔧 添加创建时间
     
     // 登录状态
     isLoggedIn: false,
@@ -48,8 +50,10 @@ export const useUserStore = defineStore('user', {
       username: state.username,
       nickname: state.nickname,
       email: state.email,
+      avatar: state.avatar, // 🔧 添加头像字段
       isAdmin: state.isAdmin,
       status: state.status,
+      createTime: state.createTime, // 🔧 添加创建时间
       displayName: state.nickname || state.username
     })
   },
@@ -63,8 +67,10 @@ export const useUserStore = defineStore('user', {
       this.username = userData.username
       this.nickname = userData.nickname || userData.username
       this.email = userData.email || null
+      this.avatar = userData.avatar || null // 🔧 添加头像字段
       this.isAdmin = userData.isAdmin || false
       this.status = userData.status || 'active'
+      this.createTime = userData.createTime || null // 🔧 添加创建时间
       this.isLoggedIn = true
       this.loginTime = new Date().toISOString()
       
@@ -88,6 +94,9 @@ export const useUserStore = defineStore('user', {
       }
       if (newInfo.email !== undefined) {
         this.email = newInfo.email
+      }
+      if (newInfo.avatar !== undefined) {
+        this.avatar = newInfo.avatar // 🔧 添加头像更新
       }
       this.saveToStorage()
       console.log('🔄 用户信息已更新')
@@ -127,8 +136,10 @@ export const useUserStore = defineStore('user', {
           this.username = userData.username
           this.nickname = userData.nickname
           this.email = userData.email
+          this.avatar = userData.avatar // 🔧 添加头像恢复
           this.isAdmin = userData.isAdmin
           this.status = userData.status
+          this.createTime = userData.createTime // 🔧 添加创建时间恢复
           this.isLoggedIn = userData.isLoggedIn
           this.loginTime = userData.loginTime
           
@@ -152,8 +163,10 @@ export const useUserStore = defineStore('user', {
           username: this.username,
           nickname: this.nickname,
           email: this.email,
+          avatar: this.avatar, // 🔧 添加头像保存
           isAdmin: this.isAdmin,
           status: this.status,
+          createTime: this.createTime, // 🔧 添加创建时间保存
           isLoggedIn: this.isLoggedIn,
           loginTime: this.loginTime,
           preferences: this.preferences

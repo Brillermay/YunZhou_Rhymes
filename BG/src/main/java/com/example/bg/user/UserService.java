@@ -1,5 +1,7 @@
 package com.example.bg.user;
 
+import java.util.Map;
+
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
@@ -49,5 +51,21 @@ public class UserService {
     // 在 UserService.java 中添加新方法（大约在第 45 行后）
     public User findByUsername(String username) {
         return userMapper.findByUsername(username);
+    }
+
+        // 新增：根据UID查找用户
+    public User findByUID(int uid) {
+        return userMapper.findByUID(uid);
+    }
+    
+    // 新增：更新用户信息
+    public int updateUser(User user) {
+        return userMapper.updateUser(user);
+    }
+
+    // 在 UserService 类中添加以下方法
+
+    public Map<String, Object> getAchievementData(int uid) {
+        return userMapper.getAchievementData(uid);
     }
 }

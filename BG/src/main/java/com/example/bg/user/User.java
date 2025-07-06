@@ -20,4 +20,6 @@ public class User {
     private String email;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
+    // 添加头像字段
+    private String avatar; // 头像Base64字符串
 }
