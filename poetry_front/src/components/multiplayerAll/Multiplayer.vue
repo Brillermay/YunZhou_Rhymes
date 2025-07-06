@@ -26,15 +26,128 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
+import { isLoggedIn, getCurrentUid ,requireLogin } from '@/utils/auth';
+import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
 console.log('🏁 script setup 运行了');
 
+let websocket = ref(null);
+let isConnected = ref(false);
+let connectionStatus = ref('disconnected');
+let connectionStatusText = ref('未连接');
+let reconnectAttempts = ref(0);
+const maxReconnectAttempts = 5;
+let reconnectTimer = null;
+
+function connectWebSocket() {
+  try {
+    if (websocket.value) {
+      try { websocket.value.close(); } catch (e) {}
+    }
+    connectionStatus.value = 'connecting';
+    connectionStatusText.value = '连接中...';
+
+    const wsUrl = 'ws://localhost:8081/ws/game'; // 按你后端实际端口
+    websocket.value = new WebSocket(wsUrl);
+
+    websocket.value.onopen = onOpen;
+    websocket.value.onmessage = onMessage;
+    websocket.value.onclose = onClose;
+    websocket.value.onerror = onError;
+  } catch (error) {
+    connectionStatus.value = 'error';
+    connectionStatusText.value = '连接错误';
+    resetReconnection();
+  }
+}
+
+function disconnectWebSocket() {
+  if (websocket.value) {
+    try { websocket.value.close(); } catch (e) {}
+  }
+  isConnected.value = false;
+  connectionStatus.value = 'disconnected';
+  connectionStatusText.value = '未连接';
+  resetReconnection();
+}
+
+function resetReconnection() {
+  reconnectAttempts.value = 0;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+function onOpen() {
+  isConnected.value = true;
+  connectionStatus.value = 'connected';
+  connectionStatusText.value = '已连接';
+  reconnectAttempts.value = 0;
+}
+
+function onMessage(event) {
+  try {
+    const data = JSON.parse(event.data);
+    // 根据data.type处理消息
+    // 例如：if (data.type === "xxx") { ... }
+
+    //解析开卡包等逻辑
+    if (data.type === "open_card_groups_result" && data.success && Array.isArray(data.cards)) {
+      // 清空全局数组
+      backendCardNames = [];
+
+      // 解析并添加，每种卡牌按cardNum数量依次push
+      data.cards.forEach(card => {
+        for (let i = 0; i <card.cardNum ; i++) {
+          backendCardNames.push(card.cardName);
+        }
+      });
+
+      console.log(backendCardNames);
+    }
+    console.log('收到消息:', data);
+  } catch (error) {
+    console.error('解析消息失败', error, event.data);
+  }
+}
+
+function onClose(event) {
+  isConnected.value = false;
+  if (event.code === 1000 || reconnectAttempts.value >= maxReconnectAttempts) {
+    connectionStatus.value = 'disconnected';
+    connectionStatusText.value = '未连接';
+  } else {
+    connectionStatus.value = 'connecting';
+    connectionStatusText.value = `重连中(${reconnectAttempts.value + 1}/${maxReconnectAttempts})...`;
+    reconnectAttempts.value++;
+    reconnectTimer = setTimeout(connectWebSocket, reconnectAttempts.value * 1000);
+  }
+}
+
+function onError(event) {
+  connectionStatus.value = 'error';
+  connectionStatusText.value = '连接错误';
+}
+
+function sendMessage(message) {
+  if (websocket.value && isConnected.value) {
+    try {
+      websocket.value.send(JSON.stringify(message));
+    } catch (err) {
+      console.error('发送消息失败', err);
+    }
+  } else {
+    console.error('WebSocket未连接，无法发送消息');
+  }
+}
 // 回合时间（秒）
 const TURN_DURATION = 30 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
 //回合数
 const turnCount = ref(0);
+
 
 let turnTimeout = null;
 let countdownInterval = null;
@@ -460,6 +573,7 @@ const cardPrices = {
   zhuangzhinanchou: 3,
   nature: 2,
 };
+let backendCardNames = [];
 
 let lastCoinValue = 100
 const coins = ref(0) // 初始金币数量
@@ -473,6 +587,15 @@ const handleBuyPack = () => {
     updateGold(-packPrice)
 
     const scene = game.scene.scenes[0]
+    //位置1：向后端发送结构化消息
+    sendMessage({
+      type: "openCardGroups",
+      room: {
+        //uid: `getCurrentUid()` 
+
+        uid: getData('multiGame_userInfo')?.uid
+      }
+    });
 
     // 在随机位置创建卡包
     const x = Math.random() * (scene.scale.width - 100) + 50
@@ -537,9 +660,9 @@ const handleBuyPack = () => {
           cardPack.setData('clickCount', 1)
         } else {
           // 第二次点击：生成随机卡片并销毁卡包
-          const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
-            'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower',
-            'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
+          // const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
+          //   'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower',
+          //   'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
           const numCards = 5
 
           // 创建闪光效果
@@ -556,12 +679,11 @@ const handleBuyPack = () => {
             duration: 500,
             onComplete: () => flash.destroy()
           })
-
           // 生成随机卡片
           for (let i = 0; i < numCards; i++) {
             const angle = (i / numCards) * Math.PI * 2
             const radius = 80
-            const randomCard = allCards[Math.floor(Math.random() * allCards.length)]
+            const randomCard = backendCardNames[Math.floor(i)]
 
             const newX = cardPack.x + Math.cos(angle) * radius
             const newY = cardPack.y + Math.sin(angle) * radius
@@ -687,7 +809,7 @@ const canPlaceInSlot = (cardType, slotType) => {
 }
 const heads = [
   { key: 'aiboy', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
-  { key: 'aigirl', src: new URL('../../assets/cards/aigirl.png', import.meta.url).href },
+  { key: 'aigirl', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
 ]
 
 //updateCard函数，添加对第一个场景的更新
@@ -813,6 +935,7 @@ const screen1 = ref(null);
 let battleScene = null // 添加战斗场景的引用
 
 onMounted(() => {
+  connectWebSocket();
 
 
   //页面初始化
@@ -2671,6 +2794,10 @@ onBeforeUnmount(() => {
 
   clearInterval(countdownInterval);
   clearTimeout(turnTimeout);
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (websocket.value && isConnected.value) {
+    disconnectWebSocket();
+  }
 });
 </script>
 
