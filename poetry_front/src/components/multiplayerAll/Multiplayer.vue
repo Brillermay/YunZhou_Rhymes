@@ -67,7 +67,7 @@ function connectWebSocket() {
     connectionStatus.value = 'connecting';
     connectionStatusText.value = '连接中...';
 
-    const wsUrl = 'ws://localhost:8081/ws/game'; // 按你后端实际端口
+    const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
     websocket.value = new WebSocket(wsUrl);
     websocket.value.onopen = onOpen;
     websocket.value.onmessage = onMessage;
@@ -374,6 +374,18 @@ function settlement() {
   // 1. 调用重排函数，拿到新的网格和提取出的卡牌
   const { newGrid, extracted } = rearrangeGrid(gameState_one.value.cardGrid)
 
+  const roomId = getData('current_game_room')?.roomId;
+  const uid = getData('multiGame_userInfo')?.uid;
+  if (roomId && uid && extracted && extracted.length > 0) {
+    sendMessage({
+      type: "RoundEnd",
+      room: {
+        roomId: roomId,
+        uid: uid,
+        extracted: extracted // string数组
+      }
+    });
+  }
   //
   //
   //
@@ -383,7 +395,7 @@ function settlement() {
   gameState_one.value.cardGrid = newGrid
 
   // 3. （可选）把 extracted 发给后端、或者存到另一个 ref 里显示
-  console.log('提取出的卡牌：', extracted)
+  // console.log('提取出的卡牌：', extracted)
 
   // 4. 刷新页面
   if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
