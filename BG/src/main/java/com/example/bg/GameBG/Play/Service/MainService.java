@@ -107,6 +107,8 @@ public class MainService extends TextWebSocketHandler {
                 case "discardCard":
                     handleDiscardCard(session,messageData);
                     break;
+                case "fetchall":
+                    handleFetchAll(session,messageData);
                 default:
                     sendErrorResponse(session, "未知的消息类型：" + type);
             }
@@ -139,6 +141,65 @@ public class MainService extends TextWebSocketHandler {
         }
 
         System.out.println("WebSocket连接已关闭，当前连接数：" + sessions.size());
+    }
+
+    /**
+     * 处理 fetchall 消息
+     * 功能：解析发过来的 roomId，打印并广播所有的消息：比如当前房间的有谁，每个人的状态又是什么样的
+     * 前端发送格式: {"type":"fetchall","room":{"roomId":"xxx"}}
+     */
+    private void handleFetchAll(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+        Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
+        String roomId = (String) roomData.get("roomId");
+
+        if (!roomMap.containsKey(roomId)) {
+            sendErrorResponse(session, "房间不存在：" + roomId);
+            return;
+        }
+
+        Room room = roomMap.get(roomId);
+
+        // 获取房间内玩家ID列表
+        List<Integer> uids = new ArrayList<>();
+        if (room.getUid1() > 0) uids.add(room.getUid1());
+        if (room.getUid2() > 0 && room.getUid2() != room.getUid1()) uids.add(room.getUid2());
+
+        // 收集玩家状态信息
+        List<Map<String, Object>> playersStatus = new ArrayList<>();
+        for (Integer uid : uids) {
+            PlayerAgainst player = playerAgainstMap.get(uid);
+            if (player != null) {
+                Map<String, Object> playerInfo = new HashMap<>();
+                playerInfo.put("uid", uid);
+                playerInfo.put("hp", player.getHp());
+                playerInfo.put("hpMax", player.getHpMax());
+                playerInfo.put("shield", player.getShield());
+                playerInfo.put("shieldMax", player.getShieldMax());
+                playerInfo.put("wealthy", player.getWealthy());
+                playerInfo.put("role", player.getRole());
+                playerInfo.put("cards", player.getCards());
+                playersStatus.add(playerInfo);
+            }
+        }
+
+        // 构造响应
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "fetchall_result");
+        response.put("success", true);
+        response.put("roomId", roomId);
+        response.put("players", playersStatus);
+        response.put("room", room);
+
+        // 记录日志
+        System.out.println("【fetchall】roomId=" + roomId + " 玩家信息: " + playersStatus);
+
+        // 广播给房间内所有用户
+        for (Integer uid : uids) {
+            WebSocketSession ws = userSessions.get(uid);
+            if (ws != null && ws.isOpen()) {
+                ws.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+            }
+        }
     }
 
     /**
