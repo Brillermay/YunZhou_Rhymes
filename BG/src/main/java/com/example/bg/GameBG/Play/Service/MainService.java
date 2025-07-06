@@ -28,6 +28,7 @@ public class MainService extends TextWebSocketHandler {
     // 添加用户ID到会话的映射
     private static final Map<Integer, WebSocketSession> userSessions = new ConcurrentHashMap<>();
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<Pair<String, Integer>, Set<Integer>> roundBeginSyncMap = new ConcurrentHashMap<>();
 
     /**
      * WebSocket连接建立后的处理方法
@@ -100,6 +101,9 @@ public class MainService extends TextWebSocketHandler {
                 case "getRoomStatus":
                     handleGetRoomStatusMessage(session, messageData);
                     break;
+                case "openCardGroups":
+                    handleOpenCardGroups(session,messageData);
+                    break;
                 default:
                     sendErrorResponse(session, "未知的消息类型：" + type);
             }
@@ -134,6 +138,50 @@ public class MainService extends TextWebSocketHandler {
         System.out.println("WebSocket连接已关闭，当前连接数：" + sessions.size());
     }
 
+    /**
+     * 处理开启卡组（购买卡牌包）消息
+     * 前端发送格式: {"type":"openCardGroups","room":{"uid":"1"}}
+     * 逻辑：根据uid获取玩家，对其调用playerService.OpenCards，并打印购买前后手牌和金币信息
+     *
+     * @param session WebSocket会话
+     * @param messageData 消息数据
+     * @throws Exception 处理过程中可能发生的异常
+     */
+    private void handleOpenCardGroups(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+        Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
+        String uidStr = (String) roomData.get("uid");
+        int uid = Integer.parseInt(uidStr);
+
+        PlayerAgainst playerAgainst = playerAgainstMap.get(uid);
+        if (playerAgainst == null) {
+            sendErrorResponse(session, "未找到该玩家信息，uid=" + uid);
+            return;
+        }
+
+        // 打印购买前信息
+        System.out.println("【购买前】玩家ID: " + uid +
+                " 金币: " + playerAgainst.getWealthy() +
+                " 手牌: " + cardListSummary(playerAgainst.getCards()));
+
+        String resultMsg = playerService.OpenCards(playerAgainst);
+
+        // 打印购买后信息
+        System.out.println("【购买后】玩家ID: " + uid +
+                " 金币: " + playerAgainst.getWealthy() +
+                " 手牌: " + cardListSummary(playerAgainst.getCards()));
+
+        // 构造响应
+        Map<String, Object> response = new HashMap<>();
+        response.put("type", "open_card_groups_result");
+        response.put("success", resultMsg.contains("成功"));
+        response.put("uid", uid);
+        response.put("message", resultMsg);
+
+        // 返回最新手牌
+        response.put("cards", playerAgainst.getCards());
+
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+    }
     /**
      * 处理合成卡牌消息
      * 接收用户请求合成三张卡牌为一张新卡牌
@@ -318,16 +366,72 @@ public class MainService extends TextWebSocketHandler {
     /**
      * 处理回合开始消息
      * 游戏中每一回合开始时的处理逻辑
-     *
+     *{"type":"RoundBegin","room":{"roomId":"xxx","uid":"1"}}
      * @param session WebSocket会话
      * @param messageData 消息数据
      * @throws Exception 处理过程中可能发生的异常
      */
-    private void handleRoundBeginMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
-        //调用playerService.beginService,false
-        //发送roomId,发送uid，均为true再执行
-    }
+    //调用playerService.beginService,false
+    //BeginService(PlayerAgainst playerAgainst1,PlayerAgainst playerAgainst2,
+    //                             List<CardBattle>listPlayer1,List<CardBattle>listPlayer2,boolean goer)
+    //也就是处理好之后BeginService(playerAgainst1,playerAgainst2,null,null,false)
 
+    //发送roomId,发送uid，均为true再执行
+    private void handleRoundBeginMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
+        Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
+        String roomId = (String) roomData.get("roomId");
+        String uidStr = (String) roomData.get("uid");
+        int uid = Integer.parseInt(uidStr);
+
+        if (!roomMap.containsKey(roomId)) {
+            sendErrorResponse(session, "房间不存在：" + roomId);
+            return;
+        }
+        Room room = roomMap.get(roomId);
+        if (room.getUid1() == -1 || room.getUid2() == -1) {
+            sendErrorResponse(session, "房间人数不足，无法开始回合");
+            return;
+        }
+        PlayerAgainst playerAgainst1 = playerAgainstMap.get(room.getUid1());
+        PlayerAgainst playerAgainst2 = playerAgainstMap.get(room.getUid2());
+        if (playerAgainst1 == null || playerAgainst2 == null) {
+            sendErrorResponse(session, "玩家信息不完整，无法开始回合");
+            return;
+        }
+
+        Pair<String, Integer> beginKey = new Pair<>(roomId, room.getRoundNum());
+        roundBeginSyncMap.putIfAbsent(beginKey, new HashSet<>());
+        Set<Integer> beginSet = roundBeginSyncMap.get(beginKey);
+        synchronized (beginSet) {
+            beginSet.add(uid);
+            System.out.println("【RoundBegin同步】roomId=" + roomId + " round=" + room.getRoundNum() + " 已收到玩家 " + uid + " 的回合开始信号。当前已收到: " + beginSet);
+            if (beginSet.contains(room.getUid1()) && beginSet.contains(room.getUid2())) {
+                System.out.println("【RoundBegin同步】roomId=" + roomId + " round=" + room.getRoundNum() + " 两位玩家均已发信号，调用BeginService。");
+                playerService.BeginService(playerAgainst1, playerAgainst2, null, null, false);
+                roundBeginSyncMap.remove(beginKey);
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("type", "round_begin_result");
+                response.put("success", true);
+                response.put("roomId", roomId);
+                response.put("round", room.getRoundNum());
+                response.put("message", "回合正式开始");
+                for (Integer puid : Arrays.asList(room.getUid1(), room.getUid2())) {
+                    if (userSessions.containsKey(puid)) {
+                        userSessions.get(puid).sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+                    }
+                }
+            } else {
+                Map<String, Object> response = new HashMap<>();
+                response.put("type", "round_begin_wait");
+                response.put("success", true);
+                response.put("roomId", roomId);
+                response.put("round", room.getRoundNum());
+                response.put("message", "已收到回合开始信号，等待对手...");
+                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+            }
+        }
+    }
     /**
      * 处理回合结束消息
      * 游戏中每一回合结束时的处理逻辑
@@ -337,11 +441,121 @@ public class MainService extends TextWebSocketHandler {
      * @throws Exception 处理过程中可能发生的异常
      */
     private void handleRoundEndMessage(WebSocketSession session, Map<String, Object> messageData) throws Exception {
-        //调用playerService.MainService
-        //需要：当前卡牌的英文名，当前roomId
-        //同步所有的
+        Map<String, Object> roomData = (Map<String, Object>) messageData.get("room");
+
+        String roomId = (String) roomData.get("roomId");
+        String uid1Str = (String) roomData.get("uid1");
+        int uid1 = Integer.parseInt(uid1Str);
+        List<String> cardList1 = (List<String>) roomData.get("cardList1");
+
+        if (!roomMap.containsKey(roomId)) {
+            sendErrorResponse(session, "房间不存在：" + roomId);
+            return;
+        }
+
+        Room room = roomMap.get(roomId);
+        if (room.getUid2() == -1) {
+            sendErrorResponse(session, "房间人数不足，无法进行对战");
+            return;
+        }
+
+        PlayerAgainst playerAgainst1 = playerAgainstMap.get(room.getUid1());
+        PlayerAgainst playerAgainst2 = playerAgainstMap.get(room.getUid2());
+
+        if (playerAgainst1 == null || playerAgainst2 == null) {
+            sendErrorResponse(session, "玩家信息不完整，无法进行对战");
+            return;
+        }
+
+        Pair<String, Integer> roundKey = new Pair<>(roomId, room.getRoundNum());
+
+        // 打印回合前状态
+        System.out.println("【回合结束前】");
+        System.out.println("Room: " + roomId + " Round: " + room.getRoundNum());
+        System.out.println("玩家1（uid="+room.getUid1()+"）: " + playerSummary(playerAgainst1));
+        System.out.println("玩家2（uid="+room.getUid2()+"）: " + playerSummary(playerAgainst2));
+
+        if (roundEndDTOMapHistory.containsKey(roundKey)) {
+            // 已有一个玩家提交了数据
+            RoundEndDTO existingData = roundEndDTOMapHistory.get(roundKey);
+            List<String> otherPlayerCards = existingData.getCardsName();
+            int otherPlayerId = existingData.getUserId();
+
+            List<CardBattle> listPlayer1, listPlayer2;
+            if (uid1 == room.getUid1()) {
+                listPlayer1 = playerService.GetList(cardList1);
+                listPlayer2 = playerService.GetList(otherPlayerCards);
+            } else {
+                listPlayer1 = playerService.GetList(otherPlayerCards);
+                listPlayer2 = playerService.GetList(cardList1);
+            }
+
+            playerService.MainService(playerAgainst1, playerAgainst2, listPlayer1, listPlayer2, room);
+
+            // 打印回合后状态
+            System.out.println("【回合结束后】");
+            System.out.println("Room: " + roomId + " Round: " + room.getRoundNum());
+            System.out.println("玩家1（uid="+room.getUid1()+"）: " + playerSummary(playerAgainst1));
+            System.out.println("玩家2（uid="+room.getUid2()+"）: " + playerSummary(playerAgainst2));
+
+            roundEndDTOMapHistory.remove(roundKey);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", "round_end_result");
+            response.put("success", true);
+            response.put("roomId", roomId);
+            response.put("round", room.getRoundNum());
+            response.put("message", "回合处理完成");
+
+            for (Integer uid : Arrays.asList(room.getUid1(), room.getUid2())) {
+                if (userSessions.containsKey(uid)) {
+                    userSessions.get(uid).sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+                }
+            }
+        } else {
+            RoundEndDTO newData = new RoundEndDTO();
+            newData.setRoomId(roomId);
+            newData.setUserId(uid1);
+            newData.setCardsName(cardList1);
+            newData.setRound(room.getRoundNum());
+            roundEndDTOMapHistory.put(roundKey, newData);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", "round_end_received");
+            response.put("success", true);
+            response.put("roomId", roomId);
+            response.put("message", "回合数据已接收，等待对手提交");
+
+            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(response)));
+        }
     }
 
+    /**
+     * 打印玩家信息摘要
+     */
+    private String playerSummary(PlayerAgainst player) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("hp=").append(player.getHp()).append("/")
+                .append(player.getHpMax()).append(" shield=").append(player.getShield()).append("/")
+                .append(player.getShieldMax()).append(" wealthy=").append(player.getWealthy())
+                .append(" role=").append(player.getRole())
+                .append(" cards=").append(cardListSummary(player.getCards()));
+        return sb.toString();
+    }
+
+    /**
+     * 打印卡牌列表摘要
+     */
+    private String cardListSummary(List<CardBattle> cards) {
+        if (cards == null) return "[]";
+        StringBuilder sb = new StringBuilder("[");
+        for (CardBattle cb : cards) {
+            sb.append(cb.getCardName()).append("(").append(cb.getCardType()).append(",num=").append(cb.getCardNum()).append(",size=").append(cb.getCardSize()).append("), ");
+        }
+        if (cards.size() > 0) sb.setLength(sb.length() - 2);
+        sb.append("]");
+        return sb.toString();
+    }
     /**
      * 处理获取房间状态消息
      * 客户端可以查询指定房间的当前状态信息

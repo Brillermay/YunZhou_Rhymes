@@ -10,6 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/star")
+@CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true") // 🔧 添加这一行
 public class UserStarController {
 
     @Autowired

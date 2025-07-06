@@ -53,6 +53,7 @@ public class InitService {
         playerAgainst.setCards(cardList);
         playerAgainst.setWealthy(5);
         List<Status> statuses = new ArrayList<>();
+        playerAgainst.setStatusesBegin(statuses);
         playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
         playerAgainst.setShield(10);

@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import java.util.HashMap;
 
 @RestController
 @RequestMapping(value = "/comment")
@@ -264,4 +264,117 @@ public class CommentController extends ConnetMySQL {
         return content;
     }
 
+
+    @PostMapping("/publishDailyTopic")
+    @Operation(summary = "管理员发布每日话题帖子")
+    public ResponseEntity<Map<String, Object>> publishDailyTopic(@RequestBody Map<String, String> request) {
+        String title = request.get("title");
+        String content = request.get("content");
+        String adminUserId = request.get("adminUserId"); // 管理员用户ID
+        
+        // 参数验证
+        if (title == null || title.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "标题不能为空"
+            ));
+        }
+        
+        if (content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "内容不能为空"
+            ));
+        }
+        
+        if (adminUserId == null || adminUserId.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "管理员用户ID不能为空"
+            ));
+        }
+        
+        int adminId;
+        try {
+            adminId = Integer.parseInt(adminUserId);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", "管理员用户ID格式错误"
+            ));
+        }
+        
+        SqlSession session = null;
+        InputStream in = null;
+        
+        try {
+            // 初始化数据库连接
+            in = Resources.getResourceAsStream("SqlMapConfig.xml");
+            session = getSession(in);
+            CommentOpMapper mapper = session.getMapper(CommentOpMapper.class);
+            IDsGetMapper iDsGetMapper = session.getMapper(IDsGetMapper.class);
+            
+            // 创建话题帖子对象
+            Comment topicComment = new Comment();
+            topicComment.CommentID = iDsGetMapper.getCID();
+            topicComment.PersonID = adminId;
+            topicComment.parentID = 0; // 父评论ID为0，表示主帖
+            topicComment.Title = title;
+            topicComment.Content = filterSensitiveWords(content); // 使用敏感词过滤
+            topicComment.Category = "创作讨论"; // 固定分类
+            topicComment.Timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            topicComment.hasTitle = true; // 有标题
+            topicComment.isAdmin = true; // 管理员发布
+            topicComment.LikeCounts = 0;
+            topicComment.CommentCounts = 0;
+            
+            // 更新CID
+            iDsGetMapper.updateCID();
+            
+            // 插入话题帖子
+            mapper.insertComment(topicComment);
+            
+            // 更新关系表（主帖不需要更新关系表，因为parentID为0）
+            // mapper.updLinklist(topicComment.CommentID, topicComment.parentID);
+            
+            // 提交事务
+            session.commit();
+            
+            // 清除缓存
+            redisCommentService.evictRootCache();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "每日话题发布成功");
+            response.put("topicId", topicComment.CommentID);
+            response.put("title", topicComment.Title);
+            response.put("content", topicComment.Content);
+            response.put("category", topicComment.Category);
+            response.put("publishTime", topicComment.Timestamp);
+            response.put("adminId", topicComment.PersonID);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            
+            // 回滚事务
+            if (session != null) {
+                session.rollback();
+            }
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "message", "发布失败: " + e.getMessage()
+            ));
+            
+        } finally {
+            try {
+                if (in != null) in.close();
+                if (session != null) session.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }

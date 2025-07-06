@@ -1,5 +1,6 @@
 import { ref, reactive, computed } from 'vue'
-
+import { useUserStore } from '@/stores/user'
+import API_BASE_URL from '@/config/api'
 export function useGameStats() {
   const loading = ref(false)
   
@@ -149,25 +150,40 @@ export function useGameStats() {
   })
 
   // 加载游戏统计数据
-  const loadGameStats = async () => {
-    console.log('🎮 开始加载游戏统计数据...')
-    loading.value = true
-    
+// 🔧 修改 loadGameStats 函数，添加真实成就数据获取
+const loadGameStats = async () => {
+  console.log('🎮 开始加载游戏统计数据...')
+  loading.value = true
+  
     try {
-      // 模拟网络延迟
-      await new Promise(resolve => setTimeout(resolve, 800))
-      
-      // 生成模拟数据
-      await generateMockGameStats()
-      
-      // 更新成就进度
-      updateAchievements()
-      
-      console.log('✅ 游戏统计数据加载完成')
+      // 🔧 新增：获取真实成就数据
+      const userStore = useUserStore()
+      if (userStore.isAuthenticated && userStore.uid) {
+        console.log('🏆 获取用户成就数据...')
+        const response = await fetch(`${API_BASE_URL}/user/achievements/${userStore.uid}`)
+        const result = await response.json()
+        
+        if (result.success) {
+          // 🔧 直接使用后端返回的成就数据
+          achievements.value = result.achievements
+          console.log('✅ 成就数据获取成功:', result.achievements.length, '个成就')
+        } else {
+          console.error('❌ 获取成就数据失败:', result.message)
+          // 保持原有的模拟数据作为备用
+          await generateMockGameStats()
+          updateAchievements()
+        }
+      } else {
+        console.log('⚠️ 用户未登录，使用模拟数据')
+        await generateMockGameStats()
+        updateAchievements()
+      }
       
     } catch (error) {
-      console.error('💥 加载游戏统计数据失败:', error)
-      throw error
+      console.error('💥 加载成就数据失败:', error)
+      // 出错时使用模拟数据
+      await generateMockGameStats()
+      updateAchievements()
     } finally {
       loading.value = false
     }

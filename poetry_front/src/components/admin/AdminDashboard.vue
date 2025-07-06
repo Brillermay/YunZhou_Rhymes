@@ -223,6 +223,15 @@
           <div class="section-header">
             <h2>{{ reviewMode ? '敏感内容审核' : '评论管理' }}</h2>
             <div class="section-actions">
+
+                    <!-- 新增：发布话题按钮 -->
+              <button 
+                @click="showPublishTopicModal = true" 
+                class="publish-topic-btn"
+                :disabled="reviewMode"
+              >
+                ✨ 发布话题
+              </button>
               <!-- 审核模式切换 -->
               <button 
                 @click="toggleReviewMode" 
@@ -521,6 +530,82 @@
         </div>
       </div>
     </div>
+
+        <!-- 新增：发布话题模态框 -->
+    <div v-if="showPublishTopicModal" class="modal-overlay" @click="closePublishTopicModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>发布每日话题</h3>
+          <button @click="closePublishTopicModal" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="publishTopic">
+            <div class="form-group">
+              <label>话题标题 *</label>
+              <input 
+                v-model="topicForm.title" 
+                type="text" 
+                required 
+                class="form-input" 
+                placeholder="请输入话题标题，如：今日话题：春天来了，你最想写什么诗？"
+                maxlength="100"
+              >
+              <small class="form-hint">建议以"今日话题："开头，让用户一眼就能识别</small>
+            </div>
+            
+            <div class="form-group">
+              <label>话题内容 *</label>
+              <textarea 
+                v-model="topicForm.content" 
+                required 
+                class="form-textarea" 
+                rows="6" 
+                placeholder="请输入话题内容，引导用户参与讨论..."
+                maxlength="1000"
+              ></textarea>
+              <small class="form-hint">
+                内容将引导用户参与讨论，建议包含问题或话题背景
+              </small>
+            </div>
+            
+            <div class="form-group">
+              <label>管理员ID *</label>
+              <input 
+                v-model="topicForm.adminUserId" 
+                type="number" 
+                required 
+                class="form-input" 
+                placeholder="请输入管理员用户ID"
+                min="1"
+              >
+              <small class="form-hint">确保输入的是有效的管理员用户ID</small>
+            </div>
+            
+            <div class="topic-preview" v-if="topicForm.title || topicForm.content">
+              <h4>预览效果：</h4>
+              <div class="preview-card">
+                <div class="preview-header">
+                  <span class="preview-badge">每日话题</span>
+                  <span class="preview-category">创作讨论</span>
+                </div>
+                <div class="preview-title">{{ topicForm.title || '标题预览' }}</div>
+                <div class="preview-content">{{ topicForm.content || '内容预览' }}</div>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button type="button" @click="closePublishTopicModal" class="cancel-btn">
+                取消
+              </button>
+              <button type="submit" :disabled="publishingTopic" class="publish-btn">
+                {{ publishingTopic ? '发布中...' : '发布话题' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -611,6 +696,15 @@ const commentPagination = reactive({
 const showCommentDetailModal = ref(false);
 const selectedComment = ref(null);
 
+// 新增：发布话题相关
+const showPublishTopicModal = ref(false);
+const publishingTopic = ref(false);
+const topicForm = reactive({
+  title: '',
+  content: '',
+  adminUserId: '1' // 默认管理员ID
+});
+
 // 内容审核（集成到评论管理）
 const reviewMode = ref(false); // 是否开启审核模式
 const reviewData = reactive({
@@ -700,7 +794,15 @@ const api = {
     });
     return await response.json();
   },
-
+  // 新增：发布话题
+  async publishDailyTopic(topicData) {
+    const response = await fetch(`${API_BASE_URL}/comment/publishDailyTopic`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(topicData)
+    });
+    return await response.json();
+  },
     // 内容审核相关
     async scanComments() {
     const response = await fetch(`${API_BASE_URL}/admin/review/scan`, {
@@ -1134,6 +1236,59 @@ const logout = () => {
     localStorage.removeItem('adminInfo');
     router.push('/admin');
   }
+};
+
+// 新增：发布话题相关方法
+const publishTopic = async () => {
+  if (!topicForm.title.trim()) {
+    alert('请输入话题标题');
+    return;
+  }
+  
+  if (!topicForm.content.trim()) {
+    alert('请输入话题内容');
+    return;
+  }
+  
+  if (!topicForm.adminUserId) {
+    alert('请输入管理员用户ID');
+    return;
+  }
+
+  publishingTopic.value = true;
+  
+  try {
+    const response = await api.publishDailyTopic({
+      title: topicForm.title,
+      content: topicForm.content,
+      adminUserId: topicForm.adminUserId
+    });
+
+    if (response.success) {
+      alert('话题发布成功！');
+      closePublishTopicModal();
+      // 刷新评论列表和统计数据
+      if (activeTab.value === 'comments') {
+        loadComments();
+      }
+      loadStats();
+    } else {
+      alert('发布失败：' + response.message);
+    }
+  } catch (error) {
+    console.error('发布话题失败:', error);
+    alert('发布失败：' + error.message);
+  } finally {
+    publishingTopic.value = false;
+  }
+};
+
+const closePublishTopicModal = () => {
+  showPublishTopicModal.value = false;
+  // 重置表单
+  topicForm.title = '';
+  topicForm.content = '';
+  topicForm.adminUserId = '1';
 };
 
 // 生命周期
@@ -2241,6 +2396,138 @@ onMounted(() => {
   
   .page-input {
     width: 80px;
+  }
+}
+
+/* 新增：发布话题按钮样式 */
+.publish-topic-btn {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.publish-topic-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.publish-topic-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 发布话题表单样式 */
+.form-hint {
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+.topic-preview {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8f9ff;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.topic-preview h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.preview-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.preview-header {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.preview-badge {
+  background: #fff3e0;
+  color: #f57c00;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.preview-category {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.preview-title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.8rem;
+}
+
+.preview-content {
+  color: #555;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+.publish-btn {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.publish-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.publish-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .topic-preview {
+    margin-top: 1rem;
+    padding: 0.8rem;
+  }
+  
+  .preview-card {
+    padding: 0.8rem;
+  }
+  
+  .preview-header {
+    flex-wrap: wrap;
   }
 }
 

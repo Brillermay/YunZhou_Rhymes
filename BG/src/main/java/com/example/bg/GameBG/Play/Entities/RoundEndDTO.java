@@ -6,15 +6,33 @@ import java.util.List;
 
 @Data
 public class RoundEndDTO {
-    /*
-    * roomId,string.房间号
-    * userId，int，用户id
-    * cardsName，list string，里面的card名字
-    * round，int，记录当前回合
-    * */
+    /**
+     * 房间号
+     */
     private String roomId;
+
+    /**
+     * 用户ID
+     */
     private int userId;
-    private List<String>cardsName;
+
+    /**
+     * 卡牌名称列表
+     */
+    private List<String> cardsName;
+
+    /**
+     * 当前回合数
+     */
     private int round;
 
+    /**
+     * 提交时间戳，用于处理潜在的超时或重复提交
+     */
+    private long timestamp = System.currentTimeMillis();
+
+    /**
+     * 是否已处理
+     */
+    private boolean processed = false;
 }

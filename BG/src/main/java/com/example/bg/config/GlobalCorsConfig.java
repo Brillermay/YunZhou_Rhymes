@@ -18,6 +18,7 @@ public class GlobalCorsConfig {
                         .allowedOriginPatterns("*") // 生产环境建议改为具体域名
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
+                        .allowCredentials(true) // 🔧 添加这一行！
                         .maxAge(3600);
             }
         };
