@@ -33,6 +33,21 @@
         <button @click="fillRoundEndTemplate2" class="btn btn-info">填充 RoundEnd 玩家2</button>
         <button @click="fillJoinRoomTemplate" class="btn btn-info">填充 JoinRoom</button>
         <button @click="fillStartGameTemplate" class="btn btn-info">填充 StartGame</button>
+        <button @click="fillOpenCardGroupsTemplate" class="btn btn-info">填充 OpenCardGroups</button>
+        <button @click="fillRoundBeginTemplate" class="btn btn-info">填充 RoundBegin</button>
+        <button @click="fillGetRoomStatusTemplate" class="btn btn-info">填充 GetRoomStatus</button>
+      </div>
+    </div>
+
+    <!-- RoundBegin 专用测试 -->
+    <div class="section">
+      <h3>RoundBegin 回合开始测试</h3>
+      <div class="form-group">
+        <label>roomId:</label>
+        <input v-model="roundBeginData.roomId" type="text" placeholder="房间ID">
+        <label>uid:</label>
+        <input v-model="roundBeginData.uid" type="number" placeholder="玩家ID">
+        <button @click="sendRoundBegin" :disabled="!isConnected" class="btn btn-warning">发送 RoundBegin</button>
       </div>
     </div>
 
@@ -110,6 +125,30 @@
       </div>
     </div>
 
+    <!-- 开启卡组/购买卡牌包 -->
+    <div class="section">
+      <h3>开启卡组/购买卡牌包</h3>
+      <div class="form-group">
+        <label>用户ID:</label>
+        <input v-model="openCardGroupsData.uid" type="number" placeholder="输入用户ID">
+        <button @click="openCardGroups" :disabled="!isConnected" class="btn btn-warning">
+          发送 OpenCardGroups
+        </button>
+      </div>
+    </div>
+
+    <!-- 获取房间状态 -->
+    <div class="section">
+      <h3>获取房间状态</h3>
+      <div class="form-group">
+        <label>房间ID:</label>
+        <input v-model="getRoomStatusData.roomId" type="text" placeholder="输入房间ID">
+        <button @click="getRoomStatus" :disabled="!isConnected" class="btn btn-info">
+          获取房间状态
+        </button>
+      </div>
+    </div>
+
     <!-- 自定义消息 -->
     <div class="section">
       <h3>自定义消息</h3>
@@ -155,11 +194,24 @@ export default {
       connectionStatus: 'disconnected',
       connectionStatusText: '未连接',
       wsUrl: 'ws://localhost:8081/ws/game',
+      // RoundBegin表单
+      roundBeginData: {
+        roomId: '',
+        uid: '',
+      },
       // RoundEnd表单
       roundEndData: {
         roomId: '',
         uid1: '',
         cardList1: '',
+      },
+      // 开启卡组表单
+      openCardGroupsData: {
+        uid: '',
+      },
+      // 获取房间状态表单
+      getRoomStatusData: {
+        roomId: '',
       },
       // 其它表单数据
       createRoomData: { uid: 1 },
@@ -226,6 +278,27 @@ export default {
         this.addLog('error', 'WebSocket未连接');
       }
     },
+    // 发送RoundBegin报文
+    sendRoundBegin() {
+      const message = {
+        type: 'RoundBegin',
+        room: {
+          roomId: this.roundBeginData.roomId,
+          uid: this.roundBeginData.uid + '',
+        },
+      };
+      this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
+    },
+    // 一键填充 RoundBegin
+    fillRoundBeginTemplate() {
+      this.roundBeginData.roomId = 'aaaabbbbccccdddd';
+      this.roundBeginData.uid = '1';
+      this.customMessage = JSON.stringify({
+        type: 'RoundBegin',
+        room: { roomId: 'aaaabbbbccccdddd', uid: '1' }
+      }, null, 2);
+    },
     // 发送RoundEnd报文
     sendRoundEnd() {
       const cards = this.roundEndData.cardList1.split(',').map(s => s.trim()).filter(Boolean);
@@ -238,7 +311,6 @@ export default {
         },
       };
       this.sendMessage(message);
-      // 同步填充到自定义区
       this.customMessage = JSON.stringify(message, null, 2);
     },
     // 一键填充 RoundEnd 玩家1
@@ -273,6 +345,20 @@ export default {
       this.customMessage = JSON.stringify({
         type: "startGame",
         room: { roomId: "aaaabbbbccccdddd", role1: "战士", role2: "法师" }
+      }, null, 2);
+    },
+    // 一键填充 OpenCardGroups
+    fillOpenCardGroupsTemplate() {
+      this.customMessage = JSON.stringify({
+        type: "openCardGroups",
+        room: { uid: "1" }
+      }, null, 2);
+    },
+    // 一键填充 GetRoomStatus
+    fillGetRoomStatusTemplate() {
+      this.customMessage = JSON.stringify({
+        type: 'getRoomStatus',
+        room: { roomId: 'aaaabbbbccccdddd' }
       }, null, 2);
     },
     // 创建房间
@@ -320,6 +406,28 @@ export default {
           cardA: this.synthesizeData.cardA,
           cardB: this.synthesizeData.cardB,
           cardC: this.synthesizeData.cardC
+        }
+      };
+      this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
+    },
+    // 购买卡牌包
+    openCardGroups() {
+      const message = {
+        type: 'openCardGroups',
+        room: {
+          uid: this.openCardGroupsData.uid.toString()
+        }
+      };
+      this.sendMessage(message);
+      this.customMessage = JSON.stringify(message, null, 2);
+    },
+    // 获取房间状态
+    getRoomStatus() {
+      const message = {
+        type: 'getRoomStatus',
+        room: {
+          roomId: this.getRoomStatusData.roomId
         }
       };
       this.sendMessage(message);
