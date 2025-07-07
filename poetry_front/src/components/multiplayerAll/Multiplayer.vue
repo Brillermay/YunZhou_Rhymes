@@ -52,6 +52,15 @@ function handleFetchAll() {
       roomId: getData('current_game_room')?.roomId,
     }
   });
+  console.log("==============test==============")
+
+  console.log(gameState_one.value.ally)
+
+  console.log(gameState_one.value.enemy)
+
+
+  console.log("==============test==============")
+
 }
 
 const router = useRouter();
