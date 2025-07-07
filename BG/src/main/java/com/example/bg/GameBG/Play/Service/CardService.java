@@ -24,21 +24,21 @@ public class CardService {
         arrayList.add(new CardBattle("decrease", 1, "sad", 2));       // 悲
         arrayList.add(new CardBattle("profit", 1, "home", 2));        // 故乡
         arrayList.add(new CardBattle("battle", 1, "wine", 2));        // 酒
-        arrayList.add(new CardBattle("defense", 1, "willow", 2));     // 柳
+        arrayList.add(new CardBattle("defense", 1, "liu", 2));     // 柳
         arrayList.add(new CardBattle("battle", 1, "sun", 2));         // 日
-        arrayList.add(new CardBattle("defense", 1, "wildgoose", 2));  // 雁
-        arrayList.add(new CardBattle("profit", 1, "friendship", 2));  // 友情
+        arrayList.add(new CardBattle("defense", 1, "goose", 2));  // 雁
+        arrayList.add(new CardBattle("profit", 1, "friend", 2));  // 友情
         arrayList.add(new CardBattle("battle", 1, "rain", 2));        // 雨
         arrayList.add(new CardBattle("battle", 1, "war", 2));         // 战争
         arrayList.add(new CardBattle("defense", 1, "nature", 2));     // 自然
-        arrayList.add(new CardBattle("decrease", 1, "parting", 3));   // 离别
-        arrayList.add(new CardBattle("profit", 1, "peachblossom", 3));// 桃花
+        arrayList.add(new CardBattle("decrease", 1, "byebye", 3));   // 离别
+        arrayList.add(new CardBattle("profit", 1, "flower", 3));// 桃花
         arrayList.add(new CardBattle("battle", 1, "bamboo", 3));      // 竹
-        arrayList.add(new CardBattle("defense", 1, "unfulfilled", 3));// 壮志难酬
+        arrayList.add(new CardBattle("defense", 1, "zhuangzhinanchou", 3));// 壮志难酬
         arrayList.add(new CardBattle("defense", 1, "danbo", 4));      // 淡泊
         arrayList.add(new CardBattle("battle", 1, "yellowriver", 4)); // 黄河
         arrayList.add(new CardBattle("battle", 1, "missing", 5));     // 思念
-        arrayList.add(new CardBattle("defense", 1, "yangtze", 5));    // 长江
+        arrayList.add(new CardBattle("defense", 1, "longriver", 5));    // 长江
         arrayList.add(new CardBattle("profit", 1, "love", 7));        // 爱情
     }
     /**

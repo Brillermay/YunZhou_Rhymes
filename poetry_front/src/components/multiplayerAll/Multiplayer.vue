@@ -186,6 +186,8 @@ function onMessage(event) {
       console.log('本回合对手打出的牌:', enemyCards);
       // TODO: 这里可以触发UI更新或动画
 
+      gameState_one.value.cardGrid[1] = ['cardBack','cardBack','cardBack']
+
       const battleCard = enemyCards.find(item => item.cardType === 'battle' && item.cardName);
       const defenseCard = enemyCards.find(item => item.cardType === 'defense' && item.cardName);
       // profit/decrease 可能有多个，这里只取第一个

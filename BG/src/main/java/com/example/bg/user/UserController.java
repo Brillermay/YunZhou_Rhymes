@@ -43,7 +43,7 @@ public class UserController {
 
 
 
-    // 使用Shiro的认证机制
+    // 使用Shiro的认证机制//
     // 在第 46 行左右，修改 login 方法
     @PostMapping("/login")
     @Operation(summary = "用户登录")
