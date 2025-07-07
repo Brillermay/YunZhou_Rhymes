@@ -25,7 +25,9 @@
         <button class="fetchall-debug-btn" @click="handleFetchAll">
           fetchall
         </button>
-
+        <button class="export-log-btn" @click="exportLog">
+          导出日志
+        </button>
       </teleport>
     </div>
   </div>
@@ -38,6 +40,33 @@ import { useRouter } from 'vue-router';
 import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
 import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
+
+//输出console日志
+//-----------------------------------------------------------------
+const logBuffer = [];
+const originLog = console.log;
+console.log = function (...args) {
+  logBuffer.push(
+    `[${new Date().toLocaleString()}] ` +
+    args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')
+  );
+  originLog.apply(console, args);
+};
+
+function exportLog() {
+  if (!logBuffer.length) return;
+  const content = logBuffer.join('\n');
+  const blob = new Blob([content], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'frontend-log.txt';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+//--------------------------------------------------------------------
 console.log('🏁 script setup 运行了');
 
 function handleReturnToGameCenter() {
@@ -57,8 +86,8 @@ function handleFetchAll() {
   console.log(gameState_one.value.ally)
   console.log(initialCards);
   console.log(gameState_one.value.enemy)
-//uid: `getCurrentUid()`
-  console.log("currentUID:",getData('multiGame_userInfo')?.uid)
+  //uid: `getCurrentUid()`
+  console.log("currentUID:", getData('multiGame_userInfo')?.uid)
 
   console.log("==============test==============")
 
@@ -3492,4 +3521,26 @@ onBeforeUnmount(() => {
     color: #111;
   }
 }
+
+.export-log-btn {
+  position: fixed;
+  top: 18px;
+  left: 140px;
+  z-index: 10011;
+  background: #67c23a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 11px 26px;
+  box-shadow: 0 2px 10px #0002;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+.export-log-btn:hover {
+  background: #529b2e;
+}
+
 </style>
