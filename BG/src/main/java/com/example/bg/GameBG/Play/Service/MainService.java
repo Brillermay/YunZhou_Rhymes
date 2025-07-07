@@ -595,7 +595,7 @@ public class MainService extends TextWebSocketHandler {
             System.out.println("handleRoundEndMessage's playerAgainst:");
             System.out.println(cardList1);
             System.out.println(otherPlayerCards);
-
+//
 
             if (uid1 == room.getUid1()) {
                 listPlayer1 = playerService.GetList(cardList1);
