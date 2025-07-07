@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import API_BASE_URL from '../config/api'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -197,7 +198,7 @@ export const useUserStore = defineStore('user', {
     // 🔧 新增：调用后端登录接口
     async apiLogin(credentials) {
       try {
-        const response = await fetch('http://localhost:8081/user/login', {
+        const response = await fetch(`${API_BASE_URL}/user/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -225,7 +226,7 @@ export const useUserStore = defineStore('user', {
     // 🔧 新增：调用后端注册接口
     async apiRegister(userData) {
       try {
-        const response = await fetch('http://localhost:8081/user/add', {
+        const response = await fetch(`${API_BASE_URL}/user/add`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -256,7 +257,7 @@ export const useUserStore = defineStore('user', {
       if (!this.uid) return false
       
       try {
-        const response = await fetch(`http://localhost:8081/user/loginName/${this.uid}`)
+        const response = await fetch(`${API_BASE_URL}/user/loginName/${this.uid}`)
         const username = await response.text()
         
         if (username && username === this.username) {
