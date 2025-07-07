@@ -28,4 +28,6 @@ public interface CommentOpMapper {
     void delLikeList(int CID,int UID);
     void delLikeNum(int CID);
     List<Integer>getLikeList(int UID);//传入UID,返回喜欢的评论CID
+
+    List<Integer> getDirectChildren(int cid);
 }

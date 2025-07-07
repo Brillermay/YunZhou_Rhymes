@@ -111,4 +111,9 @@
     <select id="getLikeList" resultType="java.lang.Integer">
         select CID from ltou where UID = #{UID}
     </select>
+
+    <select id="getDirectChildren" resultType="java.lang.Integer">
+        SELECT NCID FROM linklist WHERE CID = #{cid}
+    </select>
+
 </mapper>

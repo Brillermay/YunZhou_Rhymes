@@ -88,16 +88,29 @@ public class CommentController extends ConnetMySQL {
     @GetMapping("/open_comment/{cid}")
     @Operation(summary = "返回这个评论树id")
     public List<Comment> getCommentTree(@PathVariable int cid)throws IOException{
-        List<Comment> cachedTree = redisCommentService.getCachedTree(cid);
-        if (cachedTree != null) return cachedTree.subList(1,  cachedTree.size());
-
+//        List<Comment> cachedTree = redisCommentService.getCachedTree(cid);
+//        if (cachedTree != null) return cachedTree.subList(1,  cachedTree.size());
+//
+//        try (InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
+//             SqlSession session = getSession(in)) {
+//            CommentOpMapper commentOpMapper = session.getMapper(CommentOpMapper.class);
+//            List<Comment> ans = commentOpMapper.getComment(getAllChild(cid));
+//
+//            redisCommentService.cacheCommentTree(cid,  ans);
+//            return ans.subList(1,  ans.size());
+//        } catch (Exception e) {
+//            throw new RuntimeException("error:" + e.getMessage());
+//        }
         try (InputStream in = Resources.getResourceAsStream("SqlMapConfig.xml");
              SqlSession session = getSession(in)) {
             CommentOpMapper commentOpMapper = session.getMapper(CommentOpMapper.class);
-            List<Comment> ans = commentOpMapper.getComment(getAllChild(cid));
 
-            redisCommentService.cacheCommentTree(cid,  ans);
-            return ans.subList(1,  ans.size());
+            // 只查linklist的直接子节点
+            List<Integer> childIds = commentOpMapper.getDirectChildren(cid);
+            if(childIds == null || childIds.isEmpty()) return new ArrayList<>();
+            List<Comment> ans = commentOpMapper.getComment(childIds);
+
+            return ans;
         } catch (Exception e) {
             throw new RuntimeException("error:" + e.getMessage());
         }
