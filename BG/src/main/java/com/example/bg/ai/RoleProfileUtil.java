@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.*;
 
 public class RoleProfileUtil {
-    private static final String PROFILE_PATH = "BG/data/role_profiles.txt";
+    private static final String PROFILE_PATH = "data/role_profiles.txt";
     private static final Map<String, String> roleProfileMap = new HashMap<>();
 
     static {
