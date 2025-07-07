@@ -154,3 +154,7 @@ WebSocket连接已建立，当前连接数：2
 用户 1970 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已建立，当前连接数：2
+2025-07-07T14:10:34.274+08:00  INFO 15708 --- [BG] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-07-07T14:10:34.823+08:00  INFO 15708 --- [BG] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+WebSocket连接已关闭，当前连接数：1
+WebSocket连接已关闭，当前连接数：0
