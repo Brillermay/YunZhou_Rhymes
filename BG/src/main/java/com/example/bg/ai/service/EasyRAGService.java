@@ -84,7 +84,17 @@ public class    EasyRAGService{
      */
     private boolean isValidCache(String poemId) {
         try {
-            File cacheFile = new File("data/embeddings/poem_" + poemId + ".json");
+            // 🔧 使用与cacheManager相同的路径逻辑
+            String baseDir;
+            String jarPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+            if (jarPath.endsWith(".jar")) {
+                File jarFile = new File(jarPath);
+                baseDir = jarFile.getParent() + "/data";
+            } else {
+                baseDir = "data";
+            }
+
+            File cacheFile = new File(baseDir + "/embeddings/poem_" + poemId + ".json");
             if (!cacheFile.exists()) return false;
 
             ObjectMapper mapper = new ObjectMapper();

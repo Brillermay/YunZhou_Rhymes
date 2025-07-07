@@ -28,6 +28,10 @@ public class EmbeddingCacheManager {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+
+    // 🆕 添加这两个成员变量
+    private File cacheDir;
+    private File cacheInfoFile;
     /**
      * 缓存信息类
      */
@@ -163,20 +167,43 @@ public class EmbeddingCacheManager {
     /**
      * 初始化缓存目录
      */
-    public void initializeCacheDirectories() throws IOException {
-        // 🔧 简单修复：使用项目根目录下的data文件夹
-        String projectRoot = System.getProperty("user.dir");
-        String cacheDir = projectRoot + File.separator + "BG"+ File.separator + "data";
-        String embeddingsDir = cacheDir + File.separator + "embeddings";
+// 修改缓存目录初始化方法
+public void initializeCacheDirectories() throws Exception {
+    try {
+        // 🔧 修复：使用相对于jar包的路径
+        String baseDir;
         
-        System.out.println("🔍 项目根目录: " + projectRoot);
-        System.out.println("🔍 缓存目录: " + cacheDir);
+        // 检查是否在jar包中运行
+        String jarPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
+        if (jarPath.endsWith(".jar")) {
+            // 在jar包中运行，使用jar包所在目录
+            File jarFile = new File(jarPath);
+            baseDir = jarFile.getParent() + "/data";
+        } else {
+            // 在IDE中运行，使用相对路径
+            baseDir = "data";
+        }
         
-        Files.createDirectories(Paths.get(cacheDir));
-        Files.createDirectories(Paths.get(embeddingsDir));
+        // 创建缓存目录
+        cacheDir = new File(baseDir + "/embeddings");
+        if (!cacheDir.exists()) {
+            boolean created = cacheDir.mkdirs();
+            if (!created) {
+                throw new RuntimeException("无法创建缓存目录: " + cacheDir.getAbsolutePath());
+            }
+        }
         
-        System.out.println("📁 缓存目录初始化完成: " + cacheDir);
+        // 设置缓存信息文件路径
+        cacheInfoFile = new File(baseDir + "/cache_info.json");
+        
+        System.out.println("📁 缓存目录初始化完成: " + cacheDir.getAbsolutePath());
+        System.out.println("📄 缓存信息文件: " + cacheInfoFile.getAbsolutePath());
+        
+    } catch (Exception e) {
+        System.err.println("❌ 缓存目录初始化失败: " + e.getMessage());
+        throw e;
     }
+}
 
 
 
@@ -448,7 +475,7 @@ public class EmbeddingCacheManager {
      */
     public CacheInfo loadCacheInfo() {
         try {
-            File file = new File(CACHE_INFO_FILE);
+            File file = this.cacheInfoFile != null ? this.cacheInfoFile : new File(CACHE_INFO_FILE);
             System.out.println("🔍 尝试加载缓存信息文件: " + file.getAbsolutePath());
 
             if (!file.exists()) {
