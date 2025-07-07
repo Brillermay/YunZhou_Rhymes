@@ -109,6 +109,7 @@ public class MainService extends TextWebSocketHandler {
                     break;
                 case "fetchall":
                     handleFetchAll(session,messageData);
+                    break;
                 default:
                     sendErrorResponse(session, "未知的消息类型：" + type);
             }
