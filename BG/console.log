@@ -13,37 +13,37 @@ SLF4J(I): Actual provider is of type [ch.qos.logback.classic.spi.LogbackServiceP
 
  :: Spring Boot ::                (v3.4.5)
 
-2025-07-07T12:21:20.564+08:00  INFO 13136 --- [BG] [           main] com.example.bg.BgApplication             : Starting BgApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 13136 (E:\ComputerDesignCompetition\YunZhou_Rhymes\BG\target\BG-0.0.1-SNAPSHOT.jar started by WHUzjy in E:\ComputerDesignCompetition\YunZhou_Rhymes\BG)
-2025-07-07T12:21:20.569+08:00  INFO 13136 --- [BG] [           main] com.example.bg.BgApplication             : No active profile set, falling back to 1 default profile: "default"
-2025-07-07T12:21:22.315+08:00  INFO 13136 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
-2025-07-07T12:21:22.317+08:00  INFO 13136 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
-2025-07-07T12:21:22.361+08:00  INFO 13136 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 18 ms. Found 0 Redis repository interfaces.
-2025-07-07T12:21:22.695+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'shiroConfig' of type [com.example.bg.config.ShiroConfig$$SpringCGLIB$$0] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.835+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.sql.init.DataSourceInitializationConfiguration' of type [org.springframework.boot.autoconfigure.sql.init.DataSourceInitializationConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.836+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration$Hikari' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration$Hikari] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.850+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'securityManagerInjector' of type [org.springframework.beans.factory.config.MethodInvokingFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.896+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'spring.datasource-org.springframework.boot.autoconfigure.jdbc.DataSourceProperties' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.898+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration$PooledDataSourceConfiguration' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration$PooledDataSourceConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.899+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'jdbcConnectionDetails' of type [org.springframework.boot.autoconfigure.jdbc.PropertiesJdbcConnectionDetails] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.942+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'dataSource' of type [com.zaxxer.hikari.HikariDataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.948+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'spring.sql.init-org.springframework.boot.autoconfigure.sql.init.SqlInitializationProperties' of type [org.springframework.boot.autoconfigure.sql.init.SqlInitializationProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.962+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'dataSourceScriptDatabaseInitializer' of type [org.springframework.boot.autoconfigure.sql.init.SqlDataSourceScriptDatabaseInitializer] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.971+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'mybatis-org.mybatis.spring.boot.autoconfigure.MybatisProperties' of type [org.mybatis.spring.boot.autoconfigure.MybatisProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:22.975+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration' of type [org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.027+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sqlSessionFactory' of type [org.apache.ibatis.session.defaults.DefaultSqlSessionFactory] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.034+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sqlSessionTemplate' of type [org.mybatis.spring.SqlSessionTemplate] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.284+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userMapper' of type [org.mybatis.spring.mapper.MapperFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.286+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userMapper' of type [jdk.proxy2.$Proxy99] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.300+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userRealm' of type [com.example.bg.config.UserRealm] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.313+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'redisManager' of type [org.crazycake.shiro.RedisManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.320+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sessionDAO' of type [org.crazycake.shiro.RedisSessionDAO] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.334+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sessionManager' of type [org.apache.shiro.web.session.mgt.DefaultWebSessionManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:23.467+08:00  WARN 13136 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'securityManager' of type [org.apache.shiro.web.mgt.DefaultWebSecurityManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
-2025-07-07T12:21:24.139+08:00  INFO 13136 --- [BG] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
-2025-07-07T12:21:24.159+08:00  INFO 13136 --- [BG] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2025-07-07T12:21:24.160+08:00  INFO 13136 --- [BG] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.40]
-2025-07-07T12:21:24.224+08:00  INFO 13136 --- [BG] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2025-07-07T12:21:24.226+08:00  INFO 13136 --- [BG] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 3585 ms
+2025-07-07T14:08:40.809+08:00  INFO 15708 --- [BG] [           main] com.example.bg.BgApplication             : Starting BgApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 15708 (E:\ComputerDesignCompetition\YunZhou_Rhymes\BG\target\BG-0.0.1-SNAPSHOT.jar started by WHUzjy in E:\ComputerDesignCompetition\YunZhou_Rhymes\BG)
+2025-07-07T14:08:40.814+08:00  INFO 15708 --- [BG] [           main] com.example.bg.BgApplication             : No active profile set, falling back to 1 default profile: "default"
+2025-07-07T14:08:43.406+08:00  INFO 15708 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Multiple Spring Data modules found, entering strict repository configuration mode
+2025-07-07T14:08:43.412+08:00  INFO 15708 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data Redis repositories in DEFAULT mode.
+2025-07-07T14:08:43.469+08:00  INFO 15708 --- [BG] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 20 ms. Found 0 Redis repository interfaces.
+2025-07-07T14:08:44.123+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'shiroConfig' of type [com.example.bg.config.ShiroConfig$$SpringCGLIB$$0] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.449+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.sql.init.DataSourceInitializationConfiguration' of type [org.springframework.boot.autoconfigure.sql.init.DataSourceInitializationConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.451+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration$Hikari' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceConfiguration$Hikari] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.474+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'securityManagerInjector' of type [org.springframework.beans.factory.config.MethodInvokingFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.535+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'spring.datasource-org.springframework.boot.autoconfigure.jdbc.DataSourceProperties' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.547+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration$PooledDataSourceConfiguration' of type [org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration$PooledDataSourceConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.551+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'jdbcConnectionDetails' of type [org.springframework.boot.autoconfigure.jdbc.PropertiesJdbcConnectionDetails] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.587+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'dataSource' of type [com.zaxxer.hikari.HikariDataSource] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.592+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'spring.sql.init-org.springframework.boot.autoconfigure.sql.init.SqlInitializationProperties' of type [org.springframework.boot.autoconfigure.sql.init.SqlInitializationProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.603+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'dataSourceScriptDatabaseInitializer' of type [org.springframework.boot.autoconfigure.sql.init.SqlDataSourceScriptDatabaseInitializer] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.610+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'mybatis-org.mybatis.spring.boot.autoconfigure.MybatisProperties' of type [org.mybatis.spring.boot.autoconfigure.MybatisProperties] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.620+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration' of type [org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.709+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sqlSessionFactory' of type [org.apache.ibatis.session.defaults.DefaultSqlSessionFactory] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:44.716+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sqlSessionTemplate' of type [org.mybatis.spring.SqlSessionTemplate] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.122+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userMapper' of type [org.mybatis.spring.mapper.MapperFactoryBean] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.124+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userMapper' of type [jdk.proxy2.$Proxy99] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.143+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'userRealm' of type [com.example.bg.config.UserRealm] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.157+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'redisManager' of type [org.crazycake.shiro.RedisManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.164+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sessionDAO' of type [org.crazycake.shiro.RedisSessionDAO] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.183+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'sessionManager' of type [org.apache.shiro.web.session.mgt.DefaultWebSessionManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:45.437+08:00  WARN 15708 --- [BG] [           main] trationDelegate$BeanPostProcessorChecker : Bean 'securityManager' of type [org.apache.shiro.web.mgt.DefaultWebSecurityManager] is not eligible for getting processed by all BeanPostProcessors (for example: not eligible for auto-proxying). Is this bean getting eagerly injected/applied to a currently created BeanPostProcessor []? Check the corresponding BeanPostProcessor declaration and its dependencies/advisors. If this bean does not have to be post-processed, declare it with ROLE_INFRASTRUCTURE.
+2025-07-07T14:08:46.126+08:00  INFO 15708 --- [BG] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8081 (http)
+2025-07-07T14:08:46.169+08:00  INFO 15708 --- [BG] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-07-07T14:08:46.171+08:00  INFO 15708 --- [BG] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.40]
+2025-07-07T14:08:46.297+08:00  INFO 15708 --- [BG] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-07-07T14:08:46.297+08:00  INFO 15708 --- [BG] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 5382 ms
 刷新敏感词缓存失败: 
 ### Error querying database.  Cause: java.sql.SQLException: Access denied for user 'root'@'localhost' (using password: YES)
 ### The error may exist in com/example/bg/admin/SensitiveWordMapper.xml
@@ -96,210 +96,65 @@ Caused by: java.sql.SQLException: Access denied for user 'root'@'localhost' (usi
 	at org.apache.ibatis.executor.CachingExecutor.query(CachingExecutor.java:89)
 	at org.apache.ibatis.session.defaults.DefaultSqlSession.selectList(DefaultSqlSession.java:147)
 	... 13 more
-2025-07-07T12:21:26.533+08:00  INFO 13136 --- [BG] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2025-07-07T12:21:27.573+08:00  INFO 13136 --- [BG] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2025-07-07T12:21:27.680+08:00  INFO 13136 --- [BG] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
-2025-07-07T12:21:27.697+08:00  INFO 13136 --- [BG] [           main] com.example.bg.BgApplication             : Started BgApplication in 8.088 seconds (process running for 8.978)
-2025-07-07T12:22:03.657+08:00  INFO 13136 --- [BG] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-07-07T12:22:03.658+08:00  INFO 13136 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2025-07-07T12:22:03.662+08:00  INFO 13136 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2025-07-07T14:08:49.503+08:00  INFO 15708 --- [BG] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2025-07-07T14:08:50.874+08:00  INFO 15708 --- [BG] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2025-07-07T14:08:51.070+08:00  INFO 15708 --- [BG] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
+2025-07-07T14:08:51.094+08:00  INFO 15708 --- [BG] [           main] com.example.bg.BgApplication             : Started BgApplication in 11.455 seconds (process running for 12.786)
+2025-07-07T14:08:51.246+08:00  INFO 15708 --- [BG] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-07-07T14:08:51.247+08:00  INFO 15708 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-07-07T14:08:51.248+08:00  INFO 15708 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
 WebSocket连接已建立，当前连接数：1
-收到消息：{"type":"createRoom","room":{"uid":"8690"}}
-关联用户ID 8690 到会话 7e1eb93c-9fd0-2a3e-28ba-61bd32543692
-收到消息：{"type":"joinRoom","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"8690"}}
-关联用户ID 8690 到会话 7e1eb93c-9fd0-2a3e-28ba-61bd32543692
-直接发送房间更新给用户(uid=8690)
-广播消息: {"readyToStart":false,"playerCount":1,"uniqueUsers":[8690],"joinedUserId":8690,"isFull":false,"type":"room_update","roomId":"UrHrXSSb1ABB1Q4z"}
 WebSocket连接已建立，当前连接数：2
-收到消息：{"type":"joinRoom","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"7289"}}
-关联用户ID 7289 到会话 6e3e59f9-f619-1228-143c-e31f808c882d
-直接发送房间更新给用户(uid=8690)
-直接发送房间更新给用户(uid=7289)
-广播消息: {"readyToStart":true,"playerCount":2,"uniqueUsers":[8690,7289],"joinedUserId":7289,"isFull":true,"type":"room_update","roomId":"UrHrXSSb1ABB1Q4z"}
-收到消息：{"type":"startGame","room":{"roomId":"UrHrXSSb1ABB1Q4z","role1":"libai","role2":"libai","uid":"8690"}}
-关联用户ID 8690 到会话 7e1eb93c-9fd0-2a3e-28ba-61bd32543692
-发送房间已满通知给用户: 7289
-房间 UrHrXSSb1ABB1Q4z 初始化游戏成功，玩家1=8690, 玩家2=7289
-收到消息：{"type":"startGame","room":{"roomId":"UrHrXSSb1ABB1Q4z","role1":"libai","role2":"libai","uid":"7289"}}
-关联用户ID 7289 到会话 6e3e59f9-f619-1228-143c-e31f808c882d
-房间 UrHrXSSb1ABB1Q4z 已经初始化过游戏，跳过重复初始化
-用户 7289 的会话已关闭
+收到消息：{"type":"createRoom","room":{"uid":"1970"}}
+关联用户ID 1970 到会话 df5285ad-9da6-3a44-e549-4033132b43b0
+收到消息：{"type":"joinRoom","room":{"roomId":"eRxilhsMNnAX3Zo5","uid":"1970"}}
+关联用户ID 1970 到会话 df5285ad-9da6-3a44-e549-4033132b43b0
+直接发送房间更新给用户(uid=1970)
+广播消息: {"readyToStart":false,"playerCount":1,"uniqueUsers":[1970],"joinedUserId":1970,"isFull":false,"type":"room_update","roomId":"eRxilhsMNnAX3Zo5"}
+收到消息：{"type":"joinRoom","room":{"roomId":"eRxilhsMNnAX3Zo5","uid":"2506"}}
+关联用户ID 2506 到会话 ae8b4aff-d566-c350-0aef-0a9bc7c6808f
+直接发送房间更新给用户(uid=1970)
+直接发送房间更新给用户(uid=2506)
+广播消息: {"readyToStart":true,"playerCount":2,"uniqueUsers":[1970,2506],"joinedUserId":2506,"isFull":true,"type":"room_update","roomId":"eRxilhsMNnAX3Zo5"}
+收到消息：{"type":"startGame","room":{"roomId":"eRxilhsMNnAX3Zo5","role1":"libai","role2":"libai","uid":"1970"}}
+关联用户ID 1970 到会话 df5285ad-9da6-3a44-e549-4033132b43b0
+发送房间已满通知给用户: 2506
+房间 eRxilhsMNnAX3Zo5 初始化游戏成功，玩家1=1970, 玩家2=2506
+收到消息：{"type":"startGame","room":{"roomId":"eRxilhsMNnAX3Zo5","role1":"libai","role2":"libai","uid":"2506"}}
+关联用户ID 2506 到会话 ae8b4aff-d566-c350-0aef-0a9bc7c6808f
+房间 eRxilhsMNnAX3Zo5 已经初始化过游戏，跳过重复初始化
+用户 2506 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已建立，当前连接数：2
-用户 8690 的会话已关闭
+用户 1970 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已建立，当前连接数：2
-收到消息：{"type":"RoundBegin","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"7289"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【RoundBegin同步】roomId=UrHrXSSb1ABB1Q4z round=0 已收到玩家 7289 的回合开始信号。当前已收到: [7289]
-收到消息：{"type":"RoundBegin","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"8690"}}
-关联用户ID 8690 到会话 b430cef1-302d-93bb-4c00-53f545135ea1
-【RoundBegin同步】roomId=UrHrXSSb1ABB1Q4z round=0 已收到玩家 8690 的回合开始信号。当前已收到: [8690, 7289]
-【RoundBegin同步】roomId=UrHrXSSb1ABB1Q4z round=0 两位玩家均已发信号，调用BeginService。
-收到消息：{"type":"openCardGroups","room":{"uid":"7289"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【购买前】玩家ID: 7289 金币: 5 手牌: []
-【购买后】玩家ID: 7289 金币: 0 手牌: [spring(profit,num=2,size=1), bird(battle,num=1,size=1), autumn(decrease,num=1,size=1), water(defense,num=1,size=1)]
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=10, role=libai, cards=[], wealthy=5, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=profit, cardNum=2, cardName=spring, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=bird, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=0, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=0)
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"7289","cardList1":["bird","water","spring"]}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 0
-玩家1（uid=8690）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=0 role=libai cards=[spring(profit,num=2,size=1), bird(battle,num=1,size=1), autumn(decrease,num=1,size=1), water(defense,num=1,size=1)]
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"8690","cardList1":["cardBack","cardBack","cardBack"]}}
-关联用户ID 8690 到会话 b430cef1-302d-93bb-4c00-53f545135ea1
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 0
-玩家1（uid=8690）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=0 role=libai cards=[spring(profit,num=2,size=1), bird(battle,num=1,size=1), autumn(decrease,num=1,size=1), water(defense,num=1,size=1)]
-handleRoundEndMessage's playerAgainst:
-[cardBack, cardBack, cardBack]
-[bird, water, spring]
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=2, cardName=spring, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=bird, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=0, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-[CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0)]
-[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=bird, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)]
-卡牌运行前:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1)], wealthy=0, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-spring called
-卡牌运行后:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=5, statusesEnd=[Status(name=water_judge, consistTime=1, detail=null), Status(name=bird_judge, consistTime=1, detail=null)], statusesBegin=[Status(name=water_judge, consistTime=1, detail=null), Status(name=bird_judge, consistTime=1, detail=null)], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=true, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1)], wealthy=5, statusesEnd=[Status(name=spring_judge, consistTime=1, detail=null)], statusesBegin=[Status(name=spring_judge, consistTime=1, detail=null)], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=true, isUsedBattleCard=true, isUsedProfitOrDecreaseCard=true, isRobbedHP=false, isAddedShield=true, isCured=true, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=1, fireAdd=0, purification=false), cardsNum=0)
-enter endservice
-buffs:
-[]
-[]
-【回合结束后】
-Room: UrHrXSSb1ABB1Q4z Round: 0
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=5 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), autumn(decrease,num=1,size=1)]
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=10, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1)], wealthy=10, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=1)
-收到消息：{"type":"openCardGroups","room":{"uid":"7289"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【购买前】玩家ID: 7289 金币: 10 手牌: [spring(profit,num=1,size=1), autumn(decrease,num=1,size=1)]
-【购买后】玩家ID: 7289 金币: 5 手牌: [spring(profit,num=1,size=1), mountain(defense,num=2,size=1), fire(battle,num=1,size=1), autumn(decrease,num=2,size=1), water(defense,num=1,size=1)]
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=10, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=mountain, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=fire, cardSize=1), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=5, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=1)
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"7289","cardList1":["cardBack","cardBack","cardBack"]}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 1
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=10 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), mountain(defense,num=2,size=1), fire(battle,num=1,size=1), autumn(decrease,num=2,size=1), water(defense,num=1,size=1)]
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"8690","cardList1":["cardBack","cardBack","cardBack"]}}
-关联用户ID 8690 到会话 b430cef1-302d-93bb-4c00-53f545135ea1
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 1
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=10 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), mountain(defense,num=2,size=1), fire(battle,num=1,size=1), autumn(decrease,num=2,size=1), water(defense,num=1,size=1)]
-handleRoundEndMessage's playerAgainst:
-[cardBack, cardBack, cardBack]
-[cardBack, cardBack, cardBack]
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=10, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=mountain, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=fire, cardSize=1), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-[CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0)]
-[CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0)]
-卡牌运行前:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=10, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=mountain, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=fire, cardSize=1), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-卡牌运行后:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=10, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=mountain, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=fire, cardSize=1), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-enter endservice
-buffs:
-[]
-[]
-【回合结束后】
-Room: UrHrXSSb1ABB1Q4z Round: 1
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=10 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), mountain(defense,num=2,size=1), fire(battle,num=1,size=1), autumn(decrease,num=2,size=1), water(defense,num=1,size=1)]
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=15, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=mountain, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=fire, cardSize=1), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=water, cardSize=1)], wealthy=10, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=2)
-收到消息：{"type":"openCardGroups","room":{"uid":"7289"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【购买前】玩家ID: 7289 金币: 10 手牌: [spring(profit,num=1,size=1), mountain(defense,num=2,size=1), fire(battle,num=1,size=1), autumn(decrease,num=2,size=1), water(defense,num=1,size=1)]
-【购买后】玩家ID: 7289 金币: 5 手牌: [spring(profit,num=2,size=1), mountain(defense,num=2,size=1), moon(decrease,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"discardCard","room":{"uid":"7289","card":"spring","money":1}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【弃牌后】玩家ID: 7289 金币: 6 手牌: [spring(profit,num=1,size=1), mountain(defense,num=2,size=1), moon(decrease,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"discardCard","room":{"uid":"7289","card":"spring","money":1}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【弃牌后】玩家ID: 7289 金币: 7 手牌: [mountain(defense,num=2,size=1), moon(decrease,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"discardCard","room":{"uid":"7289","card":"mountain","money":1}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【弃牌后】玩家ID: 7289 金币: 8 手牌: [mountain(defense,num=1,size=1), moon(decrease,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"discardCard","room":{"uid":"7289","card":"moon","money":1}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【弃牌后】玩家ID: 7289 金币: 9 手牌: [mountain(defense,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"discardCard","room":{"uid":"7289","card":"mountain","money":1}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【弃牌后】玩家ID: 7289 金币: 10 手牌: [fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-收到消息：{"type":"openCardGroups","room":{"uid":"7289"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【购买前】玩家ID: 7289 金币: 10 手牌: [fire(battle,num=1,size=1), autumn(decrease,num=3,size=1), water(defense,num=3,size=1)]
-【购买后】玩家ID: 7289 金币: 5 手牌: [spring(profit,num=1,size=1), mountain(defense,num=1,size=1), bird(battle,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=4,size=1), water(defense,num=4,size=1)]
-收到消息：{"type":"synthesize","room":{"uid":"7289","cardA":"autumn","cardB":"bird","cardC":"goose"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-收到消息：{"type":"synthesize","room":{"uid":"7289","cardA":"water","cardB":"mountain","cardC":"nature"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-收到消息：{"type":"synthesize","room":{"uid":"7289","cardA":"water","cardB":"fire","cardC":"wine"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-收到消息：{"type":"synthesize","room":{"uid":"7289","cardA":"wine","cardB":"autumn","cardC":"zhuangzhinanchou"}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=15, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=nature, cardSize=2), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=water, cardSize=1)], wealthy=5, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=2)
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"7289","cardList1":["cardBack","zhuangzhinanchou","spring"]}}
-关联用户ID 7289 到会话 be47348a-08cd-b680-579a-ff3647e6387e
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 2
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=15 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), nature(defense,num=1,size=2), autumn(decrease,num=2,size=1), water(defense,num=2,size=1)]
-收到消息：{"type":"RoundEnd","room":{"roomId":"UrHrXSSb1ABB1Q4z","uid":"8690","cardList1":["cardBack","cardBack","cardBack"]}}
-关联用户ID 8690 到会话 b430cef1-302d-93bb-4c00-53f545135ea1
-【回合结束前】
-Room: UrHrXSSb1ABB1Q4z Round: 2
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=15 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=5 role=libai cards=[spring(profit,num=1,size=1), nature(defense,num=1,size=2), autumn(decrease,num=2,size=1), water(defense,num=2,size=1)]
-handleRoundEndMessage's playerAgainst:
-[cardBack, cardBack, cardBack]
-[cardBack, zhuangzhinanchou, spring]
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=15, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=defense, cardNum=1, cardName=nature, cardSize=2), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=water, cardSize=1)], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-[CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0)]
-[CardBattle(cardType=profit, cardNum=1, cardName=spring, cardSize=1), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0), CardBattle(cardType=, cardNum=0, cardName=, cardSize=0)]
-卡牌运行前:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=15, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=defense, cardNum=1, cardName=nature, cardSize=2), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=water, cardSize=1)], wealthy=5, statusesEnd=[], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-spring called
-卡牌运行后:
-Player1:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[], wealthy=15, statusesEnd=[], statusesBegin=[], role=libai, shield=9, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=false, isRobbedHP=false, isAddedShield=false, isCured=false, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-player2:PlayerAgainst(hp=20, roomNumber=UrHrXSSb1ABB1Q4z, cards=[CardBattle(cardType=defense, cardNum=1, cardName=nature, cardSize=2), CardBattle(cardType=decrease, cardNum=2, cardName=autumn, cardSize=1), CardBattle(cardType=defense, cardNum=2, cardName=water, cardSize=1)], wealthy=9, statusesEnd=[Status(name=spring_judge, consistTime=1, detail=null)], statusesBegin=[], role=libai, shield=10, hpMax=20, shieldMax=10, playerCondition=PlayerCondition(isAttacked=false, isUsedDefenseCard=false, isUsedBattleCard=false, isUsedProfitOrDecreaseCard=true, isRobbedHP=false, isAddedShield=false, isCured=true, hasZhuangZhiNanChou=false, hasWar=false, hasRain=false, canAddShield=true, liuBuff=false, sunBuff=1, natureBuff=false, numOfShieldAdd=0, fireAdd=0, purification=false), cardsNum=0)
-enter endservice
-buffs:
-[]
-[Status(name=spring_judge, consistTime=1, detail=null)]
-spring_judge
-spring_judge_called
-spring_judge_valid
-【回合结束后】
-Room: UrHrXSSb1ABB1Q4z Round: 2
-玩家1（uid=8690）: hp=20/20 shield=9/10 wealthy=15 role=libai cards=[]
-玩家2（uid=7289）: hp=20/20 shield=10/10 wealthy=9 role=libai cards=[nature(defense,num=1,size=2), autumn(decrease,num=2,size=1), water(defense,num=2,size=1)]
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=20, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=defense, cardNum=1, cardName=mountain, cardSize=1)], wealthy=17, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=3)
-收到消息：{"type":"fetchall","room":{"roomId":"UrHrXSSb1ABB1Q4z"}}
-【fetchall】roomId=UrHrXSSb1ABB1Q4z 玩家信息: [{uid=8690, hpMax=20, shield=9, role=libai, cards=[], wealthy=20, hp=20, shieldMax=10}, {uid=7289, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=defense, cardNum=1, cardName=mountain, cardSize=1)], wealthy=17, hp=20, shieldMax=10}]room 信息：Room(uid1=8690, uid2=7289, room=UrHrXSSb1ABB1Q4z, roundNum=3)
-用户 7289 的会话已关闭
+收到消息：{"type":"RoundBegin","room":{"roomId":"eRxilhsMNnAX3Zo5","uid":"2506"}}
+关联用户ID 2506 到会话 dd3b0d73-c478-8a65-d528-249362060118
+【RoundBegin同步】roomId=eRxilhsMNnAX3Zo5 round=0 已收到玩家 2506 的回合开始信号。当前已收到: [2506]
+收到消息：{"type":"RoundBegin","room":{"roomId":"eRxilhsMNnAX3Zo5","uid":"1970"}}
+关联用户ID 1970 到会话 b4f5ffbc-a878-0c62-7640-168bede62135
+【RoundBegin同步】roomId=eRxilhsMNnAX3Zo5 round=0 已收到玩家 1970 的回合开始信号。当前已收到: [1970, 2506]
+【RoundBegin同步】roomId=eRxilhsMNnAX3Zo5 round=0 两位玩家均已发信号，调用BeginService。
+收到消息：{"type":"openCardGroups","room":{"uid":"2506"}}
+关联用户ID 2506 到会话 dd3b0d73-c478-8a65-d528-249362060118
+【购买前】玩家ID: 2506 金币: 5 手牌: []
+【购买后】玩家ID: 2506 金币: 0 手牌: [moon(decrease,num=2,size=1), mountain(defense,num=1,size=1), fire(battle,num=1,size=1), autumn(decrease,num=1,size=1)]
+收到消息：{"type":"synthesize","room":{"uid":"2506","cardA":"moon","cardB":"moon","cardC":"home"}}
+关联用户ID 2506 到会话 dd3b0d73-c478-8a65-d528-249362060118
+收到消息：{"type":"synthesize","room":{"uid":"2506","cardA":"moon","cardB":"fire","cardC":"sun"}}
+关联用户ID 2506 到会话 dd3b0d73-c478-8a65-d528-249362060118
+收到消息：{"type":"fetchall","room":{"roomId":"eRxilhsMNnAX3Zo5"}}
+【fetchall】roomId=eRxilhsMNnAX3Zo5 玩家信息: [{uid=1970, hpMax=20, shield=10, role=libai, cards=[], wealthy=5, hp=20, shieldMax=10}, {uid=2506, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=defense, cardNum=1, cardName=mountain, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=sun, cardSize=2), CardBattle(cardType=profit, cardNum=1, cardName=home, cardSize=2)], wealthy=0, hp=20, shieldMax=10}]room 信息：Room(uid1=1970, uid2=2506, room=eRxilhsMNnAX3Zo5, roundNum=0)
+收到消息：{"type":"fetchall","room":{"roomId":"eRxilhsMNnAX3Zo5"}}
+【fetchall】roomId=eRxilhsMNnAX3Zo5 玩家信息: [{uid=1970, hpMax=20, shield=10, role=libai, cards=[], wealthy=5, hp=20, shieldMax=10}, {uid=2506, hpMax=20, shield=10, role=libai, cards=[CardBattle(cardType=defense, cardNum=1, cardName=mountain, cardSize=1), CardBattle(cardType=decrease, cardNum=1, cardName=autumn, cardSize=1), CardBattle(cardType=battle, cardNum=1, cardName=sun, cardSize=2), CardBattle(cardType=profit, cardNum=1, cardName=home, cardSize=2)], wealthy=0, hp=20, shieldMax=10}]room 信息：Room(uid1=1970, uid2=2506, room=eRxilhsMNnAX3Zo5, roundNum=0)
+用户 2506 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已建立，当前连接数：2
-用户 8690 的会话已关闭
+用户 1970 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已建立，当前连接数：2
-2025-07-07T12:25:36.385+08:00  INFO 13136 --- [BG] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
-2025-07-07T12:25:36.990+08:00  INFO 13136 --- [BG] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+2025-07-07T14:10:34.274+08:00  INFO 15708 --- [BG] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-07-07T14:10:34.823+08:00  INFO 15708 --- [BG] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
 WebSocket连接已关闭，当前连接数：1
 WebSocket连接已关闭，当前连接数：0
