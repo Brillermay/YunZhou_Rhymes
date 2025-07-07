@@ -49,3 +49,6 @@ SLF4J(I): Actual provider is of type [ch.qos.logback.classic.spi.LogbackServiceP
 2025-07-08T00:22:11.671+08:00  INFO 44332 --- [BG] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
 2025-07-08T00:22:11.760+08:00  INFO 44332 --- [BG] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8081 (http) with context path '/'
 2025-07-08T00:22:11.773+08:00  INFO 44332 --- [BG] [           main] com.example.bg.BgApplication             : Started BgApplication in 5.969 seconds (process running for 6.575)
+2025-07-08T00:27:19.803+08:00  INFO 44332 --- [BG] [nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-07-08T00:27:19.803+08:00  INFO 44332 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-07-08T00:27:19.805+08:00  INFO 44332 --- [BG] [nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
