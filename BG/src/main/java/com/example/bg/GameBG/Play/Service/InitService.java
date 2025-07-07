@@ -45,8 +45,8 @@ public class InitService {
      */
     public PlayerAgainst init(String roomId, int userId, String role) {
         PlayerAgainst playerAgainst = new PlayerAgainst();
-        playerAgainst.setHp(20);
-        playerAgainst.setHpMax(20);
+        playerAgainst.setHp(10);
+        playerAgainst.setHpMax(10);
         playerAgainst.setShieldMax(10);
         playerAgainst.setRoomNumber(roomId);
         List<CardBattle> cardList = new ArrayList<>();
