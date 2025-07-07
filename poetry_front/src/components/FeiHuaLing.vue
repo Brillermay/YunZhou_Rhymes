@@ -352,7 +352,7 @@ export default {
       
       // 设置难度参数
       const difficultySettings = {
-        easy: { time: 4500, hints: 5 },
+        easy: { time: 45, hints: 5 },
         normal: { time: 30, hints: 3 },
         hard: { time: 15, hints: 1 }
       }
