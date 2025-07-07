@@ -195,9 +195,9 @@ function onMessage(event) {
 
       // 构建顺序
       const newRow = [
-        battleCard ? battleCard.cardName : "cardBack",
-        defenseCard ? defenseCard.cardName : "cardBack",
-        profitOrDecreaseCard ? profitOrDecreaseCard.cardName : "cardBack"
+        battleCard ? battleCard.cardName : 'cardBack',
+        defenseCard ? defenseCard.cardName : 'cardBack',
+        profitOrDecreaseCard ? profitOrDecreaseCard.cardName : 'cardBack'
       ];
 
       // 替换第二行
@@ -1727,13 +1727,13 @@ onMounted(() => {
           .setStrokeStyle(1, 0xC5A880);
 
         // 己方文本显示
-        this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
+        this.allyHpText = this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
           fontSize: '16px',
           color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
-        this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
+        this.allyArmorText = this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
           fontSize: '16px',
           color: '#000000',
           resolution: 2,
@@ -1747,13 +1747,13 @@ onMounted(() => {
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
-        this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
+        this.enemyHpText = this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
           fontSize: '16px',
           color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
-        this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
+        this.enemyArmorText = this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
           fontSize: '16px',
           color: '#000000',
           resolution: 2,
@@ -3539,8 +3539,8 @@ onBeforeUnmount(() => {
   outline: none;
   transition: background-color 0.2s;
 }
+
 .export-log-btn:hover {
   background: #529b2e;
 }
-
 </style>
