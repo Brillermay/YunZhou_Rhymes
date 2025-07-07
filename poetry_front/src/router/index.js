@@ -14,7 +14,9 @@ import AdminDashboard from '../components/admin/AdminDashboard.vue'
 
 // 🔧 修复：HomePage.vue 而不是 Homepage.vue
 import HomePage from '@/components/homepage/HomePage.vue'
+import Lobby from '@/components/multiplayerAll/Lobby.vue'
 import multiPlayPage from '@/components/multiplayerAll/Multiplayer.vue'
+
 
 // 🆕 导入游戏中心组件
 import GameCenter from '@/components/GameCenter.vue'
@@ -57,14 +59,22 @@ const router = createRouter({
       }
     },
      {
-       path:'/multiplay',component:multiPlayPage
+       path:'/multiplay',component:Lobby
+
+     },
+     {
+       path:"/multiplay_r",component:multiPlayPage
      },
     // 管理员路由
     {
       path: '/admin',
+      redirect: '/admin/login'  // 改为重定向到登录页
+    },
+    {
+      path: '/admin/login',
       name: 'AdminLogin',
       component: AdminLogin,
-      meta: { layout: 'blank' } // 不使用默认布局
+      meta: { layout: 'blank' }
     },
     {
       path: '/admin/dashboard',
@@ -79,7 +89,7 @@ const router = createRouter({
 ]
 })
 
-// 路由守卫
+// 只保留一个路由守卫
 router.beforeEach((to, from, next) => {
   // 清理游戏中心可能残留的过渡元素
   if (from.path === '/game-center') {
@@ -98,11 +108,12 @@ router.beforeEach((to, from, next) => {
     document.body.style.width = ''
   }
   
-  // 检查管理员权限
-  if (to.meta.requiresAdmin) {
+  // 管理员路由保护
+  if (to.path === '/admin/dashboard') {
     const adminToken = localStorage.getItem('adminToken')
+    
     if (!adminToken) {
-      next('/admin')
+      next('/admin/login')
       return
     }
   }

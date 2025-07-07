@@ -3,10 +3,6 @@
     <!-- 第一屏：用户资料 -->
     <div class="screen user-screen" :style="screenStyles.userScreen">
       <!-- 顶部标题 -->
-      <header class="profile-header">
-        <h1>个人中心</h1>
-        <p class="subtitle">"诗意人生，书香致远"</p>
-      </header>
 
       <main class="profile-container">
         <!-- 用户信息卡片 -->
@@ -30,18 +26,21 @@
           <div v-else class="user-profile">
             <!-- 用户头像 -->
             <div class="avatar-section">
-              <div class="avatar-wrapper">
+              <div class="avatar-wrapper" @click="showProfileModal = true" title="点击编辑个人资料">
                 <img 
-                  :src="userStore.avatar || defaultAvatar" 
-                  :alt="userStore.username" 
+                  :src="userStore.userInfo?.avatar || defaultAvatar" 
+                  :alt="userStore.userInfo?.username || '用户头像'" 
                   class="user-avatar"
                   @error="handleAvatarError"
                 >
+                <div class="avatar-edit-overlay">
+                  <span>✏️</span>
+                </div>
               </div>
               <div class="user-details">
-                <h3 class="username">{{ userStore.username }}</h3>
-                <p class="user-id">ID: {{ userStore.uid }}</p>
-                <p class="join-date">加入时间: {{ formatDate(userStore.createTime) }}</p>
+                <h3 class="username">{{ userStore.userInfo?.username || userStore.username }}</h3>
+                <p class="user-id">ID: {{ userStore.userInfo?.uid || userStore.uid }}</p>
+                <p class="join-date">加入时间: {{ formatDate(userStore.userInfo?.createTime || userStore.createTime) }}</p>
               </div>
             </div>
 
@@ -69,6 +68,9 @@
             <div class="action-buttons">
               <button @click="showPasswordModal = true" class="action-btn secondary">
                 🔐 修改密码
+              </button>
+              <button @click="showProfileModal = true" class="action-btn secondary">
+                ✏️ 编辑资料
               </button>
               <button @click="refreshUserData" class="action-btn secondary" :disabled="loading">
                 {{ loading ? '🔄 刷新中...' : '🔄 刷新数据' }}
@@ -101,7 +103,6 @@
                 <option value="time">收藏时间</option>
                 <option value="poet">诗人</option>
                 <option value="title">标题</option>
-                <option value="dynasty">朝代</option>
               </select>
             </div>
           </div>
@@ -112,10 +113,7 @@
               <span class="overview-label">收藏诗人</span>
               <span class="overview-value">{{ favoriteStats.poets }} 位</span>
             </div>
-            <div class="overview-item">
-              <span class="overview-label">涉及朝代</span>
-              <span class="overview-value">{{ favoriteStats.dynasties }} 个</span>
-            </div>
+
             <div class="overview-item">
               <span class="overview-label">平均长度</span>
               <span class="overview-value">{{ favoriteStats.avgLength }} 字</span>
@@ -179,54 +177,22 @@
  、
 
       <main class="stats-container">
-        <!-- 总览统计 -->
-        <div class="stats-overview">
-          <div class="stat-card primary">
-            <div class="stat-icon">🎮</div>
-            <div class="stat-info">
-              <span class="stat-number">{{ gameStats.totalGames }}</span>
-              <span class="stat-label">总游戏次数</span>
-            </div>
-          </div>
-          
-          <div class="stat-card success">
-            <div class="stat-icon">🏆</div>
-            <div class="stat-info">
-              <span class="stat-number">{{ gameStats.winRate }}%</span>
-              <span class="stat-label">胜率</span>
-            </div>
-          </div>
-          
-          <div class="stat-card warning">
-            <div class="stat-icon">⭐</div>
-            <div class="stat-info">
-              <span class="stat-number">{{ gameStats.highestScore }}</span>
-              <span class="stat-label">最高分</span>
-            </div>
-          </div>
-          
-          <div class="stat-card info">
-            <div class="stat-icon">🏅</div>
-            <div class="stat-info">
-              <span class="stat-number">{{ unlockedAchievements.length }}/{{ achievements.length }}</span>
-              <span class="stat-label">已解锁成就</span>
-            </div>
-          </div>
-        </div>
-
+        
   
 
         <!-- 成就系统 -->
         <div class="achievements-section">
           <div class="achievements-header">
             <h3>🏆 成就系统</h3>
-            <div class="achievement-progress">
-              <span>{{ unlockedAchievements.length }}/{{ achievements.length }} 已解锁</span>
-              <div class="achievement-progress-bar">
-                <div 
-                  class="achievement-progress-fill" 
-                  :style="{ width: `${(unlockedAchievements.length / achievements.length) * 100}%` }"
-                ></div>
+            <div class="achievement-controls">+
+              <div class="achievement-progress">
+                <span>{{ unlockedAchievements.length }}/{{ achievements.length }} 已解锁</span>
+                <div class="achievement-progress-bar">
+                  <div 
+                    class="achievement-progress-fill" 
+                    :style="{ width: `${(unlockedAchievements.length / achievements.length) * 100}%` }"
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -290,6 +256,14 @@
       @confirm="handlePasswordChange"
     />
 
+    <!-- 个人资料编辑弹窗 -->
+    <ProfileModal
+      v-if="showProfileModal"
+      :user-info="userStore.userInfo"
+      @close="showProfileModal = false"
+      @confirm="handleProfileUpdate"
+    />
+
     <!-- 滚动提示 -->
     <ScrollHint
       :current-screen="currentScreen"
@@ -332,8 +306,9 @@ import { useGameStats } from './composables/useGameStats'
 import { useFavorites } from './composables/useFavorites'
 import AuthModal from './components/AuthModal.vue'
 import PasswordModal from './components/PasswordModal.vue'
+import ProfileModal from './components/ProfileModal.vue'
 import ScrollHint from './components/ScrollHint.vue'
-
+import API_BASE_URL from '@/config/api'
 // Store
 const userStore = useUserStore()
 
@@ -376,6 +351,7 @@ const {
 const currentScreen = ref(0)
 const isScrolling = ref(false)
 const showPasswordModal = ref(false)
+const showProfileModal = ref(false)
 const showScrollHint = ref(true)
 const loading = ref(false)
 const selectedPoem = ref(null)
@@ -406,9 +382,30 @@ const screenStyles = computed(() => ({
 }))
 
 // 方法
+
 const handleWheel = (event) => {
   if (isScrolling.value) return
   
+  // 🔧 新增：检测是否在需要内部滚动的容器内
+  const scrollableContainers = [
+    '.favorites-list',        // 收藏列表
+    '.modal-overlay',         // 弹窗遮罩
+    '.poem-modal-overlay',    // 诗词详情弹窗
+    '.poem-modal-content',    // 诗词详情内容
+    '.achievements-grid',     // 成就网格
+    '.profile-modal-content', // 个人资料弹窗
+    '.auth-modal-content'     // 认证弹窗
+  ]
+  
+  // 检测事件是否来自这些容器
+  const isInScrollableContainer = scrollableContainers.some(selector => 
+    event.target.closest(selector)
+  )
+  
+  // 如果在滚动容器内，不执行翻页
+  if (isInScrollableContainer) return
+  
+  // 原有的翻页逻辑保持不变
   event.preventDefault()
   const delta = event.deltaY
   
@@ -492,6 +489,65 @@ const handlePasswordChange = async (passwordData) => {
   }
 }
 
+// 修改第542行左右的 handleProfileUpdate 方法
+
+const handleProfileUpdate = async (profileData) => {
+  loading.value = true
+  
+  try {
+    console.log('🔄 开始更新个人资料...', profileData)
+    
+    // 如果头像有变化，先更新头像
+    if (profileData.avatar && profileData.avatar !== userStore.userInfo?.avatar) {
+      console.log('🔄 更新头像...')
+      const avatarResponse = await fetch(`${API_BASE_URL}/user/updateAvatar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uid: profileData.uid,
+          avatar: profileData.avatar
+        })
+      })
+      
+      const avatarResult = await avatarResponse.json()
+      if (!avatarResult.success) {
+        throw new Error(avatarResult.message || '头像更新失败')
+      }
+      
+      console.log('✅ 头像更新成功')
+    }
+    
+    // 获取更新后的用户完整信息
+    const profileResponse = await fetch(`${API_BASE_URL}/user/profile/${profileData.uid}`)
+    const profileResult = await profileResponse.json()
+    
+    if (profileResult.success) {
+      // 🔧 修复：使用 store 的 updateUserInfo 方法
+      userStore.updateUserInfo({
+        nickname: profileResult.nickname,
+        email: profileResult.email,
+        avatar: profileResult.avatar,
+        createTime: profileResult.createTime,
+        isAdmin: profileResult.isAdmin
+      })
+      
+      console.log('✅ 个人资料更新成功')
+      alert('个人资料更新成功！')
+      showProfileModal.value = false
+    } else {
+      throw new Error(profileResult.message || '获取用户信息失败')
+    }
+    
+  } catch (error) {
+    console.error('💥 个人资料更新失败:', error)
+    alert('个人资料更新失败：' + error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
 const handleAvatarError = (event) => {
   event.target.src = defaultAvatar
 }
@@ -541,6 +597,24 @@ const closeModal = () => {
   selectedPoem.value = null
 }
 
+// 🔧 新增：刷新成就方法
+const refreshAchievements = async () => {
+  if (!userStore.isAuthenticated || !userStore.uid) {
+    alert('请先登录再刷新成就')
+    return
+  }
+  
+  try {
+    console.log('🔄 手动刷新成就数据...')
+    await loadGameStats()
+    console.log('✅ 成就数据刷新完成')
+  } catch (error) {
+    console.error('💥 刷新成就失败:', error)
+    alert('刷新成就失败，请稍后重试')
+  }
+}
+
+// 🔧 修改原有的 refreshUserData 方法，确保也刷新成就
 const refreshUserData = async () => {
   loading.value = true
   
@@ -548,7 +622,7 @@ const refreshUserData = async () => {
     console.log('🔄 开始刷新用户数据...')
     
     await Promise.all([
-      loadGameStats(),
+      loadGameStats(),  // 这里会自动获取真实成就数据
       initializeFavorites()
     ])
     
@@ -655,29 +729,13 @@ onUnmounted(() => {
 }
 
 
-.profile-header {
-  text-align: center;
-  margin-bottom: 2rem;
-  color: white;
-}
 
-.profile-header h1{
-  font-size: 3rem;
-  margin: 0;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-}
-
-.subtitle {
-  font-size: 1.2rem;
-  opacity: 0.9;
-  margin: 0.5rem 0 0 0;
-}
 
 .profile-container, .stats-container {
   max-width: 1200px;
   margin: 0 auto;
   display: grid;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .profile-container {
@@ -757,11 +815,34 @@ onUnmounted(() => {
 }
 
 .avatar-wrapper {
-  width: 80px;
-  height: 80px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.avatar-wrapper:hover .avatar-edit-overlay {
+  opacity: 1;
+}
+
+.avatar-edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
   border-radius: 50%;
-  overflow: hidden;
-  border: 4px solid #e5e7eb;
+  color: white;
+  font-size: 1.5rem;
 }
 
 .user-avatar {
@@ -884,14 +965,32 @@ onUnmounted(() => {
 }
 
 .search-input, .sort-select {
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  border: 2px solid rgba(140, 120, 83, 0.3);
+  border-radius: 8px;
   font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s ease;
+  color: #333;
+}
+
+.search-input:focus, .sort-select:focus {
+  outline: none;
+  border-color: #8c7853;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(140, 120, 83, 0.1);
+}
+
+.search-input::placeholder {
+  color: rgba(140, 120, 83, 0.6);
 }
 
 .search-input {
   width: 200px;
+}
+
+.sort-select {
+  cursor: pointer;
 }
 
 .favorites-overview {
@@ -1041,55 +1140,8 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-/* 游戏统计样式 */
-.stats-overview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
 
-.stat-card {
-  background: rgba(255,255,255,0.95);
-  border-radius: 15px;
-  padding: 2rem;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  backdrop-filter: blur(10px);
-  transition: transform 0.3s ease;
-}
 
-.stat-card:hover {
-  transform: translateY(-5px);
-}
-
-.stat-card.primary { border-left: 5px solid #4f46e5; }
-.stat-card.success { border-left: 5px solid #10b981; }
-.stat-card.warning { border-left: 5px solid #f59e0b; }
-.stat-card.info { border-left: 5px solid #06b6d4; }
-
-.stat-icon {
-  font-size: 2.5rem;
-}
-
-.stat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-card .stat-number {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #333;
-  margin: 0;
-}
-
-.stat-card .stat-label {
-  color: #666;
-  font-size: 1rem;
-}
 
 .detail-grid {
   display: grid;
@@ -1163,7 +1215,7 @@ onUnmounted(() => {
 .achievements-section {
   background: rgba(255,255,255,0.95);
   border-radius: 15px;
-  padding: 2rem;
+  padding: 1.5rem;
   box-shadow: 0 8px 25px rgba(0,0,0,0.1);
   backdrop-filter: blur(10px);
   margin-bottom: 2rem;
@@ -1387,6 +1439,22 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
+.achievement-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+
+.achievements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 /* 动画 */
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -1403,9 +1471,6 @@ onUnmounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .stats-overview {
-    grid-template-columns: 1fr;
-  }
   
 
   .detail-grid {

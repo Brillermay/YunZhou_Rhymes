@@ -12,6 +12,16 @@ public class PlayerCondition {
         isRobbedHP=false;
         isAddedShield=false;
         isCured=false;
+        hasRain=false;
+        hasZhuangZhiNanChou=false;
+        hasWar=false;
+        canAddShield=true;
+        liuBuff=false;
+        sunBuff=1;
+        natureBuff=false;
+        numOfShieldAdd=0;
+        fireAdd=0;
+        purification=false;
     }
 
 
@@ -25,4 +35,16 @@ public class PlayerCondition {
     private boolean isAddedShield;
     private boolean isCured;
 
+
+    private boolean hasZhuangZhiNanChou;
+    private boolean hasWar;
+    private boolean hasRain;
+
+    private boolean canAddShield;
+    private boolean liuBuff;
+    private int sunBuff;
+    private boolean natureBuff;
+    private int numOfShieldAdd;
+    private int fireAdd;
+    private boolean purification;
 }

@@ -4,8 +4,29 @@
       <!-- 第一个游戏页面 -->
       <div class="screen" ref="screen0"></div>
       <!-- 第二个游戏页面 -->
-      <div class="screen" ref="screen1">
-      </div>
+      <div class="screen" ref="screen1"></div>
+      <teleport to="body">
+        <div id="countdown-timer" class="countdown">
+          <div class="round">
+            回合 <span class="round-num">{{ round }}</span> / {{ maxRound }}
+          </div>
+          <div class="timer">
+            <span>倒计时：</span>
+            <span class="time-num">{{ countdown }}</span>
+            <span>秒</span>
+          </div>
+        </div>
+        <div v-if="showGameResult" class="game-result-indicator" :class="gameResultClass">
+          <span class="result-text">{{ gameResultText }}</span>
+          <button class="return-btn" @click="handleReturnToGameCenter">返回大厅</button>
+        </div>
+
+        <!-- 调试按钮，浮动在左上角 -->
+        <button class="fetchall-debug-btn" @click="handleFetchAll">
+          fetchall
+        </button>
+
+      </teleport>
     </div>
   </div>
 </template>
@@ -13,7 +34,723 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import Phaser from 'phaser';
+import { useRouter } from 'vue-router';
+import { isLoggedIn, getCurrentUid, requireLogin } from '@/utils/auth';
+import { saveData, getData, updateData, removeData, hasData, clearAllData } from '../util/storageUtil';
 
+console.log('🏁 script setup 运行了');
+
+function handleReturnToGameCenter() {
+  router.push('/game-center')
+}
+
+function handleFetchAll() {
+  console.log('666')
+  sendMessage({
+    type: "fetchall",
+    room: {
+      roomId: getData('current_game_room')?.roomId,
+    }
+  });
+}
+
+const router = useRouter();
+
+let initialCards = []
+
+const isGameOver = ref(false)
+
+const showGameResult = ref(false)
+const gameResult = ref("") // "win" | "lose" | "draw" | ""
+
+const gameResultText = computed(() => {
+  if (gameResult.value === "win") return "胜利"
+  if (gameResult.value === "lose") return "失败"
+  if (gameResult.value === "draw") return "平局"
+  return ""
+})
+const gameResultClass = computed(() => {
+  if (gameResult.value === "win") return "result-win"
+  if (gameResult.value === "lose") return "result-lose"
+  if (gameResult.value === "draw") return "result-draw"
+  return ""
+})
+
+
+let websocket = ref(null);
+let isConnected = ref(false);
+let connectionStatus = ref('disconnected');
+let connectionStatusText = ref('未连接');
+let reconnectAttempts = ref(0);
+const maxReconnectAttempts = 5;
+let reconnectTimer = null;
+
+function connectWebSocket() {
+  try {
+    if (websocket.value) {
+      try { websocket.value.close(); } catch (e) { }
+    }
+    connectionStatus.value = 'connecting';
+    connectionStatusText.value = '连接中...';
+    const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
+
+    //const wsUrl = 'ws://192.168.181.251:8081/ws/game'; // 按你后端实际端口
+    websocket.value = new WebSocket(wsUrl);
+    websocket.value.onopen = onOpen;
+    websocket.value.onmessage = onMessage;
+    websocket.value.onclose = onClose;
+    websocket.value.onerror = onError;
+  } catch (error) {
+    connectionStatus.value = 'error';
+    connectionStatusText.value = '连接错误';
+    resetReconnection();
+  }
+}
+
+function disconnectWebSocket() {
+  if (websocket.value) {
+    try { websocket.value.close(); } catch (e) { }
+  }
+  isConnected.value = false;
+  connectionStatus.value = 'disconnected';
+  connectionStatusText.value = '未连接';
+  resetReconnection();
+}
+
+function resetReconnection() {
+  reconnectAttempts.value = 0;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+
+function onMessage(event) {
+  try {
+    const data = JSON.parse(event.data);
+    // 根据data.type处理消息
+    // 例如：if (data.type === "xxx") { ... }
+
+    if (data.type === "round_end_result") {
+      const myUid = getData('multiGame_userInfo')?.uid;
+      let myCards = [];
+      let enemyCards = [];
+      if (String(data.uid1) === String(myUid)) {
+        myCards = data.list1.filter(item => item.cardNum > 0);
+        enemyCards = data.list2.filter(item => item.cardNum > 0);
+      } else if (String(data.uid2) === String(myUid)) {
+        myCards = data.list2.filter(item => item.cardNum > 0);
+        enemyCards = data.list1.filter(item => item.cardNum > 0);
+      }
+      console.log('本回合我打出的牌:', myCards);
+      console.log('本回合对手打出的牌:', enemyCards);
+      // TODO: 这里可以触发UI更新或动画
+
+      const battleCard = enemyCards.find(item => item.cardType === 'battle' && item.cardName);
+      const defenseCard = enemyCards.find(item => item.cardType === 'defense' && item.cardName);
+      // profit/decrease 可能有多个，这里只取第一个
+      const profitOrDecreaseCard = enemyCards.find(item =>
+        (item.cardType === 'profit' || item.cardType === 'decrease') && item.cardName
+      );
+
+      // 构建顺序
+      const newRow = [
+        battleCard ? battleCard.cardName : "cardBack",
+        defenseCard ? defenseCard.cardName : "cardBack",
+        profitOrDecreaseCard ? profitOrDecreaseCard.cardName : "cardBack"
+      ];
+
+      // 替换第二行
+      gameState_one.value.cardGrid[1] = newRow;
+
+      if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
+        const sceneObj = battleScene.scene.scenes[0];
+        const grid = gameState_one.value.cardGrid;
+        for (let row = 0; row < grid.length; row++) {
+          for (let col = 0; col < grid[row].length; col++) {
+            updateBattleFieldDisplay(sceneObj, row, col, grid[row][col]);
+          }
+        }
+      }
+    }
+
+
+    // 监听 game_over 广播
+    if (data.type === "game_over") {
+      // 你自己的uid
+      const uid = getData('multiGame_userInfo')?.uid
+      if (data.winner_id == -1) {
+        gameResult.value = "draw"
+      } else if (String(data.winner_id) === String(uid)) {
+        gameResult.value = "win"
+      } else {
+        gameResult.value = "lose"
+      }
+      showGameResult.value = true
+      isGameOver.value = true
+      clearInterval(countdownInterval)
+      clearTimeout(turnTimeout)
+    }
+
+
+    //解析开卡包等逻辑
+    if (data.type === "open_card_groups_result" && data.success && Array.isArray(data.cards)) {
+      // 清空全局数组
+      backendCardNames = [];
+
+      // 解析并添加，每种卡牌按cardNum数量依次push
+      data.cards.forEach(card => {
+        for (let i = 0; i < card.cardNum; i++) {
+          backendCardNames.push(card.cardName);
+        }
+      });
+
+      console.log(backendCardNames);
+    }
+    if (data.type === "round_begin_result") {
+
+
+      // 获取本地roomId和uid
+      const roomId = getData('current_game_room')?.roomId;
+      const uid = getData('multiGame_userInfo')?.uid;
+
+      let myPlayer, enemyPlayer;
+      if (String(data.uid1) === String(uid)) {
+        myPlayer = data.player1;
+        enemyPlayer = data.player2;
+      } else if (String(data.uid2) === String(uid)) {
+        myPlayer = data.player2;
+        enemyPlayer = data.player1;
+      }
+
+      console.log("当前状态：");
+      console.log(myPlayer.statusesBegin);
+
+      // 渲染己方状态栏
+      let allyEffects = [];
+      (myPlayer.statusesBegin || []).forEach(status => {
+        const buffs = cardToBuff[status.name];
+        if (buffs && Array.isArray(buffs)) {
+          allyEffects = allyEffects.concat(buffs);
+        }
+      });
+      gameState_one.value.ally.effects = allyEffects;
+      updateEffects(true, allyEffects);
+
+      // 渲染敌方状态栏
+      let enemyEffects = [];
+      (enemyPlayer.statusesBegin || []).forEach(status => {
+        const buffs = cardToBuff[status.name];
+        if (buffs && Array.isArray(buffs)) {
+          enemyEffects = enemyEffects.concat(buffs);
+        }
+      });
+      gameState_one.value.enemy.effects = enemyEffects;
+      updateEffects(false, enemyEffects);
+
+      // 判断自己是player1还是player2
+      let my1Player = null;
+      if (String(data.uid1) === String(uid)) {
+        my1Player = data.player1;
+      } else if (String(data.uid2) === String(uid)) {
+        my1Player = data.player2;
+      }
+      // 安全判断
+      if (my1Player && Array.isArray(my1Player.cards)) {
+        // 提取后端传来的卡牌（假如要渲染手牌/桌面等）
+        // 1. 可用全部cards
+        const cardArray = my1Player.cards; // 这就是 [{cardType, cardNum, cardName, cardSize}, ...]
+        // 2. 只保留有数量的牌
+        const validCards = cardArray.filter(card => card.cardNum > 0 && card.cardName);
+
+        // 3. 你可以把validCards的cardName取出放进initialCards
+        // 展开成一张张卡牌
+        const initialCards = [];
+        validCards.forEach(card => {
+          for (let i = 0; i < card.cardNum; i++) {
+            initialCards.push(card.cardName); // 只要 cardName 就可以
+          }
+        });
+        // 4. 刷新第二屏
+        if (game && game.scene && game.scene.scenes[0]) {
+          const scene = game.scene.scenes[0];
+          if (scene.cards) {
+            scene.cards.forEach(card => card.destroy && card.destroy());
+            scene.cards = [];
+          } else {
+            scene.cards = [];
+          }
+          initialCards.forEach((cardKey, i) => {
+            const x = 180 + i * 120;
+            const y = 250 + 180;
+            const card = scene.physics.add.image(x, y, cardKey)
+              .setDisplaySize(100, 140)
+              .setInteractive({ cursor: 'pointer', useHandCursor: true })
+              .setCollideWorldBounds(true)
+              .setBounce(0.8)
+              .setData('type', cardKey)
+              .setData('id', Date.now().toString() + i);
+            scene.input.setDraggable(card);
+            scene.cards.push(card);
+          });
+        }
+      }
+
+      // 初始化临时变量
+      let roundBeginData = null;
+
+      // 判断roomNumber（消息中叫roomNumber，而不是roomId）和本地roomId是否一致
+      // player1
+      if (
+        data.player1 &&
+        data.player1.roomNumber === roomId &&
+        String(data.uid1) === String(uid)
+      ) {
+        roundBeginData = {
+          hp: data.player1.hp,
+          cards: data.player1.cards,
+          wealthy: data.player1.wealthy,
+          statusesBegin: data.player1.statusesBegin,
+          shield: data.player1.shield,
+          hpMax: data.player1.hpMax,
+          shieldMax: data.player1.shieldMax
+        };
+      }
+      // player2
+      else if (
+        data.player2 &&
+        data.player2.roomNumber === roomId &&
+        String(data.uid2) === String(uid)
+      ) {
+        roundBeginData = {
+          hp: data.player2.hp,
+          cards: data.player2.cards,
+          wealthy: data.player2.wealthy,
+          statusesBegin: data.player2.statusesBegin,
+          shield: data.player2.shield,
+          hpMax: data.player2.hpMax,
+          shieldMax: data.player2.shieldMax
+        };
+      }
+      // 否则不保存
+    }
+
+    if (data.type === "round_begin_result") {
+      // 获取本地roomId和uid
+      const roomId = getData('current_game_room')?.roomId;
+      const uid = getData('multiGame_userInfo')?.uid;
+
+      // 初始化临时变量
+      let roundBeginData = null;
+
+      // 判断roomNumber（消息中叫roomNumber，而不是roomId）和本地roomId是否一致
+      // player1
+
+
+
+      if (data.player1 &&
+        data.player1.roomNumber === roomId) {
+        if (String(data.uid1) === String(uid)) {
+          roundBeginData = [{
+            hp: data.player1.hp,
+            cards: data.player1.cards,
+            wealthy: data.player1.wealthy,
+            statusesBegin: data.player1.statusesBegin,
+            shield: data.player1.shield,
+            hpMax: data.player1.hpMax,
+            shieldMax: data.player1.shieldMax
+          }, {
+            hp: data.player2.hp,
+            cards: data.player2.cards,
+            wealthy: data.player2.wealthy,
+            statusesBegin: data.player2.statusesBegin,
+            shield: data.player2.shield,
+            hpMax: data.player2.hpMax,
+            shieldMax: data.player2.shieldMax
+          }
+          ]
+        }
+        else if (String(data.uid2) === String(uid)) {
+          roundBeginData = [{
+
+            hp: data.player2.hp,
+            cards: data.player2.cards,
+            wealthy: data.player2.wealthy,
+            statusesBegin: data.player2.statusesBegin,
+            shield: data.player2.shield,
+            hpMax: data.player2.hpMax,
+            shieldMax: data.player2.shieldMax
+          }, {
+            hp: data.player1.hp,
+            cards: data.player1.cards,
+            wealthy: data.player1.wealthy,
+            statusesBegin: data.player1.statusesBegin,
+            shield: data.player1.shield,
+            hpMax: data.player1.hpMax,
+            shieldMax: data.player1.shieldMax
+          }
+          ]
+        }
+      }
+
+      if (roundBeginData.length > 0) {
+        // 写入己方
+        gameState_one.value.ally.health = roundBeginData[0].hp;
+        gameState_one.value.ally.maxHealth = roundBeginData[0].hpMax;
+        gameState_one.value.ally.armor = roundBeginData[0].shield;
+        gameState_one.value.ally.maxArmor = roundBeginData[0].shieldMax;
+        coins.value = roundBeginData[0].wealthy;
+        gameState_one.value.ally.effects = roundBeginData[0].statusesBegin;
+        // 可以根据需要扩展，这里只写数值型，效果数组如有需要可额外处理
+
+        // 写入敌方
+        gameState_one.value.enemy.health = roundBeginData[1].hp;
+        gameState_one.value.enemy.maxHealth = roundBeginData[1].hpMax;
+        gameState_one.value.enemy.armor = roundBeginData[1].shield;
+        gameState_one.value.enemy.maxArmor = roundBeginData[1].shieldMax;
+        gameState_one.value.ally.effects = roundBeginData[1].statusesBegin;
+
+        console.log(roundBeginData[0]);
+        console.log(roundBeginData[1]);
+        //刷新渲染
+        // 重新绘制
+        rebuildStatusBars();
+        updateEffects(true, roundBeginData[0].statusesBegin);
+        updateEffects(false, roundBeginData[1].statusesBegin);
+
+      }
+    }
+
+    console.log('收到消息:', data);
+  } catch (error) {
+    console.error('解析消息失败', error, event.data);
+  }
+}
+
+// 方案二：完全重绘血条、护甲、文本
+function rebuildStatusBars() {
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 1. 销毁旧的对象
+  if (scene.allyHealthBar) { scene.allyHealthBar.destroy(); scene.allyHealthBar = null; }
+  if (scene.allyArmorBar) { scene.allyArmorBar.destroy(); scene.allyArmorBar = null; }
+  if (scene.allyHpText) { scene.allyHpText.destroy(); scene.allyHpText = null; }
+  if (scene.allyArmorText) { scene.allyArmorText.destroy(); scene.allyArmorText = null; }
+  if (scene.enemyHealthBar) { scene.enemyHealthBar.destroy(); scene.enemyHealthBar = null; }
+  if (scene.enemyArmorBar) { scene.enemyArmorBar.destroy(); scene.enemyArmorBar = null; }
+  if (scene.enemyHpText) { scene.enemyHpText.destroy(); scene.enemyHpText = null; }
+  if (scene.enemyArmorText) { scene.enemyArmorText.destroy(); scene.enemyArmorText = null; }
+
+  // 2. 重新根据 gameState_one 绘制新的
+  const ally = gameState_one.value.ally;
+  const enemy = gameState_one.value.enemy;
+
+  // 己方位置参数
+  const allyAvatarY = scene.cameras.main.height - 100;
+  const allyBarX = 250;
+  // 敌方位置参数
+  const enemyAvatarY = 100;
+  const enemyBarX = scene.cameras.main.width - 250;
+
+  // 计算宽度
+  const allyHealthWidth = (ally.maxHealth > 0 ? (ally.health / ally.maxHealth) : 0) * 200;
+  const allyArmorWidth = (ally.maxArmor > 0 ? (ally.armor / ally.maxArmor) : 0) * 200;
+  const enemyHealthWidth = (enemy.maxHealth > 0 ? (enemy.health / enemy.maxHealth) : 0) * 200;
+  const enemyArmorWidth = (enemy.maxArmor > 0 ? (enemy.armor / enemy.maxArmor) : 0) * 200;
+
+  // 重新 add
+  scene.allyHealthBar = scene.add.rectangle(allyBarX, allyAvatarY - 25, allyHealthWidth, 30, 0x38A169);
+  scene.allyArmorBar = scene.add.rectangle(allyBarX, allyAvatarY + 25, allyArmorWidth, 30, 0x3182CE);
+  scene.allyHpText = scene.add.text(allyBarX, allyAvatarY - 25, `HP: ${ally.health}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+  scene.allyArmorText = scene.add.text(allyBarX, allyAvatarY + 25, `Armor: ${ally.armor}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+
+  scene.enemyHealthBar = scene.add.rectangle(enemyBarX, enemyAvatarY - 25, enemyHealthWidth, 30, 0x38A169);
+  scene.enemyArmorBar = scene.add.rectangle(enemyBarX, enemyAvatarY + 25, enemyArmorWidth, 30, 0x3182CE);
+  scene.enemyHpText = scene.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${enemy.health}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+  scene.enemyArmorText = scene.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${enemy.armor}`, {
+    fontSize: '16px',
+    color: '#000000',
+    resolution: 2,
+  }).setOrigin(0.5);
+}
+
+//刷新绘制生命值护甲
+function updateStatus(isAlly, newHealth, newArmor, newMaxHealth, newMaxArmor) {
+  // 获取场景对象
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 己方
+  if (isAlly) {
+    const allyAvatarY = scene.cameras.main.height - 100;
+    const allyBarX = 250;
+    // 计算宽度，最大最小保护
+    const healthWidth = Math.max(0, Math.min(200, (newMaxHealth > 0 ? (newHealth / newMaxHealth) : 0) * 200));
+    const armorWidth = Math.max(0, Math.min(200, (newMaxArmor > 0 ? (newArmor / newMaxArmor) : 0) * 200));
+
+    // 动态调整宽度和文本，不destroy不add
+    if (scene.allyHealthBar) scene.allyHealthBar.width = healthWidth;
+    if (scene.allyArmorBar) scene.allyArmorBar.width = armorWidth;
+    if (scene.allyHpText) scene.allyHpText.setText(`HP: ${newHealth}`);
+    if (scene.allyArmorText) scene.allyArmorText.setText(`Armor: ${newArmor}`);
+  } else {
+    const enemyAvatarY = 100;
+    const enemyBarX = scene.cameras.main.width - 250;
+    const healthWidth = Math.max(0, Math.min(200, (newMaxHealth > 0 ? (newHealth / newMaxHealth) : 0) * 200));
+    const armorWidth = Math.max(0, Math.min(200, (newMaxArmor > 0 ? (newArmor / newMaxArmor) : 0) * 200));
+
+    if (scene.enemyHealthBar) scene.enemyHealthBar.width = healthWidth;
+    if (scene.enemyArmorBar) scene.enemyArmorBar.width = armorWidth;
+    if (scene.enemyHpText) scene.enemyHpText.setText(`HP: ${newHealth}`);
+    if (scene.enemyArmorText) scene.enemyArmorText.setText(`Armor: ${newArmor}`);
+  }
+}
+//刷新绘制状态栏
+function updateEffects(isAlly, effects) {
+  // 获取scene
+  const scene = battleScene && battleScene.scene && battleScene.scene.scenes[0];
+  if (!scene) return;
+
+  // 先清理以前的buff图标
+  if (!scene.allyBuffIcons) scene.allyBuffIcons = [];
+  if (!scene.enemyBuffIcons) scene.enemyBuffIcons = [];
+
+  if (isAlly) {
+    scene.allyBuffIcons.forEach(icon => icon.destroy());
+    scene.allyBuffIcons = [];
+  } else {
+    scene.enemyBuffIcons.forEach(icon => icon.destroy());
+    scene.enemyBuffIcons = [];
+  }
+
+  // 重新绘制
+  const spacing = 60;
+  const iconSize = 50;
+  if (isAlly) {
+    const allyAvatarY = scene.cameras.main.height - 100;
+    const allyBarX = 250;
+    const allyStatusBarY = allyAvatarY - 80;
+    effects.forEach((effectKey, index) => {
+      const buff = buffs.find(b => b.key === effectKey);
+      if (buff) {
+        const iconX = allyBarX - 160 + (index * spacing) + 100;
+        const icon = scene.add.image(iconX, allyStatusBarY, buff.key)
+          .setDisplaySize(iconSize, iconSize)
+          .setOrigin(0.5, 0.5)
+          .setData('type', effectKey);
+        scene.allyBuffIcons.push(icon);
+      }
+    });
+  } else {
+    const enemyAvatarY = 100;
+    const enemyBarX = scene.cameras.main.width - 250;
+    const enemyStatusBarY = enemyAvatarY + 80;
+    effects.forEach((effectKey, index) => {
+      const buff = buffs.find(b => b.key === effectKey);
+      if (buff) {
+        const iconX = enemyBarX - 160 - (index * spacing) + 150;
+        const icon = scene.add.image(iconX, enemyStatusBarY, buff.key)
+          .setDisplaySize(iconSize, iconSize)
+          .setOrigin(0.5, 0.5)
+          .setData('type', effectKey);
+        scene.enemyBuffIcons.push(icon);
+      }
+    });
+  }
+}
+
+function onClose(event) {
+  isConnected.value = false;
+  if (event.code === 1000 || reconnectAttempts.value >= maxReconnectAttempts) {
+    connectionStatus.value = 'disconnected';
+    connectionStatusText.value = '未连接';
+  } else {
+    connectionStatus.value = 'connecting';
+    connectionStatusText.value = `重连中(${reconnectAttempts.value + 1}/${maxReconnectAttempts})...`;
+    reconnectAttempts.value++;
+    reconnectTimer = setTimeout(connectWebSocket, reconnectAttempts.value * 1000);
+  }
+}
+
+function onError(event) {
+  connectionStatus.value = 'error';
+  connectionStatusText.value = '连接错误';
+}
+
+function sendMessage(message) {
+  if (websocket.value && isConnected.value) {
+    try {
+      websocket.value.send(JSON.stringify(message));
+    } catch (err) {
+      console.error('发送消息失败', err);
+    }
+  } else {
+    console.error('WebSocket未连接，无法发送消息');
+  }
+}
+// 回合时间（秒）
+const TURN_DURATION = 30 * 1000
+// 结算延迟（毫秒）
+const SETTLE_DELAY = 5 * 1000
+//回合数
+const turnCount = ref(0);
+
+
+let turnTimeout = null;
+let countdownInterval = null;
+let timerEl = null;
+
+const countdown = ref(TURN_DURATION / 1000)
+const round = ref(1)        // 当前回合，从1开始
+const maxRound = 20         // 总回合数（可根据实际改）
+
+
+//对战双方游戏状态
+const gameState_one = ref({
+  // 己方角色状态
+  ally: {
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: [], // 状态效果数组
+  },
+
+  // 敌方角色状态
+  enemy: {
+    health: 20,
+    maxHealth: 20,
+    armor: 10,
+    maxArmor: 10,
+    effects: [], // 状态效果数组
+  },
+
+  // 卡牌网格 3*4，初始化为全是 'cardBack'
+  cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
+});
+
+
+// 禁止/恢复页面滚动
+function disablePageScroll() { document.body.style.overflow = 'hidden'; }
+function enablePageScroll() { document.body.style.overflow = ''; }
+
+// 强制滚动到第一个 Phaser 容器
+function scrollToFirst() {
+  const el = document.querySelector('.screen-wrapper > .screens .screen');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function rearrangeGrid(grid, backValue = 'cardBack') {
+  // 1. 提取原第4排
+  const extracted = grid[3].slice();   // 记下原第四排
+
+  // 2. 构造新网格
+  const newGrid = [
+    grid[0].slice(),              // 新第1排：原第1排
+    grid[1].slice(),              // 新第2排：原第2排
+    grid[3].slice(),              // 新第3排：原第4排
+    Array(3).fill(backValue),     // 新第4排：全'cardBack'
+  ];
+
+  return { newGrid, extracted };
+}
+
+// 结算逻辑：根据你的 game1/game2 场景状态来写
+function settlement() {
+  console.log('执行回合结算！')
+  // …在这里调用你的分数计算或状态重置…
+  // 1. 调用重排函数，拿到新的网格和提取出的卡牌
+  const { newGrid, extracted } = rearrangeGrid(gameState_one.value.cardGrid)
+
+  const roomId = getData('current_game_room')?.roomId;
+  const uid = getData('multiGame_userInfo')?.uid;
+  console.log("extracted:")
+  console.log(extracted)
+
+  if (roomId && uid && extracted && extracted.length > 0) {
+    sendMessage({
+      type: "RoundEnd",
+      room: {
+        roomId: roomId,
+        uid: uid,
+        cardList1: extracted // string数组
+      }
+    });
+  }
+  //
+  //
+  //
+  //
+
+  // 2. 用新网格更新组件状态
+  gameState_one.value.cardGrid = newGrid
+
+  // 3. （可选）把 extracted 发给后端、或者存到另一个 ref 里显示
+  // console.log('提取出的卡牌：', extracted)
+
+  // 4. 刷新页面
+  if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
+    const sceneObj = battleScene.scene.scenes[0];
+    const grid = gameState_one.value.cardGrid;
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        updateBattleFieldDisplay(sceneObj, row, col, grid[row][col]);
+      }
+    }
+  }
+}
+
+// 回合结束时的流程
+function onTurnEnd() {
+  if (isGameOver.value) return
+  clearInterval(countdownInterval)
+  settlement()
+  if (round.value < maxRound) {
+    round.value++
+    startTurn()
+    // updateGold(5)
+    // coins.value += 5
+  } else {
+    // 游戏结束，可以加其他逻辑
+    // alert('游戏结束！')
+  }
+}
+
+// 启动（或重启）一个回合
+function startTurn() {
+  if (isGameOver.value) return;
+  clearInterval(countdownInterval)
+  clearTimeout(turnTimeout)
+
+  countdown.value = TURN_DURATION / 1000
+
+  countdownInterval = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      countdown.value = 0
+      clearInterval(countdownInterval)
+    }
+  }, 1000)
+
+  turnTimeout = setTimeout(() => {
+    countdown.value = 0
+    onTurnEnd()
+  }, TURN_DURATION)
+}
 //-----------------------------------------
 let buySlot1Animating = false
 let buySlot1OriginalX
@@ -23,7 +760,7 @@ const selectedPoet = ref('libai') // 默认李白，可以通过路由参数或p
 
 
 const isStackingMode = ref(false)
-const gameState = ref({ gold: 100 })
+const gameState = ref({ gold: 0 })
 
 // 更新金币数量的函数
 const updateGold = (amount) => {
@@ -84,17 +821,17 @@ const cardImages = [
   { key: 'shudaonan', src: new URL('../../assets/cards/诗词/蜀道难.png', import.meta.url).href },
   { key: 'xinglunan', src: new URL('../../assets/cards/诗词/行路难.png', import.meta.url).href },
   { key: 'huanghelousongmenghaoranzhiguangling', src: new URL('../../assets/cards/诗词/黄鹤楼送孟浩然之广陵.png', import.meta.url).href },
-  
+
   { key: 'shizhisaishang', src: new URL('../../assets/cards/诗词/使至塞上.png', import.meta.url).href },
   { key: 'xiangsi', src: new URL('../../assets/cards/诗词/相思.png', import.meta.url).href },
   { key: 'shanjuqiuming', src: new URL('../../assets/cards/诗词/山居秋暝.png', import.meta.url).href },
   { key: 'zhuliguan', src: new URL('../../assets/cards/诗词/竹里馆.png', import.meta.url).href },
-  
+
   { key: 'shuidiaogetou_mingyuejishiyou', src: new URL('../../assets/cards/诗词/水调歌头·明月几时有.png', import.meta.url).href },
   { key: 'chibifu', src: new URL('../../assets/cards/诗词/赤壁赋.png', import.meta.url).href },
   { key: 'jichengtansiyeyou', src: new URL('../../assets/cards/诗词/记承天寺夜游.png', import.meta.url).href },
   { key: 'dingfengbo_motingchuanlindayesheng', src: new URL('../../assets/cards/诗词/定风波·莫听穿林打叶声.png', import.meta.url).href },
-  
+
 ]
 
 //合成表
@@ -137,6 +874,135 @@ const craftingRecipes = {
 
 };
 
+const cardDescriptions = {
+  // 诗意卡片描述
+  'love': '爱情：恢复5点血量，失去4点金币，下2回合开始时获得3点护盾且免疫所有新增减益,当对手卡牌的附加效果包含针对你的负面状态时，免疫该附加效果（卡牌的主要功能仍正常生效，且不会触发新的负面状态）。，同时每回合开始时减少3枚金币。',
+  'sad': '悲：令对手弃1张手牌。若对手手牌少于3张，失去3点护盾且下一回合无法获得护盾。若对手手牌大于等于5张，那么获得一点金币',
+  'spring': '春天：恢复2点血量。若本回合未受攻击，下回合开始时获得3金币，且抽1张1-3费牌。',
+  'danbo': '淡泊：获得4点护盾。若使用者护盾≥5且本回合没使用战斗类卡牌，恢复3点血量且护盾+1,如果已经满护盾,那么上限加1，同时下回合战斗类牌面值减2。',
+  'home': '故乡：获得2点护盾。若使用后护盾满了，恢复3点血量且下回合抽1张1-2费牌。',
+  'yellowriver': '黄河：造成4点真实伤害。若对方护盾≥5，摧毁所有护盾,该效果不可被免疫。',
+  'fire': '火：造成1点伤害。若对方无护盾，下回合抽1张1-2牌并使其下回合战斗类卡牌伤害+1。',
+  'wine': '酒：造成2点伤害。若本回合受到攻击，抽2张1-2费牌且下回合战斗类卡牌效果+1。',
+  'byebye': '离别：令对手弃2张手牌。若对手护盾小于等于3，造成4点真实伤害且下两回合获得金币-2。',
+  'liu': '柳：获得2点护盾。若本回合受到攻击，恢复2点护盾并免疫下回合1点伤害。',
+  'bird': '鸟：造成1点伤害。若本回合对面使用防守类卡，追加1点真实伤害。',
+  'autumn': '秋：对手金币-2。若其本回合未获得新护盾，弃其1张牌并让他失去1点护盾。',
+  'sun': '日：造成2点伤害。伤害前，若对方有护盾，额外破坏2点护盾并使其下回合防守效果减半。',
+  'mountain': '山：获得1点护盾。若本回合未受伤害，下三回合各+1护盾。',
+  'water': '水：获得1点护盾。若未使用战斗类卡牌，恢复2点血量。',
+  'missing': '思念：造成5点伤害。若对方血量≤10，追加3点真实伤害且无视免疫效果。',
+  'flower': '桃花：恢复3点血量，下三回合各获得2点护盾且每回合回1点血。',
+  'goose': '雁：获得2点护盾。下两回合受到伤害减少1点，若护盾被破则反弹1点真实伤害,同时移除本buff。',
+  'friend': '友情：随机获得1张1-2费牌。若手牌少于3张，再抽2张牌，但下回合攻击卡牌面值-1。',
+  'rain': '雨：造成2点伤害。若对方下回合使用防守卡，该卡无效且追加3点伤害。',
+  'moon': '月：令对手失去1点护盾并随机弃1张牌',
+  'war': '战争：造成2点伤害。若对方下回合使用了进攻，再造成3点真实伤害。',
+  'longriver': '长江：获得5点护盾。护盾上限+3。下三回合每回合恢复4点血量。',
+  'bamboo': '竹：造成3点真实伤害。若未使用其他卡，下回合开始时抽3张1-2费牌并破坏对手1点护盾。',
+  'zhuangzhinanchou': '壮志难酬：对手本回合无法获得护盾。若其下回合获得一定量护盾，则同时给己方添加等量护盾。',
+  'nature': '自然：恢复两点血量.若护盾≥3，获得3点护盾。否则下回合受到伤害时免疫1次破盾的额外伤害。',
+};
+
+class TooltipManager {
+  constructor(scene) {
+    this.scene = scene;
+    this.tooltipTimer = null;
+    this.tooltipDelay = 400; // 悬停多久后显示提示（毫秒）
+
+    // 创建工具提示容器
+    this.tooltip = scene.add.container(0, 0).setVisible(false).setDepth(1000);
+
+    // 创建工具提示背景
+    this.tooltipBg = scene.add.rectangle(0, 0, 200, 80, 0x000000, 0.8)
+      .setStrokeStyle(1, 0xffffff, 0.8)
+      .setOrigin(0.5);
+
+    // 创建工具提示文本
+    this.tooltipText = scene.add.text(0, 0, '', {
+      fontSize: '14px',
+      color: '#ffffff',
+      align: 'center',
+      lineSpacing: 5,
+      wordWrap: { width: 180 },
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5);
+
+    // 添加到容器
+    this.tooltip.add([this.tooltipBg, this.tooltipText]);
+  }
+
+  // 添加卡片悬停提示功能
+  addTooltipToCard(card) {
+    const self = this;
+
+    // 鼠标悬停事件
+    card.on('pointerover', function (pointer) {
+      // 清除之前的计时器
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+      }
+
+      // 创建新计时器
+      self.tooltipTimer = setTimeout(() => {
+        const cardType = card.getData('type');
+        const description = cardDescriptions[cardType] || `${cardType}卡`;
+
+        // 更新工具提示文本
+        self.tooltipText.setText(description);
+
+        // 调整背景大小以适应文本
+        const padding = 20;
+        self.tooltipBg.width = self.tooltipText.width + padding * 2;
+        self.tooltipBg.height = self.tooltipText.height + padding;
+
+        // 定位工具提示（在卡片右侧）
+        const tooltipX = card.x + card.displayWidth / 2 + 70;
+        const tooltipY = card.y;
+
+        // 检查是否超出屏幕右侧
+        const rightEdge = tooltipX + self.tooltipBg.width / 2;
+        if (rightEdge > self.scene.scale.width) {
+          // 如果超出，则显示在卡片左侧
+          self.tooltip.setPosition(card.x - card.displayWidth / 2 - 70, tooltipY);
+        } else {
+          self.tooltip.setPosition(tooltipX, tooltipY);
+        }
+
+        self.tooltip.setVisible(true);
+      }, self.tooltipDelay);
+    });
+
+    // 鼠标移出事件
+    card.on('pointerout', function () {
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+        self.tooltipTimer = null;
+      }
+      self.tooltip.setVisible(false);
+    });
+
+    // 拖拽开始事件
+    card.on('dragstart', function () {
+      if (self.tooltipTimer) {
+        clearTimeout(self.tooltipTimer);
+        self.tooltipTimer = null;
+      }
+      self.tooltip.setVisible(false);
+    });
+
+    return card;
+  }
+
+  // 隐藏工具提示
+  hide() {
+    if (this.tooltipTimer) {
+      clearTimeout(this.tooltipTimer);
+      this.tooltipTimer = null;
+    }
+    this.tooltip.setVisible(false);
+  }
+}
 // 检查两张卡是否可以合成
 const checkRecipe = (card1Type, card2Type) => {
   // 确保类型按字母顺序排序以保持一致性
@@ -157,7 +1023,7 @@ const checkCrafting = (cards) => {
 // 卡牌价格
 const cardPrices = {
   card_pack_poem: 10,
-                         
+
   love: 7,
   sad: 2,
   spring: 1,
@@ -185,19 +1051,29 @@ const cardPrices = {
   zhuangzhinanchou: 3,
   nature: 2,
 };
+let backendCardNames = [];
 
 let lastCoinValue = 100
-const coins = ref(100) // 初始金币数量
+const coins = ref(0) // 初始金币数量
 
 // 购买诗意卡包
 const handleBuyPack = () => {
-  const packPrice = 10
+  const packPrice = 5
   if (coins.value >= packPrice) {
     coins.value -= packPrice
 
     updateGold(-packPrice)
 
     const scene = game.scene.scenes[0]
+    //位置1：向后端发送结构化消息
+    sendMessage({
+      type: "openCardGroups",
+      room: {
+        //uid: `getCurrentUid()` 
+
+        uid: getData('multiGame_userInfo')?.uid
+      }
+    });
 
     // 在随机位置创建卡包
     const x = Math.random() * (scene.scale.width - 100) + 50
@@ -262,9 +1138,9 @@ const handleBuyPack = () => {
           cardPack.setData('clickCount', 1)
         } else {
           // 第二次点击：生成随机卡片并销毁卡包
-          const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
-           'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower', 
-           'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
+          // const allCards = ['love', 'sad', 'spring', 'danbo', 'home', 'yellowriver', 'fire', 'wine',
+          //   'byebye', 'liu', 'bird', 'autumn', 'sun', 'mountain', 'water', 'missing', 'flower',
+          //   'goose', 'friend', 'rain', 'moon', 'war', 'longriver', 'bamboo', 'zhuangzhinanchou', 'nature']
           const numCards = 5
 
           // 创建闪光效果
@@ -281,12 +1157,11 @@ const handleBuyPack = () => {
             duration: 500,
             onComplete: () => flash.destroy()
           })
-
           // 生成随机卡片
           for (let i = 0; i < numCards; i++) {
             const angle = (i / numCards) * Math.PI * 2
             const radius = 80
-            const randomCard = allCards[Math.floor(Math.random() * allCards.length)]
+            const randomCard = backendCardNames[Math.floor(i)]
 
             const newX = cardPack.x + Math.cos(angle) * radius
             const newY = cardPack.y + Math.sin(angle) * radius
@@ -354,57 +1229,156 @@ const buffs = [
   { key: 'rebound_armor', src: new URL('../../assets/cards/buff/rebound_armor.png', import.meta.url).href },
 ]
 
-//对战双方游戏状态
-const gameState_one = ref({
-  // 己方角色状态
-  ally: {
-    health: 20,
-    maxHealth: 20,
-    armor: 10,
-    maxArmor: 10,
-    effects: ['rebound_armor', 'copy_armor'], // 状态效果数组
-  },
+//映射
+const cardToBuff = {
+  'sun': ['armor_minus', 'armor_minus', 'armor_minus'],
+  'spring': ['gold_plus'],
+  'fire': ['attack_plus'],
+  'mountain': ['armor_plus'],
+  'sad': ['cant_armor'],
+  'wine': ['attack_plus'],
+  'liu': ['immune_damage_point'],
+  'goose': ['rebound_armor'],
+  'friend': ['attack_minus'],
+  'rain_next': ['break_armor'],
+  'war_next': ['bounce_back'],
+  'nature': ['immune_damage_time', 'armor_plus', 'armor_plus', 'heal'],
+  'byebye': ['gold_minus', 'gold_minus'],
+  'flower': ['armor_plus', 'armor_plus', 'heal'],
+  'zhuangzhinanchou_next': ['copy_armor'],
+  'danbo': ['attack_minus', 'attack_minus'],
+  'longriver': ['heal', 'heal', 'heal', 'heal'],
+  'love': ['armor_plus', 'armor_plus', 'armor_plus', 'armor_plus', 'immune_debuff', 'gold_minus', 'gold_minus', 'gold_minus'],
+}
 
-  // 敌方角色状态
-  enemy: {
-    health: 20,
-    maxHealth: 20,
-    armor: 10,
-    maxArmor: 10,
-    effects: ['armor_plus', 'cant_armor'], // 状态效果数组
-  },
+// 添加buff描述对象
+const buffDescriptions = {
+  'armor_minus': '减少1点护甲',
+  'armor_plus': '增加1点护甲',
+  'attack_minus': '战斗类卡牌伤害-1',
+  'attack_plus': '战斗类卡牌伤害+1',
+  'bounce_back': '反弹',
+  'break_armor': '护甲无效',
+  'cant_armor': '护甲-1',
+  'copy_armor': '获得与对方相同的护甲',
+  'gold_minus': '金币-1',
+  'gold_plus': '金币+1',
+  'heal': 'HP+1',
+  'immune_damage_point': '免疫破甲伤害的一点伤害',
+  'immune_damage_time': '免疫破甲伤害',
+  'immune_debuff': '负面效果免疫',
+  'rebound_armor': '反弹对方造成的伤害',
+};
 
-  // 卡牌网格 3*4，初始化为全是 'cardBack'
-  cardGrid: Array(4).fill(null).map(() => Array(3).fill('cardBack'))
-});
+const cardSlotMapping = {
+  // BUFF槽位卡片
+  'spring': 'buff',
+  'autumn': 'buff',
+  'moon': 'buff',
+  'sad': 'buff',
+  'home': 'buff',
+  'friend': 'buff',
+  'byebye': 'buff',
+  'flower': 'buff',
+  'love': 'buff',
 
-//更新3*4卡牌展示
+  // 攻击槽位卡片
+  'fire': 'attack',
+  'bird': 'attack',
+  'wine': 'attack',
+  'sun': 'attack',
+  'rain': 'attack',
+  'war': 'attack',
+  'bamboo': 'attack',
+  'yellowriver': 'attack',
+  'missing': 'attack',
+
+  // 防御槽位卡片
+  'mountain': 'defense',
+  'water': 'defense',
+  'liu': 'defense',
+  'goose': 'defense',
+  'nature': 'defense',
+  'zhuangzhinanchou': 'defense',
+  'danbo': 'defense',
+  'longriver': 'defense',
+}
+// 验证卡片是否可以放入指定槽位
+const canPlaceInSlot = (cardType, slotType) => {
+  return cardSlotMapping[cardType] === slotType
+}
+const heads = [
+  { key: 'aiboy', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
+  { key: 'aigirl', src: new URL('../../assets/cards/aiboy.png', import.meta.url).href },
+]
+
+//updateCard函数，添加对第一个场景的更新
 const updateCard = (row, col, cardType) => {
   gameState_one.value.cardGrid[row][col] = cardType;
-  // 这里可以添加更新 Phaser 显示的逻辑
+
+  if (battleScene && battleScene.scene.scenes[0]) {
+    updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, cardType);
+  }
 };
 
-//更新血条护甲
-const updateStatus = (isAlly, newHealth, newArmor) => {
-  if (isAlly) {
-    gameState_one.value.ally.health = newHealth;
-    gameState_one.value.ally.armor = newArmor;
+// 添加更新战场显示的函数
+const updateBattleFieldDisplay = (scene, row, col, cardType) => {
+  const width = scene.cameras.main.width;
+  const height = scene.cameras.main.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // 计算卡槽位置（与创建时相同的逻辑）
+  const slotWidth = 100;
+  const slotHeight = 140;
+  const horizontalGap = 60;
+  const verticalGap = 20;
+
+  const totalWidth = (slotWidth * 3) + (horizontalGap * 2);
+  const totalHeight = (slotHeight * 4) + (verticalGap * 3);
+
+  const startX = centerX - (totalWidth / 2);
+  const startY = (height - totalHeight) / 2;
+
+  const x = startX + (col * (slotWidth + horizontalGap));
+  const y = startY + (row * (slotHeight + verticalGap));
+
+  // 查找并更新对应位置的卡片
+  const cardKey = `card_${row}_${col}`;
+  const existingCard = scene.children.getByName(cardKey);
+
+  if (existingCard) {
+    // 如果卡片已存在，更新纹理
+    existingCard.setTexture(cardType);
+    existingCard.setDisplaySize(slotWidth, slotHeight);
+
+    // 关键修复：更新卡片的类型数据，这样提示系统才能正确显示卡片描述
+    existingCard.setData('type', cardType);
+
+    // 添加更新动画
+    scene.tweens.add({
+      targets: existingCard,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
   } else {
-    gameState_one.value.enemy.health = newHealth;
-    gameState_one.value.enemy.armor = newArmor;
+    console.log(`Card ${cardKey} not found in scene`);
   }
-  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
 };
 
-//更新buff
-const updateEffects = (isAlly, effects) => {
-  if (isAlly) {
-    gameState_one.value.ally.effects = effects;
-  } else {
-    gameState_one.value.enemy.effects = effects;
-  }
-  // 注意：这里需要配合 Phaser 的场景更新机制来更新显示
-};
+// const removeCardFromSlot = (row, col) => {
+//   // 重置游戏状态
+//   gameState_one.value.cardGrid[row][col] = 'cardBack';
+
+//   // 更新显示
+//   if (battleScene && battleScene.scene.scenes[0]) {
+//     updateBattleFieldDisplay(battleScene.scene.scenes[0], row, col, 'cardBack');
+//   }
+
+//   console.log(`Removed card from slot [${row}][${col}]`);
+// };
+
+
 
 // 计算容器的 translateY，实现滚动切换
 const containerStyle = computed(() => ({
@@ -438,7 +1412,26 @@ const goToScreen = (idx) => {
 const screen0 = ref(null);
 const screen1 = ref(null);
 
+let battleScene = null // 添加战斗场景的引用
+function onOpen() {
+  isConnected.value = true;
+  connectionStatus.value = 'connected';
+  connectionStatusText.value = '已连接';
+  reconnectAttempts.value = 0;
+
+  // 连接成功后发送RoundBegin消息
+  sendMessage({
+    type: "RoundBegin",
+    room: {
+      roomId: getData('current_game_room')?.roomId,
+      uid: getData('multiGame_userInfo')?.uid
+    }
+  });
+}
 onMounted(() => {
+  connectWebSocket();
+
+  console.log("hey");
 
   //页面初始化
   const commonConfig = {
@@ -446,17 +1439,40 @@ onMounted(() => {
     width: '100%',
     height: '100%',
     physics: { default: 'arcade' },
+    audio: {
+      disableWebAudio: true,  // 禁用 Web Audio
+      noAudio: true          // 完全禁用音频
+    }
   };
 
+  timerEl = document.getElementById('countdown-timer');
   // 第一个 Phaser 实例：对战界面
-  new Phaser.Game({
+  battleScene = new Phaser.Game({
     ...commonConfig,
     parent: screen0.value,
     scene: {
 
       //预加载
       preload() {
-        // 创建一个纹理生成器来绘制卡牌背面
+        // 只加载图片资源，不生成纹理
+        cardImages.forEach(card => {
+          this.load.image(card.key, card.src);
+        });
+
+        // 加载状态效果图片
+        buffs.forEach(buff => {
+          this.load.image(buff.key, buff.src);
+        });
+
+        heads.forEach(head => {
+          this.load.image(head.key, head.src);
+        });
+
+      },
+
+
+      create() {
+
         const graphics = this.add.graphics();
 
         // 绘制卡牌背面的花纹
@@ -480,8 +1496,8 @@ onMounted(() => {
         buffs.forEach(buff => {
           this.load.image(buff.key, buff.src);
         });
-      },
-      create() {
+
+
         // 获取游戏画布的中心点和尺寸
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -554,29 +1570,39 @@ onMounted(() => {
           for (let col = 0; col < 3; col++) {
             const x = startX + (col * (slotWidth + horizontalGap));
             const y = startY + (row * (slotHeight + verticalGap));
-
-            // 根据 gameState_one 中的数据创建卡牌
             const cardType = gameState_one.value.cardGrid[row][col];
 
-            // 创建卡牌图像
             const card = this.add.image(x, y, cardType)
-              .setOrigin(0, 0);
+              .setOrigin(0, 0)
+              .setDisplaySize(slotWidth, slotHeight)
+              .setName(`card_${row}_${col}`)
+              .setData('type', cardType) // 保留类型数据，这是显示提示的关键
+              .setInteractive(); // 保留交互性
 
-            // 添加互动效果
-            card.setInteractive()
-              .on('pointerover', () => {
-                card.setTint(0xffff00);
-              })
-              .on('pointerout', () => {
-                card.clearTint();
-              })
-              .on('pointerdown', () => {
-                // 可以在这里添加点击事件，比如更新 gameState_one
-                console.log(`Clicked card at row ${row}, col ${col}`);
-              });
+            // 为卡片添加鼠标悬停和移出事件
+            card.on('pointerover', () => {
+
+              // 如果是有效卡片，显示提示
+              if (cardType !== 'cardBack' && cardDescriptions[cardType]) {
+                if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+
+                this.tooltipTimer = setTimeout(() => {
+                  // 计算提示位置 - 向右侧显示，除非右侧空间不足
+                  const tooltipX = x + slotWidth + 50;
+                  const tooltipY = y + slotHeight / 2;
+
+                  this.showCardTooltip(tooltipX, tooltipY, cardDescriptions[cardType]);
+                }, 400);
+              }
+            });
+
+            card.on('pointerout', () => {
+              // 隐藏提示
+              if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+              if (this.cardTooltip) this.cardTooltip.setVisible(false);
+            });
           }
         }
-
         // 创建中央分界线
         const dividerLine = this.add.rectangle(60, centerY, width - 120, 4, 0xC5A880)
           .setOrigin(0, 0.5)
@@ -587,7 +1613,14 @@ onMounted(() => {
         const allyBarX = 250;
 
         // 创建己方头像
-        const allyAvatar = this.add.circle(100, allyAvatarY, 40, 0x4A5568);
+        this.allyAvatar = this.add.image(
+          100,
+          allyAvatarY,
+          'aiboy'
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 己方血条和护甲条
         const allyHealthWidth = (gameState_one.value.ally.health / gameState_one.value.ally.maxHealth) * 200;
@@ -620,7 +1653,14 @@ onMounted(() => {
         const enemyBarX = width - 250;
 
         // 创建敌方头像
-        const enemyAvatar = this.add.circle(width - 100, enemyAvatarY, 40, 0xE53E3E);
+        this.enemyAvatar = this.add.image(
+          width - 100,
+          enemyAvatarY,
+          'aigirl'        // ← 纹理 key
+        )
+          .setOrigin(0.5, 0.5)
+          .setDisplaySize(80, 80)   // ← 指定宽高
+          .setAlpha(0.8);
 
         // 敌方血条和护甲条
         const enemyHealthWidth = (gameState_one.value.enemy.health / gameState_one.value.enemy.maxHealth) * 200;
@@ -651,38 +1691,40 @@ onMounted(() => {
         // 己方文本显示
         this.add.text(allyBarX, allyAvatarY - 25, `HP: ${gameState_one.value.ally.health}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX, allyAvatarY + 25, `Armor: ${gameState_one.value.ally.armor}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(allyBarX - 180, allyStatusBarY, '状态效果', {
           fontSize: '18px',
-          color: '#ffffff',
+          padding: { x: 10, y: 5 },
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0, 0.5);
 
         // 敌方文本显示
         this.add.text(enemyBarX, enemyAvatarY - 25, `HP: ${gameState_one.value.enemy.health}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX, enemyAvatarY + 25, `Armor: ${gameState_one.value.enemy.armor}`, {
           fontSize: '16px',
-          color: '#ffffff',
+          color: '#000000',
           resolution: 2,
         }).setOrigin(0.5);
 
         this.add.text(enemyBarX - 180, enemyStatusBarY, '状态效果', {
           fontSize: '18px',
-          color: '#ffffff',
+          color: '#000000',
+          padding: { x: 0, y: 5 },
           resolution: 2,
         }).setOrigin(0, 0.5);
 
@@ -695,18 +1737,28 @@ onMounted(() => {
             // 查找对应的 buff 图片
             const buff = buffs.find(b => b.key === effectKey);
             if (buff) {
-              const iconX = isAlly ? x + (index * spacing)+100 : x - (index * spacing)+150;
+              const iconX = isAlly ? x + (index * spacing) + 100 : x - (index * spacing) + 150;
               const icon = this.add.image(iconX, y, buff.key)
                 .setDisplaySize(iconSize, iconSize)
-                .setOrigin(0.5, 0.5);
+                .setOrigin(0.5, 0.5)
+                .setData('type', effectKey); // 存储buff类型，便于获取描述
 
               // 添加鼠标悬停效果
               icon.setInteractive()
                 .on('pointerover', () => {
-                  //预留显示效果详情
+                  if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+
+                  // 添加延迟显示
+                  this.tooltipTimer = setTimeout(() => {
+                    const description = buffDescriptions[effectKey] || `${effectKey} 效果`;
+                    // 使用现有的提示显示函数
+                    this.showCardTooltip(iconX, y - 40, description);
+                  }, 400);
                 })
                 .on('pointerout', () => {
-                  //预留取消显示效果详情
+                  // 隐藏提示
+                  if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+                  if (this.cardTooltip) this.cardTooltip.setVisible(false);
                 });
             }
           });
@@ -728,6 +1780,98 @@ onMounted(() => {
           false
         );
 
+        //显示ui
+        if (this.cardTooltip) {
+          this.cardTooltip.destroy();
+          this.cardTooltip = null;
+        }
+
+        // 创建新的提示UI工具函数
+        this.showCardTooltip = (x, y, text) => {
+          // 每次都创建新的提示组
+          if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+          }
+
+          // 创建新提示容器
+          this.cardTooltip = this.add.container(x, y).setDepth(2000);
+
+          // 创建文本 - 确保启用自动换行
+          const tooltipText = this.add.text(0, 0, text, {
+            fontSize: '14px',
+            color: '#ffffff',
+            resolution: 2,
+            align: 'left',         // 左对齐使多行文本更易读
+            padding: { x: 10, y: 8 },
+            wordWrap: {
+              width: 250,          // 设置适当的宽度以允许文本换行
+              useAdvancedWrap: true // 使用高级换行以处理中文等语言
+            },
+            lineSpacing: 3         // 行间距，使多行文本更清晰
+          }).setOrigin(0.5);
+
+          // 创建背景 - 尺寸会自动适应换行后的文本
+          const textBounds = tooltipText.getBounds();
+          const tooltipBg = this.add.rectangle(
+            0,
+            0,
+            textBounds.width + 20,
+            textBounds.height + 16,
+            0x000000,
+            0.85              // 增强对比度
+          ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
+
+          // 先添加背景再添加文本
+          this.cardTooltip.add(tooltipBg);
+          this.cardTooltip.add(tooltipText);
+
+          // 智能调整位置，避免提示框超出屏幕
+          let finalX = x;
+          let finalY = y;
+
+          // 水平方向调整
+          if (x + textBounds.width / 2 + 10 > this.scale.width) {
+            finalX = this.scale.width - textBounds.width / 2 - 20;
+          }
+          if (x - textBounds.width / 2 - 10 < 0) {
+            finalX = textBounds.width / 2 + 20;
+          }
+
+          // 垂直方向调整 - 确保长文本也不会超出屏幕底部
+          if (y + textBounds.height / 2 + 10 > this.scale.height) {
+            finalY = this.scale.height - textBounds.height / 2 - 20;
+          }
+
+          this.cardTooltip.setPosition(finalX, finalY);
+        };
+
+
+        // 修改鼠标悬停事件
+        this.input.on('gameobjectover', (pointer, gameObject) => {
+          if (gameObject.getData && gameObject.getData('type')) {
+            const cardType = gameObject.getData('type');
+            if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
+
+            if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+
+            this.tooltipTimer = setTimeout(() => {
+              const tooltipX = gameObject.x > this.scale.width / 2 ?
+                gameObject.x - 100 : gameObject.x + 100;
+              this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
+            }, 400);
+          }
+        });
+
+        this.input.on('gameobjectout', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+
+        // 拖动开始时隐藏提示
+        this.input.on('dragstart', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
       },
     },
   });
@@ -773,7 +1917,10 @@ onMounted(() => {
 
         this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT)
 
-            // 创建顶部边栏背景，并添加交互效果
+        // 创建工具提示管理器
+        this.tooltipManager = new TooltipManager(this);
+
+        // 创建顶部边栏背景，并添加交互效果
         const topBar = this.add.rectangle(0, 0, this.scale.width, topBarHeight, 0xa3916a)
           .setOrigin(0, 0)
           .setDepth(100)
@@ -796,7 +1943,7 @@ onMounted(() => {
 
         const sellText = this.add.text(sellSlot.x + 50, sellSlot.y + 90, '出售卡牌', {  // y位置上移
           fontSize: '14px',
-          resolution: 2, 
+          resolution: 2,
           color: '#ffffff',
           align: 'center',
           padding: { y: 5 }  // 添加垂直内边距
@@ -817,7 +1964,7 @@ onMounted(() => {
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const buyText = this.add.text(padding * 2 + 100 + 50, padding + 90 - 200, '诗意卡包\n10金币', {
+        const buyText = this.add.text(padding * 2 + 100 + 50, padding + 90 - 200, '诗意卡包\n5金币', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -834,11 +1981,11 @@ onMounted(() => {
 
         // 添加购买槽的悬浮效果
         buySlot.on('pointerover', () => {
-          if (coins.value >= 10) {
+          if (coins.value >= 5) {
             // 简单的悬浮效果 - 只改变边框颜色和透明度
             buySlot.setStrokeStyle(3, 0xffffff, 1) // 白色边框
             buySlot.setAlpha(0.9) // 轻微透明
-            
+
             // 简单的文字轻微放大
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -857,7 +2004,7 @@ onMounted(() => {
           // 恢复原状
           buySlot.setStrokeStyle(3, 0x8c7853, 0.9)
           buySlot.setAlpha(1)
-          
+
           this.tweens.add({
             targets: [buyIcon, buyText],
             scale: 1,
@@ -875,17 +2022,17 @@ onMounted(() => {
         this.shiftKey.on('down', () => {
           // 切换模式状态
           isStackingMode.value = !isStackingMode.value
-          
+
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
-          
+
           // 颜色渐变动画 - 不改变位置和大小
           this.tweens.add({
             targets: modeHintBackground,
             duration: 300,
             ease: 'Power2.easeOut',
-            onUpdate: function() {
+            onUpdate: function () {
               const progress = this.progress
               const currentColor = Phaser.Display.Color.Interpolate.ColorWithColor(
                 Phaser.Display.Color.ValueToColor(modeHintBackground.fillColor),
@@ -897,7 +2044,7 @@ onMounted(() => {
               modeHintBackground.setStrokeStyle(2, newStrokeColor, 0.5 + progress * 0.5)
             }
           })
-          
+
           // 文字淡入淡出
           this.tweens.add({
             targets: modeHintText,
@@ -918,13 +2065,13 @@ onMounted(() => {
 
         // 第一个购买槽处理函数
         const handleBuyClick = () => {
-          if (coins.value >= 10) {
+          if (coins.value >= 5) {
             this.tweens.killTweensOf([buySlot, buyIcon, buyText])
             buySlot.setScale(1)
             buyIcon.setScale(1)
             buyText.setScale(1)
             handleBuyPack()
-            
+
             // 简单的按下反馈
             this.tweens.add({
               targets: buySlot,
@@ -937,7 +2084,7 @@ onMounted(() => {
                 buySlot.setScale(1) // 确保动画完成后重置
               }
             })
-            
+
             // 简单的文字反馈
             this.tweens.add({
               targets: [buyIcon, buyText],
@@ -950,15 +2097,15 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简洁的边框闪烁
             buySlot.setStrokeStyle(3, 0xffffff)
-            
+
             // 保留金币消费提示（这个比较实用）
             const costText = this.add.text(
               buySlot.x + 50,
               buySlot.y + 120,
-              '-10',
+              '-5',
               {
                 fontSize: '18px',
                 color: '#ff5722',
@@ -966,7 +2113,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: costText,
               y: '-=30',
@@ -975,7 +2122,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => costText.destroy()
             })
-            
+
           } else {
             if (buySlot1Animating) return
             buySlot1Animating = true
@@ -1001,7 +2148,7 @@ onMounted(() => {
                 buySlot1Animating = false
               }
             })
-            
+
             this.tweens.add({
               targets: [buyIcon, buyText],
               x: '+=3',
@@ -1015,7 +2162,7 @@ onMounted(() => {
                 buyText.setScale(1)
               }
             })
-            
+
             // 简单的警告提示
             const warningText = this.add.text(
               buySlot.x + 50,
@@ -1028,7 +2175,7 @@ onMounted(() => {
                 resolution: 2
               }
             ).setDepth(104).setOrigin(0.5)
-            
+
             this.tweens.add({
               targets: warningText,
               y: '-=20',
@@ -1037,7 +2184,7 @@ onMounted(() => {
               ease: 'Power2',
               onComplete: () => warningText.destroy()
             })
-            
+
             buySlot.setStrokeStyle(3, 0xff5722)
           }
         }
@@ -1067,7 +2214,7 @@ onMounted(() => {
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90 , '攻击卡槽', {
+        const attackText = this.add.text(padding * 3 + 200 + 50, padding + 90, '攻击卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1079,19 +2226,19 @@ onMounted(() => {
 
 
         // 创建防守卡槽
-        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding , 100, 140, 0x0066cc)
+        const defenseSlot = this.add.rectangle(padding * 4 + 300, padding, 100, 140, 0x0066cc)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x4488ff, 0.9)
 
-        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40 , '🛡️', {
+        const defenseIcon = this.add.text(padding * 4 + 300 + 50, padding + 40, '🛡️', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90 , '防守卡槽', {
+        const defenseText = this.add.text(padding * 4 + 300 + 50, padding + 90, '防守卡槽', {
           fontSize: '16px',
           resolution: 2,
           color: '#ffffff',
@@ -1102,19 +2249,19 @@ onMounted(() => {
         }).setOrigin(0.5).setDepth(102)
 
         // 创建BUFF卡槽
-        const buffSlot = this.add.rectangle(padding * 5 + 400, padding , 100, 140, 0x228b22)
+        const buffSlot = this.add.rectangle(padding * 5 + 400, padding, 100, 140, 0x228b22)
           .setOrigin(0, 0)
           .setDepth(101)
           .setInteractive({ dropZone: true })
           .setStrokeStyle(3, 0x44cc44, 0.9)
 
-        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40 , '✨', {
+        const buffIcon = this.add.text(padding * 5 + 400 + 50, padding + 40, '✨', {
           fontSize: '32px',
           resolution: 2,
           padding: { x: 2, y: 2 }
         }).setOrigin(0.5).setDepth(102)
 
-        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90 , 'BUFF卡槽', {
+        const buffText = this.add.text(padding * 5 + 400 + 50, padding + 90, 'BUFF卡槽', {
           fontSize: '16px',
           color: '#ffffff',
           align: 'center',
@@ -1126,45 +2273,151 @@ onMounted(() => {
 
         // 攻击卡槽处理函数
         const handleAttackSlot = (card) => {
-          console.log('卡片放入攻击槽:', card.getData('type'))
-          // 在这里添加攻击逻辑
-          
-          
+          // 检查攻击槽位[3][0]是否已被占用
+          if (gameState_one.value.cardGrid[3][0] !== 'cardBack') {
+            console.log('攻击槽位已被占用');
+            return
+          }
 
-          attackSlot.y = padding
-          attackIcon.y = padding + 40
-          attackText.y = padding + 90
+          const cardType = card.getData('type')
+          console.log('卡片放入攻击槽:', cardType)
 
-          // 销毁卡片
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 0, cardType);
+          }, 100);
+
+
+          // 添加视觉效果
+          const flash = this.add.circle(attackSlot.x + 50, attackSlot.y + 70, 40, 0xff4444, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(attackSlot.x + 50, attackSlot.y + 30, '⚔️ 攻击!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#ff4444',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
-        // 防守卡槽处理函数
+        // 防御卡槽处理函数
         const handleDefenseSlot = (card) => {
-          console.log('卡片放入防守槽:', card.getData('type'))
-          // 在这里添加防守逻辑
-          
-          
-          defenseSlot.y = padding
-          defenseIcon.y = padding + 40
-          defenseText.y = padding + 90
-          
+          // 检查防御槽位[3][1]是否已被占用
+          if (gameState_one.value.cardGrid[3][1] !== 'cardBack') {
+            console.log('防御槽位已被占用');
+            return
+          }
+
+          const cardType = card.getData('type')
+          console.log('卡片放入防御槽:', cardType)
+
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 1, cardType);
+          }, 100);
+
+          // 添加视觉效果
+          const flash = this.add.circle(defenseSlot.x + 50, defenseSlot.y + 70, 40, 0x4488ff, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(defenseSlot.x + 50, defenseSlot.y + 30, '🛡️ 防御!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#4488ff',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
 
         // BUFF卡槽处理函数
         const handleBuffSlot = (card) => {
-          console.log('卡片放入BUFF槽:', card.getData('type'))
-          // 在这里添加BUFF逻辑
-          
+          // 检查BUFF槽位[3][2]是否已被占用
+          if (gameState_one.value.cardGrid[3][2] !== 'cardBack') {
+            console.log('BUFF槽位已被占用');
+            return
+          }
 
-          
-          buffSlot.y = padding
-          buffIcon.y = padding + 40
-          buffText.y = padding + 90
-          
+          const cardType = card.getData('type')
+          console.log('卡片放入BUFF槽:', cardType)
+
+          // 更新游戏状态
+          setTimeout(() => {
+            updateCard(3, 2, cardType);
+          }, 100);
+
+          // 添加视觉效果
+          const flash = this.add.circle(buffSlot.x + 50, buffSlot.y + 70, 40, 0x44cc44, 0.8)
+            .setDepth(150)
+            .setBlendMode(Phaser.BlendModes.ADD)
+
+          this.tweens.add({
+            targets: flash,
+            scale: { from: 0.1, to: 2 },
+            alpha: { from: 0.8, to: 0 },
+            duration: 500,
+            onComplete: () => flash.destroy()
+          })
+
+          // 显示效果文本
+          const effectText = this.add.text(buffSlot.x + 50, buffSlot.y + 30, '✨ BUFF!', {
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#44cc44',
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5).setDepth(200)
+
+          this.tweens.add({
+            targets: effectText,
+            y: '-=30',
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => effectText.destroy()
+          })
+
+          // 直接销毁卡片
           card.destroy()
           this.cards = this.cards.filter(c => c !== card)
         }
@@ -1173,11 +2426,11 @@ onMounted(() => {
         const finalCraftingX = padding * 6 + 500 + padding;
         const craftingStation = this.add.rectangle(
           finalCraftingX, // 直接设置最终位置，不需要动画
-          padding, 
-          400, 
-          140, 
-          0xa3916a, 
-          1 
+          padding,
+          400,
+          140,
+          0xa3916a,
+          1
         )
           .setOrigin(0, 0)
           .setDepth(100)
@@ -1186,17 +2439,17 @@ onMounted(() => {
         // 创建四个合成槽
         const craftingSlots = []
         const slotWidth = 80
-        const cardWidth = 100; 
-        const cardHeight = 140; 
+        const cardWidth = 100;
+        const cardHeight = 140;
         const slotSpacing = 20
-        const slotTypes = [null, null, null, null] 
+        const slotTypes = [null, null, null, null]
 
         for (let i = 0; i < 4; i++) {
           // 直接使用最终位置，删除动画
           const finalX = finalCraftingX + slotSpacing + i * (cardWidth + slotSpacing);
-          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2; 
+          const y = craftingStation.y + (craftingStation.height - cardHeight) / 2;
 
-          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853) 
+          const slot = this.add.rectangle(finalX, y, cardWidth, cardHeight, 0x8c7853)
             .setOrigin(0, 0)
             .setDepth(101)
             .setStrokeStyle(1, 0xffffff)
@@ -1211,9 +2464,9 @@ onMounted(() => {
           let operatorText = null;
           if (i < 3) {
             operatorText = this.add.text(
-              finalX + cardWidth + 5, 
-              y + cardHeight / 2, 
-              i < 2 ? '+' : '=', 
+              finalX + cardWidth + 5,
+              y + cardHeight / 2,
+              i < 2 ? '+' : '=',
               {
                 fontSize: '24px',
                 resolution: 5,
@@ -1242,105 +2495,105 @@ onMounted(() => {
           }
         }
 
-          // 添加拖放事件
-          // 修改合成槽的拖放逻辑
-          this.input.on('drop', (pointer, gameObject, dropZone) => {
-            const cardType = gameObject.getData('type');
-            const slotType = dropZone.getData('type');
+        // 添加拖放事件
+        // 修改合成槽的拖放逻辑
+        this.input.on('drop', (pointer, gameObject, dropZone) => {
+          const cardType = gameObject.getData('type');
+          const slotType = dropZone.getData('type');
 
-            const canPlace = (slotType === null) || 
-                            (slotType === cardType) || 
-                            !dropZone.getData('occupied');
+          const canPlace = (slotType === null) ||
+            (slotType === cardType) ||
+            !dropZone.getData('occupied');
 
-            if (canPlace && !dropZone.getData('occupied')) {
-              // 放置卡牌到槽位
-              dropZone.setData('occupied', true);
-              dropZone.setData('card', gameObject);
+          if (canPlace && !dropZone.getData('occupied')) {
+            // 放置卡牌到槽位
+            dropZone.setData('occupied', true);
+            dropZone.setData('card', gameObject);
 
-              // 调整卡牌位置到槽位中心
-              gameObject.x = dropZone.x + dropZone.width / 2;
-              gameObject.y = dropZone.y + dropZone.height / 2;
-              gameObject.setDepth(102); // 确保在槽位上方
+            // 调整卡牌位置到槽位中心
+            gameObject.x = dropZone.x + dropZone.width / 2;
+            gameObject.y = dropZone.y + dropZone.height / 2;
+            gameObject.setDepth(102); // 确保在槽位上方
 
-              // 检查是否可以合成
-              const materials = craftingSlots.slice(0, 3)
-                .map(slot => slot.getData('card'))
-                .filter(Boolean);
+            // 检查是否可以合成
+            const materials = craftingSlots.slice(0, 3)
+              .map(slot => slot.getData('card'))
+              .filter(Boolean);
 
-              if (materials.length === 3) {
-                console.log('Materials ready:', materials.map(card => card.getData('type')));
-                const resultType = checkCrafting(materials);
-                
-                if (resultType) {
-                  console.log('Creating result card:', resultType);
-                  
-                  // 创建结果卡牌
-                  const resultCard = this.physics.add.image(
-                    craftingSlots[3].x + craftingSlots[3].width / 2,
-                    craftingSlots[3].y + craftingSlots[3].height / 2,
-                    resultType
-                  )
-                    .setDisplaySize(100, 140)
-                    .setInteractive({ cursor: 'pointer', useHandCursor: true })
-                    .setCollideWorldBounds(true)
-                    .setBounce(0.8)
-                    .setData('type', resultType)
-                    .setData('id', Date.now().toString())
-                    .setDepth(102); // 确保可见
+            if (materials.length === 3) {
+              console.log('Materials ready:', materials.map(card => card.getData('type')));
+              const resultType = checkCrafting(materials);
 
-                  this.input.setDraggable(resultCard);
-                  this.cards.push(resultCard);
+              if (resultType) {
+                console.log('Creating result card:', resultType);
 
-                  // 添加合成效果
-                  const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
-                    .setScale(0.1)
-                    .setAlpha(0.8)
-                    .setTint(0xffd700)
-                    .setBlendMode(Phaser.BlendModes.ADD)
-                    .setDepth(103);
+                // 创建结果卡牌
+                const resultCard = this.physics.add.image(
+                  craftingSlots[3].x + craftingSlots[3].width / 2,
+                  craftingSlots[3].y + craftingSlots[3].height / 2,
+                  resultType
+                )
+                  .setDisplaySize(100, 140)
+                  .setInteractive({ cursor: 'pointer', useHandCursor: true })
+                  .setCollideWorldBounds(true)
+                  .setBounce(0.8)
+                  .setData('type', resultType)
+                  .setData('id', Date.now().toString())
+                  .setDepth(102); // 确保可见
 
-                  this.tweens.add({
-                    targets: flash,
-                    alpha: 0,
-                    scale: 1,
-                    duration: 500,
-                    onComplete: () => flash.destroy()
-                  });
+                this.input.setDraggable(resultCard);
+                this.cards.push(resultCard);
 
-                  // 清空材料槽，但保留诗人槽（索引2）
-                  materials.forEach(card => {
-                    // 检查是否是固定的诗人卡片
-                    if (!card.getData('isFixed')) {
-                      // 从cards数组中移除
-                      this.cards = this.cards.filter(c => c !== card);
-                      card.destroy();
-                    }
-                  });
+                // 添加合成效果
+                const flash = this.add.sprite(resultCard.x, resultCard.y, resultType)
+                  .setScale(0.1)
+                  .setAlpha(0.8)
+                  .setTint(0xffd700)
+                  .setBlendMode(Phaser.BlendModes.ADD)
+                  .setDepth(103);
 
-                  // 只清空非诗人槽
-                  craftingSlots.forEach((slot, index) => {
-                    if (index !== 2) { // 不清空诗人槽（索引2）
-                      slot.setData('occupied', false);
-                      slot.setData('card', null);
-                    }
-                  });
-                  
-                  console.log('Crafting completed successfully!');
-                } else {
-                  console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
-                }
+                this.tweens.add({
+                  targets: flash,
+                  alpha: 0,
+                  scale: 1,
+                  duration: 500,
+                  onComplete: () => flash.destroy()
+                });
+
+                // 清空材料槽，但保留诗人槽（索引2）
+                materials.forEach(card => {
+                  // 检查是否是固定的诗人卡片
+                  if (!card.getData('isFixed')) {
+                    // 从cards数组中移除
+                    this.cards = this.cards.filter(c => c !== card);
+                    card.destroy();
+                  }
+                });
+
+                // 只清空非诗人槽
+                craftingSlots.forEach((slot, index) => {
+                  if (index !== 2) { // 不清空诗人槽（索引2）
+                    slot.setData('occupied', false);
+                    slot.setData('card', null);
+                  }
+                });
+
+                console.log('Crafting completed successfully!');
+              } else {
+                console.log('No matching recipe found for materials:', materials.map(card => card.getData('type')));
               }
-            } else {
-              console.log('Cannot place card:', cardType, 'in slot:', slotType);
             }
-          });
+          } else {
+            console.log('Cannot place card:', cardType, 'in slot:', slotType);
+          }
+        });
 
 
         // 对应地修改金币文本的深度值
         const coinDisplay = this.add.text(
-          this.scale.width - padding - 10, 
-          padding + 20, 
-          `💰 ${coins.value}`, 
+          this.scale.width - padding - 10,
+          padding + 20,
+          `💰 ${coins.value}`,
           {
             fontSize: '24px',
             resolution: 2,
@@ -1348,7 +2601,7 @@ onMounted(() => {
           }
         )
           .setOrigin(1, 0.5)
-          .setDepth(101); 
+          .setDepth(101);
 
         // 添加模式提示背景框
         const modeHintBackground = this.add.rectangle(
@@ -1382,16 +2635,16 @@ onMounted(() => {
         this.events.on('update', () => {
           const currentCoins = coins.value
           const displayText = `💰 ${currentCoins}`
-          
+
           // 只更新右上角的金币显示
           if (coinDisplay.text !== displayText) {
             const oldValue = parseInt(coinDisplay.text.replace('💰 ', '')) || 0
             coinDisplay.setText(displayText)
-            
+
             // 添加金币变化动画
             if (currentCoins !== oldValue && oldValue > 0) {
               const diff = currentCoins - oldValue
-              
+
               // 创建变化提示文本
               if (diff !== 0) {
                 const changeText = this.add.text(
@@ -1404,7 +2657,7 @@ onMounted(() => {
                     resolution: 2
                   }
                 ).setDepth(1001)
-                
+
                 this.tweens.add({
                   targets: changeText,
                   y: changeText.y - 30,
@@ -1414,7 +2667,7 @@ onMounted(() => {
                   onComplete: () => changeText.destroy()
                 })
               }
-              
+
               // 金币数字跳动效果
               this.tweens.add({
                 targets: coinDisplay,
@@ -1426,18 +2679,18 @@ onMounted(() => {
             }
           }
 
-          
+
           // 实时检查Shift键状态并更新模式显示
           const newText = isStackingMode.value ? '📚 堆叠模式' : '🔧 合成模式'
           const newColor = isStackingMode.value ? 0xffb74d : 0x4caf50
           const newStrokeColor = isStackingMode.value ? 0xff9800 : 0x388e3c
-          
+
           // 只在模式真正改变时更新，避免每帧都执行
           if (modeHintText.text !== newText) {
             modeHintText.setText(newText)
             modeHintBackground.setFillStyle(newColor)
             modeHintBackground.setStrokeStyle(2, newStrokeColor)
-            
+
             // 添加轻微的更新动画
             this.tweens.add({
               targets: [modeHintText, modeHintBackground],
@@ -1456,10 +2709,10 @@ onMounted(() => {
           // 更新金币显示位置
           coinDisplay.x = gameSize.width - padding - 10;
 
-          modeHintBackground.x = gameSize.width - padding ;
-          modeHintText.x = gameSize.width - padding -10;
+          modeHintBackground.x = gameSize.width - padding;
+          modeHintText.x = gameSize.width - padding - 10;
         });
-        const initialCards = ['spring', 'fire', 'bird', 'autumn', 'mountain', 'water', 'moon']
+
         for (let i = 0; i < initialCards.length; i++) {
           const cardKey = initialCards[i]
           const card = this.physics.add.image(180 + i * 120, 250 + topBarHeight, cardKey)
@@ -1474,7 +2727,7 @@ onMounted(() => {
           this.cards.push(card)
         }
 
-            // 设置游戏区域边界
+        // 设置游戏区域边界
         this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height)
 
         // 添加堆叠相关属性
@@ -1483,6 +2736,10 @@ onMounted(() => {
 
         // 拖拽结束事件
         this.input.on('dragend', (pointer, gameObject) => {
+
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
 
           this.tweens.add({
             targets: gameObject,
@@ -1509,13 +2766,13 @@ onMounted(() => {
 
             // 遍历所有卡片和堆叠组
             this.cards.forEach(otherCard => {
-              if (otherCard !== gameObject && 
-                  otherCard.getData('type') === cardType && 
-                  otherCard.active) {
-                
+              if (otherCard !== gameObject &&
+                otherCard.getData('type') === cardType &&
+                otherCard.active) {
+
                 // 获取目标卡片所在的堆叠组
                 const targetStack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 // 如果是不同的堆叠组或者未堆叠的卡片
                 if (!targetStack || targetStack !== currentStack) {
                   const distance = Phaser.Math.Distance.Between(
@@ -1534,12 +2791,12 @@ onMounted(() => {
             if (closestCard) {
               let targetStack = this.cardStacks.find(s => s.includes(closestCard))
               let cardsToAdd = [gameObject]
-              
+
               // 如果当前卡片在堆叠组中，获取它和它上面的所有卡片
               if (currentStack) {
                 const cardIndex = currentStack.indexOf(gameObject)
                 cardsToAdd = currentStack.splice(cardIndex)
-                
+
                 // 如果原堆叠组只剩一张卡，移除该堆叠组
                 if (currentStack.length <= 1) {
                   this.cardStacks.splice(currentStackIndex, 1)
@@ -1562,7 +2819,7 @@ onMounted(() => {
               // 更新堆叠位置
               const baseY = Math.min(...targetStack.map(card => card.y))
               updateStackPosition.call(this, targetStack, closestCard.x, baseY, true)
-              
+
               isStacked = true
             }
 
@@ -1571,39 +2828,55 @@ onMounted(() => {
               updateStackPosition.call(this, currentStack, gameObject.x, gameObject.y, true)
             }
           }
+          //const cardType = gameObject.getData('type')
 
           // 检查是否在攻击槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= attackSlot.x &&
-              pointer.x <= attackSlot.x + attackSlot.width) {
-            handleAttackSlot(gameObject)
+            pointer.x >= attackSlot.x &&
+            pointer.x <= attackSlot.x + attackSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'attack')) {
+              handleAttackSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入攻击槽', attackSlot)
+            }
             return
           }
 
-          // 检查是否在防守槽区域
+          // 检查是否在防御槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= defenseSlot.x &&
-              pointer.x <= defenseSlot.x + defenseSlot.width) {
-            handleDefenseSlot(gameObject)
+            pointer.x >= defenseSlot.x &&
+            pointer.x <= defenseSlot.x + defenseSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'defense')) {
+              handleDefenseSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入防御槽', defenseSlot)
+            }
             return
           }
 
           // 检查是否在BUFF槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= buffSlot.x &&
-              pointer.x <= buffSlot.x + buffSlot.width) {
-            handleBuffSlot(gameObject)
+            pointer.x >= buffSlot.x &&
+            pointer.x <= buffSlot.x + buffSlot.width) {
+
+            if (canPlaceInSlot(cardType, 'buff')) {
+              handleBuffSlot(gameObject)
+            } else {
+              showSlotError(gameObject, '此卡片不能放入BUFF槽', buffSlot)
+            }
             return
           }
           // 检查是否在出售槽区域
           if (pointer.y < topBarHeight &&
-              pointer.x >= sellSlot.x &&
-              pointer.x <= sellSlot.x + sellSlot.width) {
-            
+            pointer.x >= sellSlot.x &&
+            pointer.x <= sellSlot.x + sellSlot.width) {
+
             // 获取当前卡片所在的堆叠组
             const currentStack = this.cardStacks.find(s => s.includes(gameObject))
             let cardsToSell = currentStack ? [...currentStack] : [gameObject]
-            
+
             // 计算总价格
             let totalPrice = 0
             cardsToSell.forEach(card => {
@@ -1641,22 +2914,24 @@ onMounted(() => {
                 ease: 'Back.easeOut'
               })
 
-              // 移除堆叠组
-              if (currentStack) {
-                const stackIndex = this.cardStacks.indexOf(currentStack)
-                if (stackIndex !== -1) {
-                  this.cardStacks.splice(stackIndex, 1)
-                }
-              }
-
-              // 销毁所有要出售的卡片
+              // 发送出售消息并销毁卡牌
               cardsToSell.forEach(card => {
+                const cardType = card.getData('type');
+                const price = cardPrices[cardType] || 0;
+                sendMessage({
+                  type: "discardCard",
+                  room: {
+                    uid: getData('multiGame_userInfo')?.uid,
+                    card: cardType,
+                    money: price
+                  }
+                });
                 card.destroy()
                 this.cards = this.cards.filter(c => c !== card)
               })
               return
             }
-            else{
+            else {
               sellSlot.setStrokeStyle(2, 0x6e5773)
             }
           }
@@ -1666,18 +2941,32 @@ onMounted(() => {
             this.cards.forEach(otherCard => {
               if (otherCard !== gameObject &&
                 Phaser.Geom.Intersects.RectangleToRectangle(gameObject.getBounds(), otherCard.getBounds())) {
-                
+
                 // 获取两张卡片所在的堆叠组
                 const card1Stack = this.cardStacks.find(s => s.includes(gameObject))
                 const card2Stack = this.cardStacks.find(s => s.includes(otherCard))
-                
+
                 const card1Type = gameObject.getData('type')
                 const card2Type = otherCard.getData('type')
 
                 const resultType = checkRecipe(card1Type, card2Type)
 
+                //在这里完善卡牌合成的消息机制
+
+
+
                 if (resultType) {
 
+                  sendMessage({
+                    type: "synthesize",
+                    room: {
+                      //uid: `getCurrentUid()` 
+                      uid: getData('multiGame_userInfo')?.uid,
+                      cardA: card1Type,
+                      cardB: card2Type,
+                      cardC: resultType
+                    }
+                  });
                   const x = (gameObject.x + otherCard.x) / 2
                   const y = (gameObject.y + otherCard.y) / 2
 
@@ -1738,7 +3027,7 @@ onMounted(() => {
                         }
                       }
                     }
-                    
+
                     if (card2Stack) {
                       const index = card2Stack.indexOf(otherCard)
                       card2Stack.splice(index, 1)
@@ -1801,20 +3090,20 @@ onMounted(() => {
           if (stackIndex !== -1) {
             const stack = this.cardStacks[stackIndex]
             const cardIndex = stack.indexOf(gameObject)
-            
+
             // 从原堆叠组中移除当前卡片及其上方的所有卡片
             const removedCards = stack.splice(cardIndex)
-            
+
             // 如果原堆叠组只剩一张卡，移除该堆叠组
             if (stack.length === 1) {
               this.cardStacks.splice(stackIndex, 1)
             }
-            
+
             // 为移除的卡片创建新的堆叠组
             if (removedCards.length > 1) {
               this.cardStacks.push(removedCards)
             }
-            
+
             // 设置拖动卡片组的层级
             removedCards.forEach((card, index) => {
               card.setDepth(150 + index)
@@ -1834,20 +3123,38 @@ onMounted(() => {
 
         // 修改拖拽中事件
         this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
-        // 添加出售槽状态检测
-        const isInSellArea = dragY < topBarHeight && 
-                            dragX >= sellSlot.x && 
-                            dragX <= sellSlot.x + sellSlot.width
-        
-        const cardType = gameObject.getData('type')
-        const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
-        
-        // 更新出售槽样式
-        if (isInSellArea && canSell) {
-          sellSlot.setStrokeStyle(2, 0xffffff)
-        } else {
-          sellSlot.setStrokeStyle(2, 0x6e5773)
-        }
+
+          // 添加槽位高亮逻辑
+          const cardType = gameObject.getData('type')
+          const allowedSlotType = cardSlotMapping[cardType]
+
+          // 重置所有槽位样式
+          attackSlot.setStrokeStyle(3, 0xff4444, 0.9)
+          defenseSlot.setStrokeStyle(3, 0x4488ff, 0.9)
+          buffSlot.setStrokeStyle(3, 0x44cc44, 0.9)
+
+          // 高亮可用槽位
+          if (allowedSlotType === 'attack') {
+            attackSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'defense') {
+            defenseSlot.setStrokeStyle(3, 0xffffff, 1)
+          } else if (allowedSlotType === 'buff') {
+            buffSlot.setStrokeStyle(3, 0xffffff, 1)
+          }
+          // 添加出售槽状态检测
+          const isInSellArea = dragY < topBarHeight &&
+            dragX >= sellSlot.x &&
+            dragX <= sellSlot.x + sellSlot.width
+
+          //const cardType = gameObject.getData('type')
+          const canSell = cardPrices[cardType] && cardPrices[cardType] > 0
+
+          // 更新出售槽样式
+          if (isInSellArea && canSell) {
+            sellSlot.setStrokeStyle(2, 0xffffff)
+          } else {
+            sellSlot.setStrokeStyle(2, 0x6e5773)
+          }
           gameObject.x = dragX
           gameObject.y = dragY
 
@@ -1868,7 +3175,7 @@ onMounted(() => {
         function updateStackPosition(stack, baseX, baseY, animate = false) {
           stack.forEach((card, index) => {
             if (!card.active) return // 检查卡片是否还存在
-            
+
             if (animate) {
               // 使用动画更新位置
               this.tweens.add({
@@ -1887,16 +3194,125 @@ onMounted(() => {
             }
           })
         }
-      },
+        //显示ui
+        if (this.cardTooltip) {
+          this.cardTooltip.destroy();
+          this.cardTooltip = null;
+        }
 
+        // 创建新的提示UI工具函数
+        this.showCardTooltip = (x, y, text) => {
+          // 每次都创建新的提示组
+          if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+          }
+
+          // 创建新提示容器
+          this.cardTooltip = this.add.container(x, y).setDepth(2000);
+
+          // 创建文本 - 确保启用自动换行
+          const tooltipText = this.add.text(0, 0, text, {
+            fontSize: '14px',
+            color: '#ffffff',
+            resolution: 2,
+            align: 'left',         // 左对齐使多行文本更易读
+            padding: { x: 10, y: 8 },
+            wordWrap: {
+              width: 250,          // 设置适当的宽度以允许文本换行
+              useAdvancedWrap: true // 使用高级换行以处理中文等语言
+            },
+            lineSpacing: 3         // 行间距，使多行文本更清晰
+          }).setOrigin(0.5);
+
+          // 创建背景 - 尺寸会自动适应换行后的文本
+          const textBounds = tooltipText.getBounds();
+          const tooltipBg = this.add.rectangle(
+            0,
+            0,
+            textBounds.width + 20,
+            textBounds.height + 16,
+            0x000000,
+            0.85              // 增强对比度
+          ).setOrigin(0.5).setStrokeStyle(1, 0xffffff, 0.7);
+
+          // 先添加背景再添加文本
+          this.cardTooltip.add(tooltipBg);
+          this.cardTooltip.add(tooltipText);
+
+          // 智能调整位置，避免提示框超出屏幕
+          let finalX = x;
+          let finalY = y;
+
+          // 水平方向调整
+          if (x + textBounds.width / 2 + 10 > this.scale.width) {
+            finalX = this.scale.width - textBounds.width / 2 - 20;
+          }
+          if (x - textBounds.width / 2 - 10 < 0) {
+            finalX = textBounds.width / 2 + 20;
+          }
+
+          // 垂直方向调整 - 确保长文本也不会超出屏幕底部
+          if (y + textBounds.height / 2 + 10 > this.scale.height) {
+            finalY = this.scale.height - textBounds.height / 2 - 20;
+          }
+
+          this.cardTooltip.setPosition(finalX, finalY);
+        };
+
+        // 修改鼠标悬停事件
+        this.input.on('gameobjectover', (pointer, gameObject) => {
+          if (gameObject.getData && gameObject.getData('type')) {
+            const cardType = gameObject.getData('type');
+            if (cardType === 'cardBack' || !cardDescriptions[cardType]) return;
+
+            if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+
+            this.tooltipTimer = setTimeout(() => {
+              const tooltipX = gameObject.x > this.scale.width / 2 ?
+                gameObject.x - 100 : gameObject.x + 100;
+              this.showCardTooltip(tooltipX, gameObject.y, cardDescriptions[cardType]);
+            }, 400);
+          }
+        });
+
+        this.input.on('gameobjectout', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+
+        // 拖动开始时隐藏提示
+        this.input.on('dragstart', () => {
+          if (this.tooltipTimer) clearTimeout(this.tooltipTimer);
+          if (this.cardTooltip) this.cardTooltip.setVisible(false);
+        });
+      },
     },
   });
+
+  startTurn();
 });
 
 // 在组件卸载时销毁游戏实例
 onBeforeUnmount(() => {
-  if (game) game.destroy(true)
-})
+  if (game) {
+    // 清除任何悬停计时器
+    if (game.scene.scenes[0].tooltipTimer) {
+      clearTimeout(game.scene.scenes[0].tooltipTimer);
+    }
+    if (battleScene && battleScene.scene.scenes[0].tooltipTimer) {
+      clearTimeout(battleScene.scene.scenes[0].tooltipTimer);
+    }
+
+    game.destroy(true);
+  }
+
+  clearInterval(countdownInterval);
+  clearTimeout(turnTimeout);
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (websocket.value && isConnected.value) {
+    disconnectWebSocket();
+  }
+});
 </script>
 
 <style scoped>
@@ -1918,5 +3334,153 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   position: relative;
+}
+
+.game-wrapper {
+  position: relative;
+}
+
+/* 倒计时样式 */
+.countdown {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 24px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  pointer-events: none;
+  /* 不拦截点击 */
+}
+
+#countdown-timer.countdown {
+  position: fixed;
+  bottom: 56px;
+  right: 56px;
+  z-index: 10000;
+  background: #c59d66;
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px 0 rgba(155, 204, 21, 0.15);
+  padding: 16px 28px 12px 28px;
+  min-width: 158px;
+  font-family: "Segoe UI", Arial, sans-serif;
+  user-select: none;
+  pointer-events: none;
+  text-align: center;
+  transition: background 0.3s;
+}
+
+#countdown-timer .round {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  color: white;
+  text-shadow: 0 2px 8px #222c;
+}
+
+#countdown-timer .timer {
+  font-size: 17px;
+  letter-spacing: 1px;
+  color: #eee;
+}
+
+#countdown-timer .time-num {
+  font-size: 2.3em;
+  font-weight: bold;
+  color: #fff238;
+  margin: 0 8px;
+  text-shadow: 0 2px 12px #443;
+}
+
+#countdown-timer .round-num {
+  color: #fff238;
+  font-weight: bold;
+  font-size: 1.4em;
+}
+
+.game-result-indicator {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 10001;
+  min-width: 240px;
+  background: #333b;
+  color: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 18px 0 rgba(21, 204, 155, 0.20);
+  padding: 40px 60px 32px 60px;
+  font-size: 2.6em;
+  font-weight: bold;
+  letter-spacing: 6px;
+  text-align: center;
+  user-select: none;
+  transform: translate(-50%, -50%);
+  transition: background-color 0.3s;
+}
+
+.game-result-indicator .result-text {
+  font-size: 2.1em;
+  color: #fff;
+  text-shadow: 0 2px 12px #222c;
+}
+
+.game-result-indicator.result-win {
+  background: #ffd700;
+  color: #222;
+}
+
+.game-result-indicator.result-lose {
+  background: #b0b0b0;
+  color: #222;
+}
+
+.game-result-indicator.result-draw {
+  background: #87ceeb;
+  color: #222;
+}
+
+.fetchall-debug-btn {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 10010;
+  background: #ffd700;
+  color: #333;
+  border: none;
+  border-radius: 7px;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 11px 26px;
+  box-shadow: 0 2px 10px #0002;
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.2s;
+}
+
+.fetchall-debug-btn:hover {
+  background: #ffb800;
+  color: #222;
+
+  .return-btn {
+    margin-top: 28px;
+    padding: 12px 38px;
+    font-size: 1.2em;
+    border-radius: 10px;
+    border: none;
+    background: #ffd700;
+    color: #222;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+
+  .return-btn:hover {
+    background: #ffb800;
+    color: #111;
+  }
 }
 </style>

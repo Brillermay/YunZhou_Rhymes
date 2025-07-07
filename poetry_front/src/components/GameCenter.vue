@@ -141,7 +141,7 @@ import { useRouter } from 'vue-router'
 
 // 导入游戏logo图片
 import feihuaLogo from '@/assets/gamelogo/feihualg.png'
-import testLogo from '@/assets/gamelogo/testlg.png'
+import testLogo from '@/assets/gamelogo/Testlg.png'
 import cardLogo from '@/assets/gamelogo/kapailg.png'
 import multiplayLogo from '@/assets/gamelogo/duorenlg.png'
 

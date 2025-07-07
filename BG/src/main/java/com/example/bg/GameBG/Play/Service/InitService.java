@@ -47,16 +47,17 @@ public class InitService {
         PlayerAgainst playerAgainst = new PlayerAgainst();
         playerAgainst.setHp(20);
         playerAgainst.setHpMax(20);
-        playerAgainst.setShieldMax(20);
+        playerAgainst.setShieldMax(10);
         playerAgainst.setRoomNumber(roomId);
         List<CardBattle> cardList = new ArrayList<>();
         playerAgainst.setCards(cardList);
-        playerAgainst.setWealthy(5);
+        playerAgainst.setWealthy(0);
         List<Status> statuses = new ArrayList<>();
+        playerAgainst.setStatusesBegin(statuses);
         playerAgainst.setStatusesEnd(statuses);
         playerAgainst.setRole(role);
         playerAgainst.setShield(10);
-        playerAgainst.setPlayerCondition(null);
+        playerAgainst.setPlayerCondition(new PlayerCondition());
         return playerAgainst;
     }
 }
