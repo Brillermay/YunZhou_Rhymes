@@ -16,7 +16,6 @@ import java.util.Map;
 @Tag(name = "飞花令游戏", description = "飞花令游戏相关接口")
 @RestController
 @RequestMapping("/api/feihua")
-@CrossOrigin(origins = "http://localhost:5173")
 public class FeiHuaController extends ConnetMySQL {
 
     /**

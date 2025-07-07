@@ -22,12 +22,16 @@ public class EmbeddingCacheManager {
 
     // 缓存目录配置 - 相对于项目根目录
     // 同时修改这些常量：
-    private static final String CACHE_BASE_DIR = System.getProperty("user.dir") +File.separator + "BG" +File.separator + "data";
-    private static final String EMBEDDINGS_DIR = CACHE_BASE_DIR + File.separator + "embeddings";  
-    private static final String CACHE_INFO_FILE = CACHE_BASE_DIR + File.separator + "cache_info.json";
+    private static final String CACHE_BASE_DIR = "../data";
+    private static final String EMBEDDINGS_DIR = "../data/embeddings";  
+    private static final String CACHE_INFO_FILE = "../data/cache_info.json";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+
+    // 🆕 添加这两个成员变量
+    private File cacheDir;
+    private File cacheInfoFile;
     /**
      * 缓存信息类
      */
@@ -163,20 +167,29 @@ public class EmbeddingCacheManager {
     /**
      * 初始化缓存目录
      */
-    public void initializeCacheDirectories() throws IOException {
-        // 🔧 简单修复：使用项目根目录下的data文件夹
-        String projectRoot = System.getProperty("user.dir");
-        String cacheDir = projectRoot + File.separator + "BG"+ File.separator + "data";
-        String embeddingsDir = cacheDir + File.separator + "embeddings";
+// 修改缓存目录初始化方法
+public void initializeCacheDirectories() throws Exception {
+    try {
+        // 🔧 云服务器修复：从target目录访问同级的data目录
+        this.cacheDir = new File("../data/embeddings");
+        if (!this.cacheDir.exists()) {
+            boolean created = this.cacheDir.mkdirs();
+            if (!created) {
+                throw new RuntimeException("无法创建缓存目录: " + this.cacheDir.getAbsolutePath());
+            }
+        }
         
-        System.out.println("🔍 项目根目录: " + projectRoot);
-        System.out.println("🔍 缓存目录: " + cacheDir);
+        // 设置缓存信息文件路径
+        this.cacheInfoFile = new File("../data/cache_info.json");
         
-        Files.createDirectories(Paths.get(cacheDir));
-        Files.createDirectories(Paths.get(embeddingsDir));
+        System.out.println("📁 缓存目录初始化完成: " + this.cacheDir.getAbsolutePath());
+        System.out.println("📄 缓存信息文件: " + this.cacheInfoFile.getAbsolutePath());
         
-        System.out.println("📁 缓存目录初始化完成: " + cacheDir);
+    } catch (Exception e) {
+        System.err.println("❌ 缓存目录初始化失败: " + e.getMessage());
+        throw e;
     }
+}
 
 
 
@@ -448,7 +461,7 @@ public class EmbeddingCacheManager {
      */
     public CacheInfo loadCacheInfo() {
         try {
-            File file = new File(CACHE_INFO_FILE);
+            File file = this.cacheInfoFile != null ? this.cacheInfoFile : new File(CACHE_INFO_FILE);
             System.out.println("🔍 尝试加载缓存信息文件: " + file.getAbsolutePath());
 
             if (!file.exists()) {
@@ -488,8 +501,9 @@ public class EmbeddingCacheManager {
      */
     public void saveCacheInfo(CacheInfo cacheInfo) {
         try {
-            Files.createDirectories(Paths.get("data"));
-            objectMapper.writeValue(new File(CACHE_INFO_FILE), cacheInfo);
+            // 🔧 确保目录存在
+            Files.createDirectories(Paths.get("../data"));
+            objectMapper.writeValue(new File("../data/cache_info.json"), cacheInfo);
             System.out.println("💾 缓存信息已保存 - 总数: " + cacheInfo.totalPoems +
                     ", 已缓存: " + cacheInfo.cachedPoemIds.size());
         } catch (Exception e) {
@@ -532,9 +546,10 @@ public class EmbeddingCacheManager {
             System.out.println("  • 数据哈希: " + dataHash);
 
             // 确保目录存在
-            Files.createDirectories(Paths.get(CACHE_BASE_DIR));
+            Files.createDirectories(Paths.get("../data"));
 
-            File cacheFile = new File(CACHE_INFO_FILE);
+
+            File cacheFile = new File("../data/cache_info.json");
             objectMapper.writeValue(cacheFile, cacheInfo);
 
             if (cacheFile.exists() && cacheFile.length() > 0) {
