@@ -22,9 +22,9 @@ public class EmbeddingCacheManager {
 
     // 缓存目录配置 - 相对于项目根目录
     // 同时修改这些常量：
-    private static final String CACHE_BASE_DIR = "data";
-    private static final String EMBEDDINGS_DIR = "data/embeddings";  
-    private static final String CACHE_INFO_FILE = "data/cache_info.json";
+    private static final String CACHE_BASE_DIR = "../data";
+    private static final String EMBEDDINGS_DIR = "../data/embeddings";  
+    private static final String CACHE_INFO_FILE = "../data/cache_info.json";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -170,8 +170,8 @@ public class EmbeddingCacheManager {
 // 修改缓存目录初始化方法
 public void initializeCacheDirectories() throws Exception {
     try {
-        // 🔧 简化：直接使用相对路径
-        this.cacheDir = new File("data/embeddings");
+        // 🔧 云服务器修复：从target目录访问同级的data目录
+        this.cacheDir = new File("../data/embeddings");
         if (!this.cacheDir.exists()) {
             boolean created = this.cacheDir.mkdirs();
             if (!created) {
@@ -180,7 +180,7 @@ public void initializeCacheDirectories() throws Exception {
         }
         
         // 设置缓存信息文件路径
-        this.cacheInfoFile = new File("data/cache_info.json");
+        this.cacheInfoFile = new File("../data/cache_info.json");
         
         System.out.println("📁 缓存目录初始化完成: " + this.cacheDir.getAbsolutePath());
         System.out.println("📄 缓存信息文件: " + this.cacheInfoFile.getAbsolutePath());
@@ -502,8 +502,8 @@ public void initializeCacheDirectories() throws Exception {
     public void saveCacheInfo(CacheInfo cacheInfo) {
         try {
             // 🔧 确保目录存在
-            Files.createDirectories(Paths.get("data"));
-            objectMapper.writeValue(new File("data/cache_info.json"), cacheInfo);
+            Files.createDirectories(Paths.get("../data"));
+            objectMapper.writeValue(new File("../data/cache_info.json"), cacheInfo);
             System.out.println("💾 缓存信息已保存 - 总数: " + cacheInfo.totalPoems +
                     ", 已缓存: " + cacheInfo.cachedPoemIds.size());
         } catch (Exception e) {
@@ -546,9 +546,10 @@ public void initializeCacheDirectories() throws Exception {
             System.out.println("  • 数据哈希: " + dataHash);
 
             // 确保目录存在
-            Files.createDirectories(Paths.get("data"));
+            Files.createDirectories(Paths.get("../data"));
 
-            File cacheFile = new File("data/cache_info.json");
+
+            File cacheFile = new File("../data/cache_info.json");
             objectMapper.writeValue(cacheFile, cacheInfo);
 
             if (cacheFile.exists() && cacheFile.length() > 0) {
