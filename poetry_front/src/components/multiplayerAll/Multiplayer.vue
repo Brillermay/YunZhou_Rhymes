@@ -133,7 +133,7 @@ function connectWebSocket() {
     connectionStatusText.value = '连接中...';
     //const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
 
-    const wsUrl = 'ws://117.72.88.23:8081/ws/game'; // 按你后端实际端口
+    const wsUrl = 'ws://117.72.88.23:8080/api/ws/game'; // 按你后端实际端口
     websocket.value = new WebSocket(wsUrl);
     websocket.value.onopen = onOpen;
     websocket.value.onmessage = onMessage;

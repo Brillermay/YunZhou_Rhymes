@@ -537,7 +537,7 @@ async function connect() {
     // 根据您的后端地址调整WebSocket URL
     //const wsUrl = 'ws://localhost:8081/ws/game'; // 请根据实际端口调整
 
-    const wsUrl = 'ws://117.72.88.23/:8081/ws/game'; // 请根据实际端口调整
+    const wsUrl = 'ws://117.72.88.23:8080/api/ws/game'; // 请根据实际端口调整
 
     websocket.value = new WebSocket(wsUrl);
 

@@ -759,3 +759,7 @@ Room: SpSaO8lm9xSyDT2j Round: 8
 WebSocket连接已关闭，当前连接数：2
 用户 940 的会话已关闭
 WebSocket连接已关闭，当前连接数：1
+2025-07-07T16:53:13.400+08:00  INFO 28468 --- [BG] [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-07-07T16:53:13.883+08:00  INFO 28468 --- [BG] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
+用户 866 的会话已关闭
+WebSocket连接已关闭，当前连接数：0
