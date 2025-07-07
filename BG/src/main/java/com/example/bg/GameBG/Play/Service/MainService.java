@@ -591,6 +591,12 @@ public class MainService extends TextWebSocketHandler {
             int otherPlayerId = existingData.getUserId();
 
             List<CardBattle> listPlayer1, listPlayer2;
+
+            System.out.println("handleRoundEndMessage's playerAgainst:");
+            System.out.println(cardList1);
+            System.out.println(otherPlayerCards);
+
+
             if (uid1 == room.getUid1()) {
                 listPlayer1 = playerService.GetList(cardList1);
                 listPlayer2 = playerService.GetList(otherPlayerCards);
@@ -599,9 +605,11 @@ public class MainService extends TextWebSocketHandler {
                 listPlayer2 = playerService.GetList(cardList1);
             }
 
-            System.out.println("handleRoundEndMessage's playerAgainst:");
+
             System.out.println(playerAgainst1);
             System.out.println(playerAgainst2);
+            System.out.println(listPlayer1);
+            System.out.println(listPlayer2);
 
             playerService.MainService(playerAgainst1, playerAgainst2, listPlayer1, listPlayer2, room);
 

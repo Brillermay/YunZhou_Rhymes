@@ -182,12 +182,12 @@ const autoSave = async () => {
     const response = await axios.post(`${API_BASE_URL}/WriteTemp`, saveData.value)
     
     if (response.data.success) {
-      console.log('游戏已自动保存')
+      //console.log('游戏已自动保存')
     } else {
-      console.error('保存失败:', response.data.message)
+      //console.error('保存失败:', response.data.message)
     }
   } catch (error) {
-    console.error('保存出错:', error)
+    //console.error('保存出错:', error)
   }
 }
 

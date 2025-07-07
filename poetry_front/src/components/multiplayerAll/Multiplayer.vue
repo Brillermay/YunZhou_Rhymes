@@ -55,9 +55,10 @@ function handleFetchAll() {
   console.log("==============test==============")
 
   console.log(gameState_one.value.ally)
-
+  console.log(initialCards);
   console.log(gameState_one.value.enemy)
-
+//uid: `getCurrentUid()`
+  console.log("currentUID:",getData('multiGame_userInfo')?.uid)
 
   console.log("==============test==============")
 
@@ -172,7 +173,6 @@ function onMessage(event) {
 
       // 替换第二行
       gameState_one.value.cardGrid[1] = newRow;
-
       if (battleScene && battleScene.scene && battleScene.scene.scenes[0]) {
         const sceneObj = battleScene.scene.scenes[0];
         const grid = gameState_one.value.cardGrid;
@@ -612,7 +612,7 @@ function sendMessage(message) {
   }
 }
 // 回合时间（秒）
-const TURN_DURATION = 30 * 1000
+let TURN_DURATION = 60 * 1000
 // 结算延迟（毫秒）
 const SETTLE_DELAY = 5 * 1000
 //回合数

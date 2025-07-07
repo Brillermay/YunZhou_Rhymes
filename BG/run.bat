@@ -29,8 +29,7 @@ if not exist "%JAR_PATH%" (
 :: Step 4: Run application (in current console)
 echo [INFO] Starting Spring Boot application...
 echo ======== APPLICATION LOGS ========
-java -jar E:\ComputerDesignCompetition\YunZhou_Rhymes\BG\target\BG-0.0.1-SNAPSHOT.jar
- 
+java -Dlogging.file.name=a.log -jar E:\ComputerDesignCompetition\YunZhou_Rhymes\BG\target\BG-0.0.1-SNAPSHOT.jar > console.log 2>&1
 :: Post-execution handling
 if %errorlevel% neq 0 (
     echo [WARN] Application exited with code %errorlevel%
