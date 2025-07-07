@@ -143,3 +143,5 @@ java.lang.RuntimeException: error:
 2025-07-08T00:27:19.803+08:00  INFO 44332 --- [BG] [http-nio-8081-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
 2025-07-08T00:27:19.803+08:00  INFO 44332 --- [BG] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
 2025-07-08T00:27:19.805+08:00  INFO 44332 --- [BG] [http-nio-8081-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2025-07-08T00:56:32.812+08:00  INFO 44332 --- [BG] [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2025-07-08T00:56:33.213+08:00  INFO 44332 --- [BG] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

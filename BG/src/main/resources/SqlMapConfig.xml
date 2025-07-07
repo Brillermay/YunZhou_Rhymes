@@ -49,6 +49,7 @@
         <mapper resource="com/example/bg/comp/compRecOpMapper.xml"/>
         <mapper resource="com/example/bg/admin/SensitiveWordMapper.xml"/>
         <mapper resource="com/example/bg/GameBG/Player/PlayerOpMapper.xml"/>
+        <mapper resource="com/example/bg/feihua/FeiHuaMapper.xml"/>
     </mappers>
 
 
