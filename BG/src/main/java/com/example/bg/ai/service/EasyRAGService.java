@@ -25,6 +25,9 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.nio.charset.StandardCharsets;
 
 import java.io.InputStream;
 import java.util.*;
@@ -1072,11 +1075,17 @@ public class    EasyRAGService{
             }
         }
 
+        // 读取评分样本文件
+        String ratingSamples = loadRatingSamples();
+
         // 构建 prompt
         String prompt = """
 你是一位资深的古典诗词评鉴专家，通晓平仄格律、精通诗词意境，擅长用温和专业的语言为诗词创作者提供点评与指导。
 
-请根据以下要求，与用户展开交流与评鉴：
+请严格参考以下基于层次分析法得出的评分样本库，确保评分的一致性和准确性：
+
+📚 评分样本库：
+%s
 
 📌 当前用户输入：
 %s
@@ -1088,7 +1097,7 @@ public class    EasyRAGService{
 
 1. 如果用户尚未提供诗词作品，请与其自然交谈，适时引导其分享自己的创作；
 2. 欢迎语只需在首次出现，不应反复使用；
-3. 一旦用户提交了诗词作品，请以专业而亲切的语气，按以下维度进行评分与点评：
+3. 一旦用户提交了诗词作品，请严格参考样本库的评分标准，以专业而亲切的语气，按以下维度进行评分与点评：
 
 ---
 
@@ -1115,9 +1124,14 @@ public class    EasyRAGService{
 
 ---
 
-🗣 评完诗后，你可以继续与用户探讨诗意表达、润色建议或诗词技法等话题。  
+� 评分要求：
+- 严格参考样本库中的评分标准，确保评分的客观性和一致性
+- 对比样本作品的质量水平，给出相应档次的分数
+- 每个维度的评分要有具体依据，避免过高或过低的评分
+
+�🗣 评完诗后，你可以继续与用户探讨诗意表达、润色建议或诗词技法等话题。  
 请注意整体语气需保持：**专业、真诚、鼓励性强、文雅克制**，让用户在点评中感受到信任与热爱诗词的动力。
-""".formatted(userMessage, historyPrompt);
+""".formatted(ratingSamples, userMessage, historyPrompt);
 
         final long[] lastTokenTime = {System.currentTimeMillis()};
         final boolean[] completed = {false};
@@ -1603,5 +1617,37 @@ public List<Poem> recommendPoetryForUser(String userId) throws Exception {
 
     return recommended;
 }
+
+    /**
+     * 读取诗词评分样本文件
+     */
+    private String loadRatingSamples() {
+        try {
+            String filePath = "data/poetry_rating_samples.txt";
+            File file = new File(filePath);
+            
+            if (!file.exists()) {
+                System.err.println("⚠️ 评分样本文件不存在: " + filePath);
+                return "评分样本文件未找到，将基于专业知识进行评分。";
+            }
+            
+            StringBuilder content = new StringBuilder();
+            try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                    new java.io.FileReader(file, java.nio.charset.StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+            
+            System.out.println("✅ 成功读取评分样本文件，内容长度: " + content.length());
+            return content.toString();
+            
+        } catch (Exception e) {
+            System.err.println("❌ 读取评分样本文件失败: " + e.getMessage());
+            e.printStackTrace();
+            return "评分样本文件读取失败，将基于专业知识进行评分。";
+        }
+    }
 
 }
