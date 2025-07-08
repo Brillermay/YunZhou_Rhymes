@@ -46,10 +46,7 @@
 
             <!-- 用户统计 -->
             <div class="user-stats">
-              <div class="stat-item">
-                <span class="stat-number">{{ userStats.poemsRead }}</span>
-                <span class="stat-label">阅读诗词</span>
-              </div>
+
               <div class="stat-item">
                 <span class="stat-number">{{ favoriteStats.total }}</span>
                 <span class="stat-label">收藏数量</span>
@@ -58,10 +55,7 @@
                 <span class="stat-number">{{ userStats.daysActive }}</span>
                 <span class="stat-label">活跃天数</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-number">{{ favoriteStats.poets }}</span>
-                <span class="stat-label">收藏诗人</span>
-              </div>
+
             </div>
 
             <!-- 操作按钮 -->
@@ -362,7 +356,7 @@ const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 // 用户统计数据
 const userStats = reactive({
   poemsRead: 0,
-  daysActive: 0
+  daysActive: 14
 })
 
 // 计算属性
@@ -626,9 +620,6 @@ const refreshUserData = async () => {
       initializeFavorites()
     ])
     
-    // 更新用户统计
-    userStats.poemsRead = Math.floor(Math.random() * 100) + 20
-    userStats.daysActive = Math.floor(Math.random() * 90) + 10
     
     console.log('✅ 数据刷新完成')
   } catch (error) {

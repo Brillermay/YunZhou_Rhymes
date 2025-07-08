@@ -51,4 +51,10 @@ public interface RAGMapper {
      * 🆕 根据标题查询诗词（模糊匹配）
      */
     List<Poem> getPoemsByTitle(@Param("title") String title);
+
+        // 查询用户收藏诗词
+    List<Poem> getFavoritePoemsByUserId(String userId);
+
+    // 根据AI分析结果推荐诗词（这里简单用主题模糊查找）
+    List<Poem> recommendPoemsByTheme(String theme, int limit);
 }

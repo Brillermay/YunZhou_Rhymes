@@ -1586,4 +1586,22 @@ public class    EasyRAGService{
         return stats;
     }
 
+
+public List<Poem> recommendPoetryForUser(String userId) throws Exception {
+    // 1. 查询用户收藏诗词
+    List<Poem> favoritePoems = ragMapper.getFavoritePoemsByUserId(userId);
+
+    // 2. 调用AI分析用户收藏诗词（假设用chat方法，传入所有诗词内容拼接）
+    StringBuilder sb = new StringBuilder();
+    for (Poem poem : favoritePoems) {
+        sb.append(poem.getText()).append("\n");
+    }
+    String analysis = chat("请分析这些诗词内容，提取用户偏好主题：" + sb);
+
+    // 3. 用AI分析结果作为主题，推荐诗词
+    List<Poem> recommended = ragMapper.recommendPoemsByTheme(analysis, 20);
+
+    return recommended;
+}
+
 }

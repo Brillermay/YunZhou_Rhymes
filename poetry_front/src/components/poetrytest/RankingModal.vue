@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="show" class="ranking-modal-overlay" @click="closeModal">
       <div class="ranking-modal" @click.stop>
-        <!-- 🎨 模态框头部 -->
+        <!-- 🎨 模态框头部 - 保持原样 -->
         <div class="modal-header">
           <div class="header-content">
             <div class="header-icon">
@@ -23,11 +23,13 @@
         <!-- 🎨 模态框主体 -->
         <div class="modal-body">
           <!-- 🔧 加载状态 -->
-          <div v-if="loading" class="loading-container">
+          <div v-if="loading || isLoadingUserNames" class="loading-container">
             <div class="loading-animation">
               <div class="spinner"></div>
             </div>
-            <p class="loading-text">正在加载排行榜数据...</p>
+            <p class="loading-text">
+              {{ isLoadingUserNames ? '正在加载用户信息...' : '正在加载排行榜数据...' }}
+            </p>
           </div>
 
           <!-- 🔧 排行榜内容 -->
@@ -66,7 +68,7 @@
                 <div class="section-subtitle">前20名高手</div>
               </div>
               
-              <div v-if="rankList.length > 0" class="table-container">
+              <div v-if="displayRankList.length > 0" class="table-container">
                 <div class="table-wrapper">
                   <table class="ranking-table">
                     <thead>
@@ -101,7 +103,13 @@
                         
                         <td class="name-cell">
                           <div class="name-content">
-                            <span class="username">{{ item.UserName }}</span>
+                            <!-- 🔧 修改：显示真实用户名或加载状态 -->
+                            <span class="username" v-if="item.UserName">
+                              {{ item.UserName }}
+                            </span>
+                            <span class="username loading" v-else>
+                              加载中...
+                            </span>
                             <i 
                               v-if="isMyRank(item.UID)"
                               class="icon-star me-indicator"
@@ -142,7 +150,7 @@
           </div>
         </div>
         
-        <!-- 🎨 模态框底部 -->
+        <!-- 🎨 模态框底部 - 保持原样 -->
         <div class="modal-footer">
           <button class="action-button secondary" @click="closeModal">
             <i class="icon-arrow-left"></i>
@@ -156,6 +164,7 @@
 
 <script>
 import { getCurrentUser } from '@/utils/auth'
+import API_BASE_URL from '@/config/api'
 
 export default {
   name: 'RankingModal',
@@ -189,13 +198,17 @@ export default {
   
   emits: ['close'],
   
+  data() {
+    return {
+      userNameCache: new Map(), // 🔧 用户名缓存
+      isLoadingUserNames: false, // 🔧 用户名加载状态
+      processedRankList: [] // 🔧 已处理的排行榜数据
+    }
+  },
+  
   computed: {
     displayRankList() {
-      // 🔧 为排行榜数据添加用户名
-      return this.rankList.slice(0, 20).map(item => ({
-        ...item,
-        UserName: this.getUserName(item.UID)
-      }))
+      return this.processedRankList.slice(0, 20)
     },
     
     // 🔧 处理我的排名信息
@@ -204,12 +217,32 @@ export default {
       
       return {
         ...this.myRankInfo,
-        UserName: this.getUserName(this.myRankInfo.UID)
+        UserName: this.userNameCache.get(this.myRankInfo.UID) || '加载中...'
       }
     }
   },
   
   watch: {
+    // 🔧 监听rankList变化，自动加载用户名
+    rankList: {
+      handler(newRankList) {
+        if (newRankList && newRankList.length > 0) {
+          this.loadUserNames(newRankList)
+        }
+      },
+      immediate: true
+    },
+    
+    // 🔧 监听myRankInfo变化，加载当前用户名
+    myRankInfo: {
+      handler(newMyRankInfo) {
+        if (newMyRankInfo && newMyRankInfo.UID) {
+          this.loadSingleUserName(newMyRankInfo.UID)
+        }
+      },
+      immediate: true
+    },
+    
     show(newVal) {
       if (newVal) {
         document.body.style.overflow = 'hidden'
@@ -256,23 +289,110 @@ export default {
       return `${min}′${sec.toString().padStart(2, '0')}″`
     },
 
-        // 🔧 根据UID获取用户名
-  // 🔧 根据UID获取用户名
-    getUserName(uid) {
-      const currentUser = getCurrentUser()
+    // 🔧 通过后端API获取单个用户名
+    async fetchUserName(uid) {
+      try {
+        // 检查缓存
+        if (this.userNameCache.has(uid)) {
+          return this.userNameCache.get(uid)
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/user/loginName/${uid}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const userName = await response.text() // 后端返回字符串
+        
+        // 缓存用户名
+        this.userNameCache.set(uid, userName || `用户${uid}`)
+        
+        return userName || `用户${uid}`
+      } catch (error) {
+        console.error(`获取用户${uid}名称失败:`, error)
+        // 出错时显示用户ID
+        const fallbackName = `用户${uid}`
+        this.userNameCache.set(uid, fallbackName)
+        return fallbackName
+      }
+    },
+    
+    // 🔧 加载单个用户名（用于我的排名）
+    async loadSingleUserName(uid) {
+      if (!uid || this.userNameCache.has(uid)) return
       
-      // 如果是当前用户，返回当前用户名
-      if (currentUser && String(currentUser.uid) === String(uid)) {
-        return currentUser.username || currentUser.name || '我'
+      try {
+        await this.fetchUserName(uid)
+        // 触发响应式更新
+        this.$forceUpdate()
+      } catch (error) {
+        console.error('加载单个用户名失败:', error)
+      }
+    },
+    
+    // 🔧 批量加载用户名
+    async loadUserNames(rankList) {
+      if (!rankList || rankList.length === 0) {
+        this.processedRankList = []
+        return
       }
       
-      // 如果不是当前用户，返回用户UID
-      return `用户${uid}`
+      this.isLoadingUserNames = true
+      
+      try {
+        // 获取所有需要加载的UID（去重且不在缓存中的）
+        const uidsToLoad = [...new Set(
+          rankList
+            .map(item => item.UID)
+            .filter(uid => uid && !this.userNameCache.has(uid))
+        )]
+        
+        // 并发加载用户名（限制并发数量，避免过多请求）
+        const batchSize = 5
+        for (let i = 0; i < uidsToLoad.length; i += batchSize) {
+          const batch = uidsToLoad.slice(i, i + batchSize)
+          await Promise.all(batch.map(uid => this.fetchUserName(uid)))
+          
+          // 每批次完成后更新显示
+          this.updateProcessedRankList(rankList)
+        }
+        
+        // 最终更新
+        this.updateProcessedRankList(rankList)
+        
+      } catch (error) {
+        console.error('批量加载用户名失败:', error)
+        // 即使出错也要显示基础信息
+        this.updateProcessedRankList(rankList)
+      } finally {
+        this.isLoadingUserNames = false
+      }
+    },
+    
+    // 🔧 更新处理后的排行榜数据
+    updateProcessedRankList(rankList) {
+      this.processedRankList = rankList.map(item => ({
+        ...item,
+        UserName: this.userNameCache.get(item.UID) || '加载中...'
+      }))
+    },
+    
+    // 🔧 清理缓存（可选，在组件销毁时调用）
+    clearUserNameCache() {
+      this.userNameCache.clear()
     }
   },
   
   beforeUnmount() {
     document.body.style.overflow = 'auto'
+    // 可选：清理缓存
+    // this.clearUserNameCache()
   }
 }
 </script>
@@ -896,5 +1016,12 @@ export default {
       font-size: 1rem;
     }
   }
+}
+
+// 🔧 新增：加载中的用户名样式
+.username.loading {
+  color: var(--ranking-text-light);
+  font-style: italic;
+  opacity: 0.7;
 }
 </style>
