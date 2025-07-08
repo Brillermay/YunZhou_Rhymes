@@ -297,7 +297,7 @@ export default {
           return this.userNameCache.get(uid)
         }
         
-        const response = await fetch(`${API_BASE_URL}/api/users/loginName/${uid}`, {
+        const response = await fetch(`${API_BASE_URL}/user/loginName/${uid}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
