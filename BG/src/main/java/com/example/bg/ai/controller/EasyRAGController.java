@@ -667,4 +667,17 @@ public ResponseEntity<Map<String, Object>> debugRAG(@PathVariable String query) 
     }
 }
 
+@RestController
+@RequestMapping("/ai/recommend")
+public class PoetryRecommendController {
+
+    @Autowired
+    private EasyRAGService easyRAGService;
+
+    @GetMapping("/user/{userId}")
+    public List<Poem> recommendPoetryForUser(@PathVariable String userId) throws Exception {
+        return easyRAGService.recommendPoetryForUser(userId);
+    }
+}
+
 }
