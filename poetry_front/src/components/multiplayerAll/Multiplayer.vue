@@ -22,12 +22,12 @@
         </div>
 
         <!-- 调试按钮，浮动在左上角 -->
-        <button class="fetchall-debug-btn" @click="handleFetchAll">
+        <!-- <button class="fetchall-debug-btn" @click="handleFetchAll">
           fetchall
         </button>
         <button class="export-log-btn" @click="exportLog">
           导出日志
-        </button>
+        </button> -->
       </teleport>
     </div>
   </div>
