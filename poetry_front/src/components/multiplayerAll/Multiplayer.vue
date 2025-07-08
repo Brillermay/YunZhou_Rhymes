@@ -172,7 +172,8 @@ function onMessage(event) {
     // 例如：if (data.type === "xxx") { ... }
 
     if (data.type === "round_end_result") {
-      const myUid = getData('multiGame_userInfo')?.uid;
+      const myUid = `${getCurrentUid()}`;
+      // const myUid = getData('multiGame_userInfo')?.uid;
       let myCards = [];
       let enemyCards = [];
       if (String(data.uid1) === String(myUid)) {
@@ -219,7 +220,8 @@ function onMessage(event) {
     // 监听 game_over 广播
     if (data.type === "game_over") {
       // 你自己的uid
-      const uid = getData('multiGame_userInfo')?.uid
+      const uid = `${getCurrentUid()}`
+      // const uid = getData('multiGame_userInfo')?.uid
       if (data.winner_id == -1) {
         gameResult.value = "draw"
       } else if (String(data.winner_id) === String(uid)) {
@@ -253,7 +255,8 @@ function onMessage(event) {
 
       // 获取本地roomId和uid
       const roomId = getData('current_game_room')?.roomId;
-      const uid = getData('multiGame_userInfo')?.uid;
+      const uid = `${getCurrentUid()}`;
+      // const uid = getData('multiGame_userInfo')?.uid;
 
       let myPlayer, enemyPlayer;
       if (String(data.uid1) === String(uid)) {
@@ -379,7 +382,8 @@ function onMessage(event) {
     if (data.type === "round_begin_result") {
       // 获取本地roomId和uid
       const roomId = getData('current_game_room')?.roomId;
-      const uid = getData('multiGame_userInfo')?.uid;
+      const uid = `${getCurrentUid()}`;
+      //const uid = getData('multiGame_userInfo')?.uid;
 
       // 初始化临时变量
       let roundBeginData = null;
@@ -718,7 +722,8 @@ function settlement() {
 
   const roomId = getData('current_game_room')?.roomId;
   
-  const uid = getData('multiGame_userInfo')?.uid;
+  const uid = `${getCurrentUid()}`;
+  // const uid = getData('multiGame_userInfo')?.uid;
   console.log("extracted:")
   console.log(extracted)
 
