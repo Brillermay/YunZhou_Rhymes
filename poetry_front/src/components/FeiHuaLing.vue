@@ -440,9 +440,8 @@ export default {
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         const isValid = message.includes(this.currentKeyword) && message.length >= 5
-        const isCorrect = Math.random() > 0.3 // 模拟70%正确率
         
-        if (isValid && isCorrect) {
+        if (isValid) {
           this.handleCorrectAnswer(message)
         } else {
           this.handleIncorrectAnswer(message)
