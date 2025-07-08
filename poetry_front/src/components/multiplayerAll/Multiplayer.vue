@@ -86,7 +86,7 @@ function handleFetchAll() {
   console.log(gameState_one.value.ally)
   console.log(initialCards);
   console.log(gameState_one.value.enemy)
-  //uid: `getCurrentUid()`
+  //uid: `${getCurrentUid()}`
   console.log("currentUID:", getData('multiGame_userInfo')?.uid)
 
   console.log("==============test==============")
@@ -1110,7 +1110,7 @@ const handleBuyPack = () => {
     sendMessage({
       type: "openCardGroups",
       room: {
-        uid: `getCurrentUid()` 
+        uid: `${getCurrentUid()}`
 
         //uid: getData('multiGame_userInfo')?.uid
       }
@@ -1465,7 +1465,7 @@ function onOpen() {
     type: "RoundBegin",
     room: {
       roomId: getData('current_game_room')?.roomId,
-      uid: `getCurrentUid()` 
+      uid: `${getCurrentUid()}`
       //uid: getData('multiGame_userInfo')?.uid
     }
   });
@@ -2963,7 +2963,7 @@ onMounted(() => {
                 sendMessage({
                   type: "discardCard",
                   room: {
-                    uid: `getCurrentUid()`, 
+                    uid: `${getCurrentUid()}`, 
                     //uid: getData('multiGame_userInfo')?.uid,
                     card: cardType,
                     money: price
@@ -3003,7 +3003,7 @@ onMounted(() => {
                   sendMessage({
                     type: "synthesize",
                     room: {
-                      uid: `getCurrentUid()` ,
+                      uid: `${getCurrentUid()}` ,
                       // uid: getData('multiGame_userInfo')?.uid,
                       cardA: card1Type,
                       cardB: card2Type,
