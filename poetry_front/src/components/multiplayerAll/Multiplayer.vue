@@ -717,6 +717,7 @@ function settlement() {
   const { newGrid, extracted } = rearrangeGrid(gameState_one.value.cardGrid)
 
   const roomId = getData('current_game_room')?.roomId;
+  
   const uid = getData('multiGame_userInfo')?.uid;
   console.log("extracted:")
   console.log(extracted)
@@ -1109,9 +1110,9 @@ const handleBuyPack = () => {
     sendMessage({
       type: "openCardGroups",
       room: {
-        //uid: `getCurrentUid()` 
+        uid: `getCurrentUid()` 
 
-        uid: getData('multiGame_userInfo')?.uid
+        //uid: getData('multiGame_userInfo')?.uid
       }
     });
 
@@ -1464,7 +1465,8 @@ function onOpen() {
     type: "RoundBegin",
     room: {
       roomId: getData('current_game_room')?.roomId,
-      uid: getData('multiGame_userInfo')?.uid
+      uid: `getCurrentUid()` 
+      //uid: getData('multiGame_userInfo')?.uid
     }
   });
 }
@@ -2961,7 +2963,8 @@ onMounted(() => {
                 sendMessage({
                   type: "discardCard",
                   room: {
-                    uid: getData('multiGame_userInfo')?.uid,
+                    uid: `getCurrentUid()`, 
+                    //uid: getData('multiGame_userInfo')?.uid,
                     card: cardType,
                     money: price
                   }
@@ -3000,8 +3003,8 @@ onMounted(() => {
                   sendMessage({
                     type: "synthesize",
                     room: {
-                      //uid: `getCurrentUid()` 
-                      uid: getData('multiGame_userInfo')?.uid,
+                      uid: `getCurrentUid()` ,
+                      // uid: getData('multiGame_userInfo')?.uid,
                       cardA: card1Type,
                       cardB: card2Type,
                       cardC: resultType
