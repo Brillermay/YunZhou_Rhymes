@@ -91,20 +91,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 最新活动 -->
-          <div class="recent-activity">
-            <h3>最新活动</h3>
-            <div class="activity-list">
-              <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
-                <div class="activity-icon">{{ activity.icon }}</div>
-                <div class="activity-content">
-                  <div class="activity-text">{{ activity.text }}</div>
-                  <div class="activity-time">{{ formatTime(activity.time) }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 诗词管理 -->
@@ -633,7 +619,7 @@ const navItems = [
 
 // 统计数据
 const stats = reactive({
-  totalUsers: 0,
+  totalUsers: 6,
   newUsersToday: 0,
   totalPoems: 0,
   categoriesCount: 0,
